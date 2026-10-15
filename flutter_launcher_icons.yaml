@@ -1,0 +1,20 @@
+# Íconos de la app. Regenerar con: dart run flutter_launcher_icons
+# assets/launcher/ guarda las capas del ícono adaptativo de Android
+# (no se empaqueta en la app).
+flutter_launcher_icons:
+  image_path: "assets/icons/logo.png"
+
+  android: "launcher_icon"
+  min_sdk_android: 21
+  adaptive_icon_background: "assets/launcher/logo_background.png"
+  adaptive_icon_foreground: "assets/launcher/logo_foreground.png"
+  adaptive_icon_monochrome: "assets/launcher/logo_foreground.png"
+
+  ios: true
+  remove_alpha_ios: true
+
+  web:
+    generate: true
+    image_path: "assets/icons/logo.png"
+    background_color: "#0B9A4C"
+    theme_color: "#0B9A4C"
