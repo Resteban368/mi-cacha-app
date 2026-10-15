@@ -1,0 +1,46 @@
+# Compila la app para web y la publica en Vercel (proyecto mi-cancha-app)
+# en cada push a main. También se puede lanzar a mano desde Actions.
+#
+# Requiere el secreto VERCEL_TOKEN en el repo
+# (Settings → Secrets and variables → Actions).
+name: Desplegar web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Si llegan dos pushes seguidos, solo se publica el último.
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: team_8t54Fg4DwEQhPEvhfh2mC10w
+  VERCEL_PROJECT_ID: prj_S3Bsood139tkt9CarhPhGVafN01v
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.38.8
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # web/vercel.json se copia a build/web: rutas de la SPA y sin caché
+      # para index.html y el service worker.
+      - run: flutter build web --release
+
+      - run: npm install --global vercel@54.1.0
+
+      - name: Publicar en producción
+        run: vercel deploy build/web --prod --yes --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
