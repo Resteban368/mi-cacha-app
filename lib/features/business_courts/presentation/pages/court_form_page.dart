@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/catalogs/domain/entities/catalog_court_surface.dart';
 import '../../../../core/domain/entities/sport.dart';
 import '../../../../core/media/image_upload.dart';
 import '../../../../core/media/photo_picker.dart';
@@ -27,6 +28,7 @@ import '../widgets/court_pricing_card.dart';
 import '../widgets/court_rate_editor.dart';
 import '../widgets/court_rates_section.dart';
 import '../widgets/court_section_header.dart';
+import '../widgets/court_specs_card.dart';
 import '../widgets/court_sport_selector.dart';
 import '../widgets/court_structure_selector.dart';
 import '../widgets/court_weekly_schedule.dart';
@@ -234,6 +236,16 @@ class _CourtFormState extends State<_CourtForm> {
     _ => DaySchedule.defaultWeek(),
   };
   late var _rates = [...?_original?.rates];
+  late CourtSurfaceRef? _surface = _original?.specs.surface;
+  late final _length = TextEditingController(
+    text: _metersText(_original?.specs.lengthMeters),
+  );
+  late final _width = TextEditingController(
+    text: _metersText(_original?.specs.widthMeters),
+  );
+  late final _players = TextEditingController(
+    text: _original?.specs.playersPerSide?.toString(),
+  );
 
   /// Fotos elegidas en este formulario (nuevas o reemplazos).
   final _photos = <CourtPhotoSlot, ImageUpload>{};
@@ -251,6 +263,9 @@ class _CourtFormState extends State<_CourtForm> {
     super.initState();
     _name.addListener(_refresh);
     _basePrice.addListener(_refresh);
+    _length.addListener(_refresh);
+    _width.addListener(_refresh);
+    _players.addListener(_refresh);
     // "Usar como base": abre la copia con esa cancha ya elegida.
     if (widget.copyFromCourtId case final id?) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -266,10 +281,50 @@ class _CourtFormState extends State<_CourtForm> {
   void dispose() {
     _name.dispose();
     _basePrice.dispose();
+    _length.dispose();
+    _width.dispose();
+    _players.dispose();
     super.dispose();
   }
 
   void _refresh() => setState(() {});
+
+  static String? _metersText(double? value) => switch (value) {
+    null => null,
+    final v when v == v.roundToDouble() => '${v.toInt()}',
+    final v => '$v'.replaceAll('.', ','),
+  };
+
+  static double? _parseMeters(String text) =>
+      double.tryParse(text.trim().replaceAll(',', '.'));
+
+  static bool _validMeters(double? value) =>
+      value != null && value >= courtMinMeters && value <= courtMaxMeters;
+
+  /// Superficies del deporte elegido, más la actual aunque ya no esté en el
+  /// catálogo (desactivada o si el catálogo no cargó).
+  List<CourtSurfaceRef> _surfacesFor(CourtFormState state) {
+    final sport = _sport;
+    if (sport == null) return const [];
+    final list = [
+      for (final s in state.courtSurfaces)
+        if (s.appliesTo(sport)) CourtSurfaceRef(code: s.code, name: s.name),
+    ];
+    final current = _surface;
+    if (current != null && !list.any((s) => s.code == current.code)) {
+      list.insert(0, current);
+    }
+    return list;
+  }
+
+  /// Al cambiar de deporte se quita la superficie que ya no aplica.
+  void _selectSport(Sport sport, List<CatalogCourtSurface> catalog) {
+    final current = catalog.where((s) => s.code == _surface?.code).firstOrNull;
+    setState(() {
+      _sport = sport;
+      if (current != null && !current.appliesTo(sport)) _surface = null;
+    });
+  }
 
   /// Lo que falta para poder guardar (vacío = listo).
   List<String> get _missing {
@@ -281,8 +336,27 @@ class _CourtFormState extends State<_CourtForm> {
       if (_sport == null) 'deporte',
       if (CopInputFormatter.parse(_basePrice.text) <= 0) 'precio base',
       if (!_schedules.any((s) => s.isOpen)) 'al menos un día abierto',
+      ..._specsMissing,
       if (missingPhotos == 1) '1 foto obligatoria',
       if (missingPhotos > 1) '$missingPhotos fotos obligatorias',
+    ];
+  }
+
+  /// Medidas a medias o fuera de rango y formato inválido.
+  List<String> get _specsMissing {
+    final length = _length.text.trim();
+    final width = _width.text.trim();
+    final players = int.tryParse(_players.text.trim());
+    return [
+      if (length.isEmpty != width.isEmpty)
+        length.isEmpty ? 'largo de la cancha' : 'ancho de la cancha'
+      else if (length.isNotEmpty &&
+          !(_validMeters(_parseMeters(length)) &&
+              _validMeters(_parseMeters(width))))
+        'medidas entre 1 y 200 m',
+      if (_players.text.trim().isNotEmpty &&
+          (players == null || players < 1 || players > courtMaxPlayersPerSide))
+        'jugadores por equipo entre 1 y $courtMaxPlayersPerSide',
     ];
   }
 
@@ -295,6 +369,12 @@ class _CourtFormState extends State<_CourtForm> {
     slotDuration: _slotDuration,
     schedules: _schedules,
     rates: _rates,
+    specs: CourtSpecs(
+      surface: _surface,
+      lengthMeters: _parseMeters(_length.text),
+      widthMeters: _parseMeters(_width.text),
+      playersPerSide: int.tryParse(_players.text.trim()),
+    ),
   );
 
   void _submit(CourtFormState state) {
@@ -592,12 +672,23 @@ class _CourtFormState extends State<_CourtForm> {
           const SizedBox(height: 14),
           CourtSportSelector(
             selectedSportId: _sport?.apiCode,
-            onSportSelected: (option) => setState(() => _sport = option.sport),
+            onSportSelected: (option) =>
+                _selectSport(option.sport, state.courtSurfaces),
           ),
           const SizedBox(height: 14),
           CourtStructureSelector(
             isCovered: _isCovered,
             onChanged: (covered) => setState(() => _isCovered = covered),
+          ),
+          const SizedBox(height: 14),
+          CourtSpecsCard(
+            surfaces: _surfacesFor(state),
+            selectedSurface: _surface?.code,
+            sportChosen: _sport != null,
+            onSurfaceChanged: (surface) => setState(() => _surface = surface),
+            lengthController: _length,
+            widthController: _width,
+            playersController: _players,
           ),
         ],
       ),

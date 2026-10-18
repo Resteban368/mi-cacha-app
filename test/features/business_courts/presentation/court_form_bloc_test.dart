@@ -1,5 +1,9 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mi_cancha/core/catalogs/domain/entities/app_catalogs.dart';
+import 'package:mi_cancha/core/catalogs/domain/entities/catalog_court_surface.dart';
+import 'package:mi_cancha/core/catalogs/domain/usecases/get_catalogs.dart';
+import 'package:mi_cancha/core/domain/entities/sport.dart';
 import 'package:mi_cancha/core/usecase/usecase.dart';
 import 'package:mi_cancha/features/business_account/domain/entities/business_account.dart';
 import 'package:mi_cancha/features/business_account/domain/usecases/get_business_account.dart';
@@ -30,6 +34,14 @@ class _MockRemovePhoto extends Mock implements RemoveCourtPhoto {}
 class _MockUploadPhoto extends Mock implements UploadCourtPhoto {}
 
 class _MockGetCourts extends Mock implements GetCourts {}
+
+class _MockGetCatalogs extends Mock implements GetCatalogs {}
+
+const grass = CatalogCourtSurface(
+  code: 'GRAMA_SINTETICA',
+  name: 'Grama sintética',
+  sports: {Sport.futbol, Sport.padel},
+);
 
 Subscription plan({int inUse = 0, int limit = 3, bool active = true}) =>
     Subscription(
@@ -62,6 +74,7 @@ void main() {
   late _MockGetCourts getCourts;
   late _MockUpdateCourt updateCourt;
   late _MockRemovePhoto removePhoto;
+  late _MockGetCatalogs getCatalogs;
 
   setUpAll(() {
     registerFallbackValue(const NoParams());
@@ -83,6 +96,14 @@ void main() {
     removePhoto = _MockRemovePhoto();
     uploadPhoto = _MockUploadPhoto();
     getCourts = _MockGetCourts();
+    getCatalogs = _MockGetCatalogs();
+    when(() => getCatalogs(any())).thenAnswer(
+      (_) async => const AppCatalogs(
+        amenities: [],
+        paymentMethods: [],
+        courtSurfaces: [grass],
+      ),
+    );
     when(() => getCourts(any())).thenAnswer((_) async => [courtWith({})]);
     when(() => getMyBusiness(any())).thenAnswer(
       (_) async => const Business(
@@ -103,6 +124,7 @@ void main() {
     uploadPhoto: uploadPhoto,
     removePhoto: removePhoto,
     getCourts: getCourts,
+    getCatalogs: getCatalogs,
   );
 
   /// Sube la foto y devuelve la cancha con las posiciones ya cargadas.
@@ -129,8 +151,21 @@ void main() {
           subscription: plan(),
           planKnown: true,
           existingCourts: [courtWith({})],
+          courtSurfaces: const [grass],
         ),
       ],
+    );
+
+    blocTest<CourtFormBloc, CourtFormState>(
+      'si fallan los catálogos, carga sin superficies',
+      setUp: () => when(() => getCatalogs(any())).thenThrow(Exception()),
+      build: build,
+      act: (bloc) => bloc.add(const CourtFormStarted()),
+      skip: 1,
+      verify: (bloc) {
+        expect(bloc.state.contextStatus, CourtFormContextStatus.ready);
+        expect(bloc.state.courtSurfaces, isEmpty);
+      },
     );
 
     blocTest<CourtFormBloc, CourtFormState>(

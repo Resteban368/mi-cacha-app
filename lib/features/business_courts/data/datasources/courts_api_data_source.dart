@@ -117,6 +117,11 @@ class CourtsApiDataSource implements CourtsDataSource {
           'endTime': rate.end.label,
         },
     ],
+    // null borra el dato en la API (el PATCH envía todos los campos).
+    'surface': draft.specs.surface?.code,
+    'lengthMeters': draft.specs.hasDimensions ? draft.specs.lengthMeters : null,
+    'widthMeters': draft.specs.hasDimensions ? draft.specs.widthMeters : null,
+    'playersPerSide': draft.specs.playersPerSide,
   };
 
   static Court fromJson(Map<String, dynamic> json) => Court(
@@ -143,6 +148,16 @@ class CourtsApiDataSource implements CourtsDataSource {
         if (photo case {'slot': final String code, 'url': final String url})
           ?CourtPhotoSlot.fromApi(code): ApiConfig.secureUrl(url),
     },
+    specs: CourtSpecs(
+      surface: switch (json['surface']) {
+        {'code': final String code, 'name': final String name} =>
+          CourtSurfaceRef(code: code, name: name),
+        _ => null,
+      },
+      lengthMeters: (json['lengthMeters'] as num?)?.toDouble(),
+      widthMeters: (json['widthMeters'] as num?)?.toDouble(),
+      playersPerSide: (json['playersPerSide'] as num?)?.toInt(),
+    ),
   );
 
   static DaySchedule? _schedule(Map<String, dynamic> json) {

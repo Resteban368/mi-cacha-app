@@ -35,6 +35,64 @@ enum CourtPhotoSlot {
 /// Duraciones de turno que acepta la API, en minutos.
 const courtSlotDurations = [30, 60, 90, 120];
 
+/// Límites de medidas (metros) y formato que acepta la API.
+const courtMinMeters = 1.0;
+const courtMaxMeters = 200.0;
+const courtMaxPlayersPerSide = 11;
+
+/// Superficie elegida del catálogo.
+class CourtSurfaceRef extends Equatable {
+  const CourtSurfaceRef({required this.code, required this.name});
+
+  final String code;
+  final String name;
+
+  @override
+  List<Object?> get props => [code, name];
+}
+
+/// Superficie, medidas y formato. Todo opcional; las medidas van juntas.
+class CourtSpecs extends Equatable {
+  const CourtSpecs({
+    this.surface,
+    this.lengthMeters,
+    this.widthMeters,
+    this.playersPerSide,
+  });
+
+  static const empty = CourtSpecs();
+
+  final CourtSurfaceRef? surface;
+  final double? lengthMeters;
+  final double? widthMeters;
+
+  /// Jugadores por equipo (5 en fútbol 5, 2 en pádel).
+  final int? playersPerSide;
+
+  bool get hasDimensions => lengthMeters != null && widthMeters != null;
+
+  /// "Grama sintética · 42 × 25 m · Fútbol 5"; vacío si no hay datos.
+  String label(Sport? sport) {
+    String meters(double v) =>
+        v == v.roundToDouble() ? '${v.toInt()}' : '$v'.replaceAll('.', ',');
+    final players = playersPerSide;
+    return [
+      ?surface?.name,
+      if (hasDimensions) '${meters(lengthMeters!)} × ${meters(widthMeters!)} m',
+      if (players != null)
+        sport == Sport.futbol ? 'Fútbol $players' : '$players vs $players',
+    ].join(' · ');
+  }
+
+  @override
+  List<Object?> get props => [
+    surface,
+    lengthMeters,
+    widthMeters,
+    playersPerSide,
+  ];
+}
+
 /// Datos para crear una cancha.
 class CourtDraft extends Equatable {
   const CourtDraft({
@@ -46,6 +104,7 @@ class CourtDraft extends Equatable {
     this.isActive = true,
     this.slotDuration = 60,
     this.rates = const [],
+    this.specs = CourtSpecs.empty,
   });
 
   static const maxNameLength = 60;
@@ -63,6 +122,9 @@ class CourtDraft extends Equatable {
   final List<DaySchedule> schedules;
   final List<CourtRate> rates;
 
+  /// Superficie, medidas y formato; lo que falte se borra en la API.
+  final CourtSpecs specs;
+
   @override
   List<Object?> get props => [
     name,
@@ -73,6 +135,7 @@ class CourtDraft extends Equatable {
     slotDuration,
     schedules,
     rates,
+    specs,
   ];
 }
 
@@ -91,6 +154,7 @@ class Court extends Equatable {
     this.schedules = const [],
     this.rates = const [],
     this.photos = const {},
+    this.specs = CourtSpecs.empty,
   });
 
   final String id;
@@ -116,6 +180,9 @@ class Court extends Equatable {
   /// URL pública (HTTPS) de cada foto subida.
   final Map<CourtPhotoSlot, String> photos;
 
+  /// Superficie, medidas y formato.
+  final CourtSpecs specs;
+
   /// Fotos obligatorias que aún faltan.
   List<CourtPhotoSlot> get missingRequiredPhotos =>
       CourtPhotoSlot.required.where((s) => !photos.containsKey(s)).toList();
@@ -134,5 +201,6 @@ class Court extends Equatable {
     schedules,
     rates,
     photos,
+    specs,
   ];
 }

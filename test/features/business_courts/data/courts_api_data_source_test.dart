@@ -90,6 +90,62 @@ void main() {
     });
   });
 
+  test('envía superficie, medidas y formato; null si no hay', () async {
+    await source.create(padelDraft);
+    expect(body(adapter.requests.last), containsPair('surface', null));
+    expect(body(adapter.requests.last), containsPair('lengthMeters', null));
+    expect(body(adapter.requests.last), containsPair('playersPerSide', null));
+
+    await source.create(
+      CourtDraft(
+        name: padelDraft.name,
+        sport: padelDraft.sport,
+        isCovered: true,
+        basePricePerHour: 89900,
+        schedules: padelDraft.schedules,
+        specs: const CourtSpecs(
+          surface: CourtSurfaceRef(code: 'CEMENTO', name: 'Cemento'),
+          lengthMeters: 20,
+          widthMeters: 10.5,
+          playersPerSide: 2,
+        ),
+      ),
+    );
+    final json = body(adapter.requests.last);
+    expect(json['surface'], 'CEMENTO');
+    expect(json['lengthMeters'], 20);
+    expect(json['widthMeters'], 10.5);
+    expect(json['playersPerSide'], 2);
+  });
+
+  test('lee superficie, medidas y formato', () async {
+    adapter.handler = (_) => (
+      200,
+      {
+        ...courtJson,
+        'surface': {'code': 'GRAMA_SINTETICA', 'name': 'Grama sintética'},
+        'lengthMeters': 42,
+        'widthMeters': 25.5,
+        'playersPerSide': 5,
+      },
+    );
+    final court = await source.create(padelDraft);
+    expect(court.specs.surface?.name, 'Grama sintética');
+    expect(court.specs.lengthMeters, 42);
+    expect(
+      court.specs.label(Sport.futbol),
+      'Grama sintética · 42 × 25,5 m · Fútbol 5',
+    );
+    expect(
+      court.specs.label(Sport.padel),
+      'Grama sintética · 42 × 25,5 m · 5 vs 5',
+    );
+
+    // Sin datos (canchas anteriores): todo vacío.
+    adapter.handler = (_) => (200, courtJson);
+    expect((await source.create(padelDraft)).specs, CourtSpecs.empty);
+  });
+
   test('lee la cancha: fotos por posición, por HTTPS', () async {
     final court = await source.create(padelDraft);
 

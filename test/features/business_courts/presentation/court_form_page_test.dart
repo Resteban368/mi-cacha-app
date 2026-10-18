@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mi_cancha/core/catalogs/domain/entities/catalog_court_surface.dart';
 import 'package:mi_cancha/core/domain/entities/sport.dart';
 import 'package:mi_cancha/core/media/photo_picker.dart';
 import 'package:mi_cancha/core/router/app_routes.dart';
@@ -174,6 +175,108 @@ void main() {
     expect(event.draft.slotDuration, 60);
     expect(event.draft.schedules, hasLength(7));
     expect(event.uploads.keys, CourtPhotoSlot.required);
+  });
+
+  group('superficie y medidas', () {
+    const surfaces = [
+      CatalogCourtSurface(
+        code: 'GRAMA_SINTETICA',
+        name: 'Grama sintética',
+        sports: {Sport.futbol, Sport.padel},
+      ),
+      CatalogCourtSurface(
+        code: 'MADERA',
+        name: 'Madera',
+        sports: {Sport.baloncesto},
+      ),
+      CatalogCourtSurface(code: 'CEMENTO', name: 'Cemento'),
+    ];
+    final withSurfaces = ready.copyWith(courtSurfaces: surfaces);
+
+    testWidgets('ofrece solo las superficies del deporte y las envía', (
+      tester,
+    ) async {
+      await pump(tester, withSurfaces);
+      expect(
+        find.text('Elige el deporte para ver las superficies.'),
+        findsOneWidget,
+      );
+
+      await fillAll(tester);
+      expect(find.text('Grama sintética'), findsOneWidget);
+      expect(find.text('Cemento'), findsOneWidget);
+      expect(find.text('Madera'), findsNothing);
+
+      await tapVisible(
+        tester,
+        find.byKey(const Key('court-surface-GRAMA_SINTETICA')),
+      );
+      await tester.enterText(find.byKey(const Key('court-length')), '20');
+      await tester.enterText(find.byKey(const Key('court-width')), '10,5');
+      await tester.enterText(find.byKey(const Key('court-players')), '2');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('btn-save-court')));
+      await tester.pump();
+      final event =
+          verify(
+                () => bloc.add(captureAny(that: isA<CourtFormSubmitted>())),
+              ).captured.single
+              as CourtFormSubmitted;
+      expect(
+        event.draft.specs,
+        const CourtSpecs(
+          surface: CourtSurfaceRef(
+            code: 'GRAMA_SINTETICA',
+            name: 'Grama sintética',
+          ),
+          lengthMeters: 20,
+          widthMeters: 10.5,
+          playersPerSide: 2,
+        ),
+      );
+    });
+
+    testWidgets('al cambiar a un deporte donde no aplica, la quita', (
+      tester,
+    ) async {
+      await pump(tester, withSurfaces);
+      await fillAll(tester);
+      await tapVisible(
+        tester,
+        find.byKey(const Key('court-surface-GRAMA_SINTETICA')),
+      );
+      await tapVisible(tester, find.text('Baloncesto'));
+      await tester.tap(find.byKey(const Key('btn-save-court')));
+      await tester.pump();
+
+      final event =
+          verify(
+                () => bloc.add(captureAny(that: isA<CourtFormSubmitted>())),
+              ).captured.single
+              as CourtFormSubmitted;
+      expect(event.draft.specs.surface, isNull);
+    });
+
+    testWidgets('pide las dos medidas y un formato válido', (tester) async {
+      await pump(tester, withSurfaces);
+      await fillAll(tester);
+
+      await tester.enterText(find.byKey(const Key('court-length')), '20');
+      await tester.pumpAndSettle();
+      expect(find.text('Falta: ancho de la cancha'), findsOneWidget);
+      expect(saveButton(tester).onPressed, isNull);
+
+      await tester.enterText(find.byKey(const Key('court-width')), '500');
+      await tester.enterText(find.byKey(const Key('court-players')), '12');
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Falta: medidas entre 1 y 200 m, jugadores por equipo entre 1 y 11',
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   testWidgets('con el plan lleno la cancha se crea inactiva', (tester) async {

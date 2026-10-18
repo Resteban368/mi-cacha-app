@@ -168,6 +168,9 @@ class CourtListCard extends StatelessWidget {
                                 icon: Icons.local_offer_outlined,
                                 text: CourtSummaries.rates(court.rates.length),
                               ),
+                              if (court.specs.label(court.sport)
+                                  case final specs when specs.isNotEmpty)
+                                _Line(icon: Icons.grass_outlined, text: specs),
                             ],
                           ),
                         ),

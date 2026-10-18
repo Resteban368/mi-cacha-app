@@ -298,6 +298,7 @@ void _initBusinessCourts() {
         getMyBusiness: sl(),
         getAccount: sl(),
         getCourts: sl(),
+        getCatalogs: sl(),
         createCourt: sl(),
         updateCourt: sl(),
         uploadPhoto: sl(),

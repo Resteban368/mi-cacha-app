@@ -2,6 +2,8 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/catalogs/domain/entities/catalog_court_surface.dart';
+import '../../../../core/catalogs/domain/usecases/get_catalogs.dart';
 import '../../../../core/media/image_upload.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../../business_account/domain/entities/business_account.dart';
@@ -28,6 +30,7 @@ class CourtFormBloc extends Bloc<CourtFormEvent, CourtFormState> {
     required GetMyBusiness getMyBusiness,
     required GetBusinessAccount getAccount,
     required GetCourts getCourts,
+    required GetCatalogs getCatalogs,
     required CreateCourt createCourt,
     required UpdateCourt updateCourt,
     required UploadCourtPhoto uploadPhoto,
@@ -35,6 +38,7 @@ class CourtFormBloc extends Bloc<CourtFormEvent, CourtFormState> {
   }) : _getMyBusiness = getMyBusiness,
        _getAccount = getAccount,
        _getCourts = getCourts,
+       _getCatalogs = getCatalogs,
        _createCourt = createCourt,
        _updateCourt = updateCourt,
        _uploadPhoto = uploadPhoto,
@@ -48,6 +52,7 @@ class CourtFormBloc extends Bloc<CourtFormEvent, CourtFormState> {
   final GetMyBusiness _getMyBusiness;
   final GetBusinessAccount _getAccount;
   final GetCourts _getCourts;
+  final GetCatalogs _getCatalogs;
   final CreateCourt _createCourt;
   final UpdateCourt _updateCourt;
   final UploadCourtPhoto _uploadPhoto;
@@ -63,10 +68,11 @@ class CourtFormBloc extends Bloc<CourtFormEvent, CourtFormState> {
     // El plan es informativo: si falla, la API decide el límite al guardar.
     try {
       // En paralelo; si algo falla, `.wait` lo informa sin errores sueltos.
-      final (business, (subscription, known), existing) = await (
+      final (business, (subscription, known), existing, surfaces) = await (
         _getMyBusiness(const NoParams()),
         _loadSubscription(),
         _loadCourts(required: event.courtId != null),
+        _loadSurfaces(),
       ).wait;
       final courtId = event.courtId;
       final editing = courtId == null
@@ -82,6 +88,7 @@ class CourtFormBloc extends Bloc<CourtFormEvent, CourtFormState> {
           subscription: () => subscription,
           planKnown: known,
           existingCourts: existing,
+          courtSurfaces: surfaces,
           editing: () => editing,
         ),
       );
@@ -100,6 +107,16 @@ class CourtFormBloc extends Bloc<CourtFormEvent, CourtFormState> {
       return await _getCourts(const NoParams());
     } catch (_) {
       if (required) rethrow;
+      return const [];
+    }
+  }
+
+  /// Superficies del catálogo. Si fallan, el formulario funciona igual y
+  /// conserva la superficie que ya tenía la cancha.
+  Future<List<CatalogCourtSurface>> _loadSurfaces() async {
+    try {
+      return (await _getCatalogs(const NoParams())).courtSurfaces;
+    } catch (_) {
       return const [];
     }
   }

@@ -31,6 +31,7 @@ final class CourtFormState extends Equatable {
     this.subscription,
     this.planKnown = false,
     this.existingCourts = const [],
+    this.courtSurfaces = const [],
     this.editing,
     this.submitStatus = CourtFormSubmitStatus.idle,
     this.photoProgress = (0, 0),
@@ -54,6 +55,9 @@ final class CourtFormState extends Equatable {
 
   /// Canchas ya creadas, de las que se puede copiar horario y tarifas.
   final List<Court> existingCourts;
+
+  /// Superficies activas del catálogo (vacío si no se pudieron leer).
+  final List<CatalogCourtSurface> courtSurfaces;
 
   /// Cancha que se está editando; `null` al crear.
   final Court? editing;
@@ -102,6 +106,7 @@ final class CourtFormState extends Equatable {
     Subscription? Function()? subscription,
     bool? planKnown,
     List<Court>? existingCourts,
+    List<CatalogCourtSurface>? courtSurfaces,
     Court? Function()? editing,
     CourtFormSubmitStatus? submitStatus,
     (int, int)? photoProgress,
@@ -118,6 +123,7 @@ final class CourtFormState extends Equatable {
     subscription: subscription != null ? subscription() : this.subscription,
     planKnown: planKnown ?? this.planKnown,
     existingCourts: existingCourts ?? this.existingCourts,
+    courtSurfaces: courtSurfaces ?? this.courtSurfaces,
     editing: editing != null ? editing() : this.editing,
     submitStatus: submitStatus ?? this.submitStatus,
     photoProgress: photoProgress ?? this.photoProgress,
@@ -139,6 +145,7 @@ final class CourtFormState extends Equatable {
     subscription,
     planKnown,
     existingCourts,
+    courtSurfaces,
     editing,
     submitStatus,
     photoProgress,
