@@ -141,6 +141,19 @@ void main() {
     ).called(1);
   });
 
+  testWidgets('chip Canceladas filtra por canceladas', (tester) async {
+    await pump(tester, loaded());
+    await tester.tap(find.byKey(const Key('filter-cancelled')));
+    await tester.pumpAndSettle();
+    verify(
+      () => bloc.add(
+        const ReservationsListQueryChanged(
+          ReservationQuery(status: ReservationStatus.cancelled),
+        ),
+      ),
+    ).called(1);
+  });
+
   testWidgets('filtrar por estado', (tester) async {
     await pump(tester, loaded());
     await tester.tap(find.byKey(const Key('filter-status')));

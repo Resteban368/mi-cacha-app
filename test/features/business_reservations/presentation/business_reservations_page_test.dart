@@ -302,9 +302,8 @@ void main() {
       await settle(tester);
 
       verify(() => cancel((id: 'live', reason: 'Llueve'))).called(1);
-      expect(find.text('Cancelada'), findsOneWidget);
-
-      await tester.tap(find.text('Cerrar'));
+      expect(find.text('Reserva cancelada.'), findsOneWidget);
+      expect(find.byKey(const Key('confirm-cancel')), findsNothing);
       await settle(tester);
       // La agenda se recarga con el cambio.
       verify(() => bloc.add(const ReservationsRefreshed())).called(1);

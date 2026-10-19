@@ -104,6 +104,18 @@ class ReservationsFiltersBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
               ],
+              FilterChip(
+                key: const Key('filter-cancelled'),
+                avatar: const Icon(Icons.event_busy_rounded, size: 18),
+                label: const Text('Canceladas'),
+                selected: query.status == ReservationStatus.cancelled,
+                onSelected: (on) => onQueryChanged(
+                  query.copyWith(
+                    status: () => on ? ReservationStatus.cancelled : null,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               _MenuChip<ReservationStatus?>(
                 key: const Key('filter-status'),
                 label: _statusLabel(query.status),
