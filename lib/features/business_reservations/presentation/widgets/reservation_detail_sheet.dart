@@ -96,6 +96,44 @@ class ReservationDetailView extends StatelessWidget {
     _close(context, cubit.state);
   }
 
+  /// Pide confirmación antes de marcar "No asistió" o "Jugada".
+  Future<void> _confirmStatus(
+    BuildContext context,
+    ReservationStatus status,
+  ) async {
+    if (!ensureCanWrite(context)) return;
+    final noShow = status == ReservationStatus.noShow;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          noShow ? '¿Marcar como no asistió?' : '¿Marcar como jugada?',
+        ),
+        content: Text(
+          noShow
+              ? 'La reserva quedará como no asistió. Puedes deshacerlo con '
+                    '"Volver a confirmada".'
+              : 'La reserva quedará marcada como jugada.',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('status-back'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Volver'),
+          ),
+          FilledButton(
+            key: const Key('status-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    _setStatus(context, status);
+  }
+
   void _setStatus(BuildContext context, ReservationStatus status) {
     if (!ensureCanWrite(context)) return;
     context.read<ReservationDetailCubit>().setStatus(status);
@@ -167,6 +205,9 @@ class ReservationDetailView extends StatelessWidget {
         final canAct =
             WriteAccessScope.canWrite(context) &&
             r.status != ReservationStatus.cancelled;
+        // "No asistió" y "Jugada" solo tienen sentido con el turno iniciado.
+        final started = !DateTime.now().isBefore(r.start);
+        const notStartedHint = 'Disponible cuando empiece el turno';
 
         return PopScope(
           canPop: false,
@@ -211,32 +252,40 @@ class ReservationDetailView extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     if (canAct && r.status == ReservationStatus.confirmed) ...[
-                      OutlinedButton.icon(
-                        key: const Key('mark-no-show'),
-                        onPressed: working
-                            ? null
-                            : () =>
-                                  _setStatus(context, ReservationStatus.noShow),
-                        icon: const Icon(Icons.person_off_outlined, size: 18),
-                        label: const Text('No asistió'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.slate700,
-                          side: const BorderSide(color: AppColors.slate200),
+                      Tooltip(
+                        message: started ? '' : notStartedHint,
+                        child: OutlinedButton.icon(
+                          key: const Key('mark-no-show'),
+                          onPressed: working || !started
+                              ? null
+                              : () => _confirmStatus(
+                                  context,
+                                  ReservationStatus.noShow,
+                                ),
+                          icon: const Icon(Icons.person_off_outlined, size: 18),
+                          label: const Text('No asistió'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.slate700,
+                            side: const BorderSide(color: AppColors.slate200),
+                          ),
                         ),
                       ),
-                      FilledButton.tonalIcon(
-                        key: const Key('mark-completed'),
-                        onPressed: working
-                            ? null
-                            : () => _setStatus(
-                                context,
-                                ReservationStatus.completed,
-                              ),
-                        icon: const Icon(Icons.sports_score, size: 18),
-                        label: const Text('Jugada'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.emerald50,
-                          foregroundColor: AppColors.emerald600,
+                      Tooltip(
+                        message: started ? '' : notStartedHint,
+                        child: FilledButton.tonalIcon(
+                          key: const Key('mark-completed'),
+                          onPressed: working || !started
+                              ? null
+                              : () => _confirmStatus(
+                                  context,
+                                  ReservationStatus.completed,
+                                ),
+                          icon: const Icon(Icons.sports_score, size: 18),
+                          label: const Text('Jugada'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.emerald50,
+                            foregroundColor: AppColors.emerald600,
+                          ),
                         ),
                       ),
                       TextButton.icon(

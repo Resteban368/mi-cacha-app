@@ -10,6 +10,7 @@ import 'package:mi_cancha/features/business_reservations/presentation/widgets/li
 import 'package:mi_cancha/features/business_reservations/presentation/widgets/reservation_card.dart';
 import 'package:mi_cancha/core/session/write_access.dart';
 import 'package:mi_cancha/features/business_reservations/domain/entities/reservation.dart';
+import 'package:mi_cancha/core/domain/entities/sport.dart';
 import 'package:mi_cancha/features/business_reservations/domain/usecases/booking_usecases.dart';
 import 'package:mi_cancha/features/business_reservations/presentation/bloc/reservation_detail/reservation_detail_cubit.dart';
 import 'package:mocktail/mocktail.dart';
@@ -233,7 +234,10 @@ void main() {
     late _MockCancel cancel;
     late _MockStatus status;
 
-    setUpAll(() => registerFallbackValue((id: 'x', reason: 'x')));
+    setUpAll(() {
+      registerFallbackValue((id: 'x', reason: 'x'));
+      registerFallbackValue((id: 'x', status: ReservationStatus.confirmed));
+    });
 
     setUp(() {
       get = _MockGet();
@@ -307,6 +311,76 @@ void main() {
       await settle(tester);
       // La agenda se recarga con el cambio.
       verify(() => bloc.add(const ReservationsRefreshed())).called(1);
+    });
+
+    testWidgets('no asistió pide confirmación antes de guardar', (
+      tester,
+    ) async {
+      when(() => status(any())).thenAnswer(
+        (_) async => designScenario.firstWhere((r) => r.id == 'live'),
+      );
+      await pumpPage(tester, loaded(), createDetailCubit: cubit);
+
+      await tester.tap(find.text('Valentina Dussán'));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('mark-no-show')));
+      await settle(tester);
+      expect(find.text('¿Marcar como no asistió?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('status-back')));
+      await settle(tester);
+      verifyNever(() => status(any()));
+
+      await tester.tap(find.byKey(const Key('mark-no-show')));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('status-confirm')));
+      await settle(tester);
+      verify(
+        () => status((id: 'live', status: ReservationStatus.noShow)),
+      ).called(1);
+    });
+
+    testWidgets('antes del turno no se puede marcar jugada ni no asistió', (
+      tester,
+    ) async {
+      final future = Reservation(
+        id: 'future',
+        courtName: 'Cancha 1',
+        sport: Sport.futbol,
+        start: DateTime.now().add(const Duration(days: 1)),
+        end: DateTime.now().add(const Duration(days: 1, hours: 1)),
+        customerName: 'Futuro Cliente',
+        phone: '+57 300 000 0000',
+        totalPrice: 60000,
+        amountPaid: 0,
+        status: ReservationStatus.confirmed,
+      );
+      await pumpPage(
+        tester,
+        BusinessReservationsState(
+          day: day,
+          now: now,
+          status: ReservationsStatus.success,
+          reservations: [future],
+        ),
+        createDetailCubit: cubit,
+      );
+
+      await tester.tap(find.text('Futuro Cliente'));
+      await settle(tester);
+      expect(
+        tester
+            .widget<OutlinedButton>(find.byKey(const Key('mark-no-show')))
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const Key('mark-completed')))
+            .onPressed,
+        isNull,
+      );
+      expect(find.byTooltip('Disponible cuando empiece el turno'), findsWidgets);
     });
 
     testWidgets('en solo lectura: sin "Nueva reserva" ni acciones', (
