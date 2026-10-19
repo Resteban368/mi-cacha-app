@@ -38,6 +38,9 @@ class BusinessReservationsPage extends StatefulWidget {
 class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
   String? _selectedReservationId;
 
+  /// Vista de la agenda: por hora (línea de tiempo) o agrupada por cancha.
+  bool _groupByCourt = false;
+
   Future<void> _openDetail(
     BuildContext context,
     Reservation reservation,
@@ -137,13 +140,15 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
                                         context,
                                         state.day.add(const Duration(days: 1)),
                                       ),
-                                      onJumpToday: () => _changeDay(context, null),
+                                      onJumpToday: () =>
+                                          _changeDay(context, null),
                                       onOpenCalendar: () =>
                                           _pickDate(context, state.day),
                                     ),
                                   ),
                                 ),
-                                if (state.status == ReservationsStatus.success &&
+                                if (state.status ==
+                                        ReservationsStatus.success &&
                                     state.agenda.reservations.isNotEmpty) ...[
                                   const SliverToBoxAdapter(
                                     child: SizedBox(height: 10),
@@ -157,25 +162,59 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
                                     ),
                                   ),
                                 ],
-                                // Acceso al listado de todas las reservas.
+                                // Vista por hora / por cancha y acceso al listado.
                                 SliverToBoxAdapter(
                                   child: Padding(
                                     padding: layout.paddingBeyond(4),
-                                    child: Align(
-                                      alignment: Alignment.centerRight,
-                                      child: TextButton.icon(
-                                        key: const Key('all-reservations'),
-                                        onPressed: () => context.go(
-                                          AppRoutes.businessAllReservations,
+                                    child: Wrap(
+                                      alignment: WrapAlignment.spaceBetween,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: [
+                                        SegmentedButton<bool>(
+                                          key: const Key('agenda-view'),
+                                          showSelectedIcon: false,
+                                          style: SegmentedButton.styleFrom(
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                          ),
+                                          segments: const [
+                                            ButtonSegment(
+                                              value: false,
+                                              icon: Icon(
+                                                Icons.schedule_rounded,
+                                                size: 18,
+                                              ),
+                                              label: Text('Por hora'),
+                                            ),
+                                            ButtonSegment(
+                                              value: true,
+                                              icon: Icon(
+                                                Icons.sports_soccer_rounded,
+                                                size: 18,
+                                              ),
+                                              label: Text('Por cancha'),
+                                            ),
+                                          ],
+                                          selected: {_groupByCourt},
+                                          onSelectionChanged: (v) => setState(
+                                            () => _groupByCourt = v.first,
+                                          ),
                                         ),
-                                        icon: const Icon(
-                                          Icons.list_alt_rounded,
-                                          size: 18,
+                                        TextButton.icon(
+                                          key: const Key('all-reservations'),
+                                          onPressed: () => context.go(
+                                            AppRoutes.businessAllReservations,
+                                          ),
+                                          icon: const Icon(
+                                            Icons.list_alt_rounded,
+                                            size: 18,
+                                          ),
+                                          label: const Text(
+                                            'Ver todas las reservas',
+                                          ),
                                         ),
-                                        label: const Text(
-                                          'Ver todas las reservas',
-                                        ),
-                                      ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -340,6 +379,26 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
           child: child,
         ),
       );
+    }
+
+    if (_groupByCourt) {
+      final byCourt = <String, List<Reservation>>{};
+      for (final r in agenda.filtered(state.filter)) {
+        byCourt.putIfAbsent(r.courtName, () => []).add(r);
+      }
+      final courts = byCourt.keys.toList()..sort();
+      return [
+        for (final court in courts)
+          _Section(
+            header: TimelineSectionLabel('$court · ${byCourt[court]!.length}'),
+            cards: [
+              for (final r
+                  in byCourt[court]!
+                    ..sort((a, b) => a.start.compareTo(b.start)))
+                card(r),
+            ],
+          ),
+      ];
     }
 
     if (state.filter != null || !agenda.isToday) {

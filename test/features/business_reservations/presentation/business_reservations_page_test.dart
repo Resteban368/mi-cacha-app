@@ -126,6 +126,28 @@ void main() {
     expect(find.byType(ReservationCard), findsNWidgets(2));
   });
 
+  testWidgets('vista por cancha agrupa las reservas con su encabezado', (
+    tester,
+  ) async {
+    await pumpPage(tester, loaded());
+    await tester.tap(find.text('Por cancha'));
+    await tester.pump();
+
+    final listed = loaded().agenda.reservations;
+    final courts = {for (final r in listed) r.courtName};
+    for (final court in courts) {
+      final count = listed.where((r) => r.courtName == court).length;
+      expect(find.text('${court.toUpperCase()} · $count'), findsOneWidget);
+    }
+    // Sin las secciones de la línea de tiempo.
+    expect(find.text('PASADAS'), findsNothing);
+    expect(find.textContaining('Ahora ·'), findsNothing);
+
+    await tester.tap(find.text('Por hora'));
+    await tester.pump();
+    expect(find.text('PASADAS'), findsOneWidget);
+  });
+
   testWidgets('estado de error con reintento', (tester) async {
     await pumpPage(
       tester,
