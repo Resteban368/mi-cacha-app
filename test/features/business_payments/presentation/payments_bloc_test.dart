@@ -37,7 +37,7 @@ void main() {
   test('getters: conteos, visibles y monto pendiente', () {
     final state = loaded();
     expect(state.countFor(PaymentStatus.pending), 2);
-    expect(state.visible.map((p) => p.id), ['a', 'b']);
+    expect(state.visible.map((p) => p.id), ['c']);
     expect(state.pendingAmount, 110000);
   });
 
@@ -121,6 +121,46 @@ void main() {
     act: (bloc) => bloc.add(const PaymentsTabChanged(PaymentStatus.rejected)),
     expect: () => [
       isA<PaymentsState>().having((s) => s.visible.single.id, 'visible', 'd'),
+    ],
+  );
+
+  test('filtros: cancha, medio de pago y día', () {
+    final state = PaymentsState(
+      status: PaymentsStatus.success,
+      payments: [
+        payment(id: 'x', status: PaymentStatus.approved),
+        payment(
+          id: 'y',
+          status: PaymentStatus.approved,
+          method: PaymentMethod.efectivo,
+          minutesAgo: 60 * 24 * 3,
+        ),
+      ],
+    );
+    expect(state.visible, hasLength(2));
+    expect(state.courtOptions, ['Cancha Múltiple']);
+    expect(state.methodOptions, [PaymentMethod.efectivo, PaymentMethod.nequi]);
+
+    ids(PaymentsFilter f) =>
+        state.copyWith(filter: f).visible.map((p) => p.id).toList();
+    expect(ids(const PaymentsFilter(method: PaymentMethod.efectivo)), ['y']);
+    expect(ids(const PaymentsFilter(court: 'Otra')), isEmpty);
+    expect(ids(PaymentsFilter(day: now)), ['x']);
+  });
+
+  blocTest<PaymentsBloc, PaymentsState>(
+    'cambia el filtro',
+    build: build,
+    seed: loaded,
+    act: (bloc) => bloc.add(
+      const PaymentsFilterChanged(PaymentsFilter(court: 'Cancha Múltiple')),
+    ),
+    expect: () => [
+      isA<PaymentsState>().having(
+        (s) => s.filter.court,
+        'cancha',
+        'Cancha Múltiple',
+      ),
     ],
   );
 }

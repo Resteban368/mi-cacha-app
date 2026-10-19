@@ -15,6 +15,7 @@ class PaymentCard extends StatelessWidget {
     this.processing = false,
     this.onApprove,
     this.onReject,
+    this.onTap,
   });
 
   final Payment payment;
@@ -22,6 +23,7 @@ class PaymentCard extends StatelessWidget {
   final bool processing;
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +35,6 @@ class PaymentCard extends StatelessWidget {
     ].join(' · ');
 
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
@@ -46,199 +47,213 @@ class PaymentCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: p.method.tint,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(p.method.icon, size: 22, color: p.method.color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      p.customerName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.headlineSm.copyWith(
-                        color: AppColors.onSurface,
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: p.method.tint,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        p.method.icon,
+                        size: 22,
+                        color: p.method.color,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      details,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.bodySm.copyWith(
-                        color: AppColors.onSurfaceVariant,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            p.customerName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.headlineSm.copyWith(
+                              color: AppColors.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            details,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.bodySm.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          AppFormatters.cop(p.amount),
+                          style: AppTypography.headlineMd.copyWith(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: p.status == PaymentStatus.rejected
+                                ? AppColors.outline
+                                : AppColors.onSurface,
+                            decoration: p.status == PaymentStatus.rejected
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        Text(
+                          AppFormatters.relative(p.receivedAt, now),
+                          style: AppTypography.labelSm.copyWith(
+                            color: AppColors.outline,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    AppFormatters.cop(p.amount),
-                    style: AppTypography.headlineMd.copyWith(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: p.status == PaymentStatus.rejected
-                          ? AppColors.outline
-                          : AppColors.onSurface,
-                      decoration: p.status == PaymentStatus.rejected
-                          ? TextDecoration.lineThrough
-                          : null,
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _Tag(
+                      label: p.method.label,
+                      background: p.method.tint,
+                      foreground: p.method.color,
                     ),
-                  ),
+                    if (p.reference != null)
+                      _Tag(
+                        label: 'Ref. ${p.reference}',
+                        background: AppColors.surfaceContainer,
+                        foreground: AppColors.onSurfaceVariant,
+                      ),
+                    if (p.registeredByBusiness)
+                      const _Tag(
+                        label: 'Registrado por ti',
+                        background: AppColors.surfaceContainer,
+                        foreground: AppColors.onSurfaceVariant,
+                      ),
+                    _StatusPill(status: p.status),
+                  ],
+                ),
+                if (p.note != null && p.note!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
                   Text(
-                    AppFormatters.relative(p.receivedAt, now),
-                    style: AppTypography.labelSm.copyWith(
-                      color: AppColors.outline,
-                      fontWeight: FontWeight.w500,
+                    p.note!,
+                    style: AppTypography.bodySm.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
                 ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _Tag(
-                label: p.method.label,
-                background: p.method.tint,
-                foreground: p.method.color,
-              ),
-              if (p.reference != null)
-                _Tag(
-                  label: 'Ref. ${p.reference}',
-                  background: AppColors.surfaceContainer,
-                  foreground: AppColors.onSurfaceVariant,
-                ),
-              if (p.registeredByBusiness)
-                const _Tag(
-                  label: 'Registrado por ti',
-                  background: AppColors.surfaceContainer,
-                  foreground: AppColors.onSurfaceVariant,
-                ),
-              _StatusPill(status: p.status),
-            ],
-          ),
-          if (p.note != null && p.note!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              p.note!,
-              style: AppTypography.bodySm.copyWith(
-                color: AppColors.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
-          if (p.status == PaymentStatus.rejected && p.rejectionReason != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEE2E2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      size: 14,
-                      color: Color(0xFF991B1B),
+                if (p.status == PaymentStatus.rejected &&
+                    p.rejectionReason != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            size: 14,
+                            color: Color(0xFF991B1B),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              p.rejectionReason!,
+                              style: AppTypography.bodySm.copyWith(
+                                color: const Color(0xFF991B1B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        p.rejectionReason!,
-                        style: AppTypography.bodySm.copyWith(
-                          color: const Color(0xFF991B1B),
+                  ),
+                if (p.status == PaymentStatus.pending) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: processing ? null : onReject,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.statusDue,
+                            side: BorderSide(
+                              color: AppColors.statusDue.withValues(alpha: 0.5),
+                              width: 1.5,
+                            ),
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            textStyle: AppTypography.labelLg,
+                          ),
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          label: const Text('Rechazar'),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (p.status == PaymentStatus.pending) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: processing ? null : onReject,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.statusDue,
-                      side: BorderSide(
-                        color: AppColors.statusDue.withValues(alpha: 0.5),
-                        width: 1.5,
-                      ),
-                      minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      textStyle: AppTypography.labelLg,
-                    ),
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    label: const Text('Rechazar'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: processing ? null : onApprove,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.brandTeal,
-                      disabledBackgroundColor: AppColors.brandTeal.withValues(
-                        alpha: 0.6,
-                      ),
-                      foregroundColor: AppColors.onPrimary,
-                      disabledForegroundColor: AppColors.onPrimary,
-                      minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      textStyle: AppTypography.labelLg,
-                    ),
-                    icon: processing
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.onPrimary,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: processing ? null : onApprove,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.brandTeal,
+                            disabledBackgroundColor: AppColors.brandTeal
+                                .withValues(alpha: 0.6),
+                            foregroundColor: AppColors.onPrimary,
+                            disabledForegroundColor: AppColors.onPrimary,
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          )
-                        : const Icon(Icons.check_rounded, size: 18),
-                    label: const Text('Aprobar'),
+                            textStyle: AppTypography.labelLg,
+                          ),
+                          icon: processing
+                              ? const SizedBox.square(
+                                  dimension: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.onPrimary,
+                                  ),
+                                )
+                              : const Icon(Icons.check_rounded, size: 18),
+                          label: const Text('Aprobar'),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                ],
               ],
             ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }

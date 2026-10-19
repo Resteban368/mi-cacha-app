@@ -20,6 +20,9 @@ class PaymentsBloc extends Bloc<PaymentsEvent, PaymentsState> {
        super(const PaymentsState()) {
     on<PaymentsRequested>(_onRequested, transformer: restartable());
     on<PaymentsTabChanged>(_onTabChanged);
+    on<PaymentsFilterChanged>(
+      (event, emit) => emit(state.copyWith(filter: event.filter)),
+    );
     // Validaciones en paralelo (una por pago); cada una marca su id.
     on<PaymentApproved>(_onApproved);
     on<PaymentRejected>(_onRejected);

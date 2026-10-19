@@ -6,15 +6,13 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/clock.dart';
-import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_add_fab.dart';
 import '../../../../core/widgets/app_top_bar.dart';
 import '../../../../core/widgets/sliver_card_grid.dart';
-import '../../domain/entities/payment.dart';
 import '../bloc/payments/payments_bloc.dart';
 import '../widgets/payment_card.dart';
-import '../widgets/payments_tabs.dart';
-import '../widgets/reject_payment_dialog.dart';
+import '../widgets/payment_detail_sheet.dart';
+import '../widgets/payments_filters.dart';
 import '../../../../core/widgets/loading_dialog.dart';
 import '../../../../core/session/write_access.dart';
 
@@ -24,26 +22,16 @@ class PaymentsPage extends StatelessWidget {
 
   final Clock clock;
 
-  static const _maxTabsWidth = 560.0;
-
   Future<void> _openNewPayment(BuildContext context) async {
     final bloc = context.read<PaymentsBloc>();
     final messenger = ScaffoldMessenger.of(context);
     final created = await context.push<bool>(AppRoutes.businessNewPayment);
     if (created ?? false) {
-      bloc
-        ..add(const PaymentsRequested())
-        ..add(const PaymentsTabChanged(PaymentStatus.approved));
+      bloc.add(const PaymentsRequested());
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('Pago registrado')));
     }
-  }
-
-  Future<void> _reject(BuildContext context, Payment payment) async {
-    final bloc = context.read<PaymentsBloc>();
-    final reason = await showRejectPaymentDialog(context, payment);
-    if (reason != null) bloc.add(PaymentRejected(payment.id, reason: reason));
   }
 
   @override
@@ -158,61 +146,34 @@ class PaymentsPage extends StatelessWidget {
         final now = clock.now();
         final visible = state.visible;
         final gutter = layout.gutter;
-        final tabs = PaymentsTabs(
-          selected: state.tab,
-          countFor: state.countFor,
-          onChanged: (tab) =>
-              context.read<PaymentsBloc>().add(PaymentsTabChanged(tab)),
+        final filters = PaymentsFilters(
+          filter: state.filter,
+          courts: state.courtOptions,
+          methods: state.methodOptions,
+          now: now,
+          onChanged: (filter) =>
+              context.read<PaymentsBloc>().add(PaymentsFilterChanged(filter)),
         );
         return [
           SliverPadding(
             padding: EdgeInsets.fromLTRB(gutter, 16, gutter, 0),
-            sliver: SliverToBoxAdapter(
-              // En web el selector no se estira a todo el ancho.
-              child: layout.isWide
-                  ? Align(
-                      alignment: Alignment.centerLeft,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: _maxTabsWidth,
-                        ),
-                        child: tabs,
-                      ),
-                    )
-                  : tabs,
-            ),
+            sliver: SliverToBoxAdapter(child: filters),
           ),
-          if (state.tab == PaymentStatus.pending &&
-              state.countFor(PaymentStatus.pending) > 0)
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 0),
-              sliver: SliverToBoxAdapter(child: _PendingBanner(state: state)),
-            ),
           SliverPadding(
             // Espacio final para el botón flotante.
             padding: EdgeInsets.fromLTRB(gutter, 12, gutter, bottomInset + 96),
             sliver: visible.isEmpty
-                ? SliverToBoxAdapter(child: _emptyFor(state.tab))
+                ? SliverToBoxAdapter(child: _emptyFor(state))
                 : SliverCardGrid(
                     itemCount: visible.length,
                     columns: layout.columns,
                     itemBuilder: (context, i) {
                       final payment = visible[i];
-                      final canWrite = WriteAccessScope.canWrite(context);
                       return PaymentCard(
                         key: ValueKey(payment.id),
                         payment: payment,
                         now: now,
-                        processing: state.processing.contains(payment.id),
-                        // Solo lectura: botones deshabilitados.
-                        onApprove: canWrite
-                            ? () => context.read<PaymentsBloc>().add(
-                                PaymentApproved(payment.id),
-                              )
-                            : null,
-                        onReject: canWrite
-                            ? () => _reject(context, payment)
-                            : null,
+                        onTap: () => showPaymentDetailSheet(context, payment),
                       );
                     },
                   ),
@@ -221,97 +182,17 @@ class PaymentsPage extends StatelessWidget {
     }
   }
 
-  Widget _emptyFor(PaymentStatus tab) => switch (tab) {
-    PaymentStatus.pending => const _EmptyMessage(
-      icon: Icons.task_alt_rounded,
-      title: 'Todo al día',
-      message: 'No tienes pagos por validar.',
-    ),
-    PaymentStatus.approved => const _EmptyMessage(
-      icon: Icons.receipt_long_outlined,
-      title: 'Sin pagos aprobados',
-      message: 'Los pagos que apruebes o registres aparecerán aquí.',
-    ),
-    PaymentStatus.rejected => const _EmptyMessage(
-      icon: Icons.block_outlined,
-      title: 'Sin pagos rechazados',
-      message: 'Aquí verás los pagos que rechaces.',
-    ),
-    PaymentStatus.refunded => const _EmptyMessage(
-      icon: Icons.undo_rounded,
-      title: 'Sin devoluciones',
-      message: 'Aquí verás los pagos devueltos al cancelar reservas.',
-    ),
-  };
-}
-
-/// Resumen ámbar: cuántos pagos esperan validación y por cuánto.
-class _PendingBanner extends StatelessWidget {
-  const _PendingBanner({required this.state});
-
-  final PaymentsState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final count = state.countFor(PaymentStatus.pending);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFEF3C7),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.statusDeposit.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.statusDeposit.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.notifications_active_outlined,
-              size: 20,
-              color: AppColors.statusDeposit,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  count == 1
-                      ? '1 pago por validar'
-                      : '$count pagos por validar',
-                  style: AppTypography.labelLg.copyWith(
-                    color: const Color(0xFF92400E),
-                  ),
-                ),
-                Text(
-                  'Revisa el comprobante antes de aprobar.',
-                  style: AppTypography.bodySm.copyWith(
-                    color: const Color(0xFF92400E),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            AppFormatters.cop(state.pendingAmount),
-            style: AppTypography.headlineSm.copyWith(
-              color: const Color(0xFF92400E),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _emptyFor(PaymentsState state) => state.filter.isActive
+      ? const _EmptyMessage(
+          icon: Icons.filter_alt_off_outlined,
+          title: 'Sin resultados',
+          message: 'No hay pagos aprobados con estos filtros.',
+        )
+      : const _EmptyMessage(
+          icon: Icons.receipt_long_outlined,
+          title: 'Sin pagos aprobados',
+          message: 'Los pagos que apruebes o registres aparecerán aquí.',
+        );
 }
 
 class _EmptyMessage extends StatelessWidget {

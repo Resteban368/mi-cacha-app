@@ -39,3 +39,13 @@ final class PaymentRejected extends PaymentsEvent {
   @override
   List<Object?> get props => [paymentId, reason];
 }
+
+/// Cambia los filtros del listado (cancha, medio de pago y día).
+final class PaymentsFilterChanged extends PaymentsEvent {
+  const PaymentsFilterChanged(this.filter);
+
+  final PaymentsFilter filter;
+
+  @override
+  List<Object?> get props => [filter];
+}

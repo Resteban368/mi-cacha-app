@@ -1234,6 +1234,22 @@ class _CancelDialogState extends State<_CancelDialog> {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
+  static const _quickReasons = [
+    'El cliente no asistió',
+    'El cliente no pagó',
+    'Cliente problemático',
+    'El cliente pidió cancelar',
+    'Cancha no disponible',
+    'Mal clima',
+  ];
+
+  void _useReason(String reason) {
+    _reason.value = TextEditingValue(
+      text: reason,
+      selection: TextSelection.collapsed(offset: reason.length),
+    );
+  }
+
         children: [
           Container(
             padding: const EdgeInsets.all(6),
@@ -1297,6 +1313,23 @@ class _CancelDialogState extends State<_CancelDialog> {
             if (_formKey.currentState!.validate()) {
               Navigator.of(context).pop(_reason.text.trim());
             }
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 8,
+              runSpacing: 0,
+              children: [
+                for (final reason in _quickReasons)
+                  ActionChip(
+                    label: Text(reason),
+                    labelStyle: AppTypography.bodyMd.copyWith(
+                      color: AppColors.slate600,
+                    ),
+                    backgroundColor: AppColors.slate50,
+                    side: const BorderSide(color: AppColors.slate200),
+                    onPressed: () => _useReason(reason),
+                  ),
+              ],
+            ),
           },
           child: const Text('Cancelar reserva'),
         ),

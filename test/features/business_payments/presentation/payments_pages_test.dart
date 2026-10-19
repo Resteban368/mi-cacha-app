@@ -12,10 +12,10 @@ import 'package:mi_cancha/features/business_payments/presentation/bloc/new_payme
 import 'package:mi_cancha/features/business_payments/presentation/bloc/payments/payments_bloc.dart';
 import 'package:mi_cancha/features/business_payments/presentation/pages/new_payment_page.dart';
 import 'package:mi_cancha/features/business_payments/presentation/pages/payments_page.dart';
+import 'package:mi_cancha/features/business_reservations/domain/entities/customer.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:mi_cancha/features/business_payments/presentation/widgets/payment_card.dart';
-import 'package:mi_cancha/features/business_payments/presentation/widgets/payments_tabs.dart';
 import '../payment_fixtures.dart';
 
 class _MockPaymentsBloc extends MockBloc<PaymentsEvent, PaymentsState>
@@ -79,87 +79,57 @@ void main() {
       await tester.pump();
     }
 
-    PaymentsState loaded({PaymentStatus tab = PaymentStatus.pending}) =>
+    PaymentsState loaded({PaymentsFilter filter = const PaymentsFilter()}) =>
         PaymentsState(
           status: PaymentsStatus.success,
           payments: samplePayments,
-          tab: tab,
+          filter: filter,
         );
 
-    testWidgets('muestra pendientes con resumen y acciones', (tester) async {
+    testWidgets('solo muestra pagos aprobados, sin acciones ni pestañas', (
+      tester,
+    ) async {
       await pump(tester, loaded());
 
       expect(find.text('Pagos'), findsOneWidget);
-      expect(find.text('2 pagos por validar'), findsOneWidget);
-      expect(find.text(r'$110.000'), findsOneWidget);
-      expect(find.text('Valentina Dussán'), findsOneWidget);
-      expect(find.text('Ref. Ma'), findsOneWidget);
-      expect(find.text('hace 5 min'), findsNWidgets(2));
-      expect(find.text('Aprobar'), findsNWidgets(2));
-      expect(find.text('Rechazar'), findsNWidgets(2));
+      expect(find.byType(PaymentCard), findsOneWidget);
+      expect(find.text(r'$100.000'), findsOneWidget);
+      expect(find.text('Aprobar'), findsNothing);
+      expect(find.text('Rechazar'), findsNothing);
+      expect(find.text('Por validar'), findsNothing);
       expect(find.byTooltip('Nuevo pago'), findsOneWidget);
     });
 
-    testWidgets('aprobar envía el evento', (tester) async {
+    testWidgets('al tocar un pago se ve su detalle', (tester) async {
       await pump(tester, loaded());
-      await tester.tap(find.text('Aprobar').first);
-      verify(() => bloc.add(const PaymentApproved('a'))).called(1);
+      await tester.tap(find.byType(PaymentCard));
+      await tester.pumpAndSettle();
+      expect(find.text('Medio de pago'), findsOneWidget);
+      expect(find.text('Registrado por'), findsOneWidget);
     });
 
-    testWidgets('rechazar pide confirmación y envía el motivo', (tester) async {
+    testWidgets('elegir un día envía el filtro', (tester) async {
       await pump(tester, loaded());
-
-      await tester.tap(find.text('Rechazar').first);
+      await tester.tap(find.byKey(const Key('filter-method')));
       await tester.pumpAndSettle();
-      expect(find.text('¿Rechazar pago?'), findsOneWidget);
-
-      await tester.enterText(find.byType(TextField), 'Duplicado');
-      await tester.tap(
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.text('Rechazar'),
+      await tester.tap(find.text('Nequi').last);
+      await tester.pumpAndSettle();
+      verify(
+        () => bloc.add(
+          const PaymentsFilterChanged(
+            PaymentsFilter(method: PaymentMethod.nequi),
+          ),
         ),
-      );
-      await tester.pumpAndSettle();
-      verify(
-        () => bloc.add(const PaymentRejected('a', reason: 'Duplicado')),
       ).called(1);
     });
 
-    testWidgets('cancelar el rechazo no envía nada', (tester) async {
-      await pump(tester, loaded());
-      await tester.tap(find.text('Rechazar').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Cancelar'));
-      await tester.pumpAndSettle();
-      verifyNever(() => bloc.add(any(that: isA<PaymentRejected>())));
-    });
-
-    testWidgets('las pestañas cambian el filtro', (tester) async {
-      await pump(tester, loaded());
-      await tester.tap(find.text('Rechazados'));
-      verify(
-        () => bloc.add(const PaymentsTabChanged(PaymentStatus.rejected)),
-      ).called(1);
-    });
-
-    testWidgets('rechazados muestran el motivo y no tienen acciones', (
-      tester,
-    ) async {
-      await pump(tester, loaded(tab: PaymentStatus.rejected));
-      expect(find.text('No coincide'), findsOneWidget);
-      expect(find.text('Aprobar'), findsNothing);
-    });
-
-    testWidgets('sin pendientes muestra "Todo al día"', (tester) async {
+    testWidgets('con filtros sin resultados lo indica', (tester) async {
       await pump(
         tester,
-        PaymentsState(
-          status: PaymentsStatus.success,
-          payments: [payment(id: 'c', status: PaymentStatus.approved)],
-        ),
+        loaded(filter: const PaymentsFilter(court: 'Cancha inexistente')),
       );
-      expect(find.text('Todo al día'), findsOneWidget);
+      expect(find.text('Sin resultados'), findsOneWidget);
+      expect(find.byKey(const Key('filter-clear')), findsOneWidget);
     });
 
     for (final size in const [
@@ -191,12 +161,11 @@ void main() {
         expect(cardWidth(tester), (900 - 2 * 24 - 12) / 2);
       });
 
-      testWidgets('escritorio: 3 columnas y pestañas sin estirarse', (
+      testWidgets('escritorio: 3 columnas', (
         tester,
       ) async {
         await pump(tester, loaded(), size: const Size(1400, 1200));
         expect(cardWidth(tester), (1400 - 2 * 24 - 2 * 12) / 3);
-        expect(tester.getSize(find.byType(PaymentsTabs)).width, 560);
       });
     });
   });
@@ -234,7 +203,41 @@ void main() {
       await tester.pumpWidget(MaterialApp.router(routerConfig: router));
       router.push(AppRoutes.businessNewPayment);
       await tester.pumpAndSettle();
+      clearInteractions(bloc);
     }
+
+    testWidgets('clientes: lista compacta que pide más al llegar al final', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        state: NewPaymentState(
+          customerSearchStatus: EntitySearchStatus.ready,
+          customerResults: [
+            for (var i = 0; i < 20; i++)
+              Customer(
+                id: 'c$i',
+                name: 'Cliente $i',
+                phone: '31100000$i',
+                documentId: '1000$i',
+              ),
+          ],
+          customerPage: 1,
+          customerHasMore: true,
+        ),
+      );
+      // Sin la fila de "Recientes" ni la etiqueta encima del buscador.
+      expect(find.textContaining('Recientes'), findsNothing);
+      expect(find.text('CLIENTES (20+)'), findsOneWidget);
+      final list = find.byKey(const Key('payment-customer-list'));
+      expect(tester.getSize(list).height, lessThanOrEqualTo(260));
+
+      await tester.drag(list, const Offset(0, -3000));
+      await tester.pump();
+      verify(
+        () => bloc.add(const NewPaymentCustomersNextPage()),
+      ).called(greaterThanOrEqualTo(1));
+    });
 
     testWidgets('valida campos obligatorios', (tester) async {
       await pump(tester);
@@ -249,11 +252,11 @@ void main() {
 
     testWidgets('la referencia solo se pide fuera de efectivo', (tester) async {
       await pump(tester);
-      expect(find.text('REFERENCIA'), findsNothing);
+      expect(find.text('REFERENCIA (OPCIONAL)'), findsNothing);
 
       await tester.tap(find.text('Nequi'));
       await tester.pumpAndSettle();
-      expect(find.text('REFERENCIA'), findsOneWidget);
+      expect(find.text('REFERENCIA (OPCIONAL)'), findsOneWidget);
     });
 
     testWidgets('chips de monto suman y el total se actualiza', (tester) async {
