@@ -284,11 +284,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Reserva confirmada'), findsOneWidget);
+    expect(find.text('¡Reserva confirmada!'), findsOneWidget);
     // Con la cancha elegida no se destaca la asignación.
     expect(find.byKey(const Key('assigned-court')), findsNothing);
     Finder inDialog(String text) => find.descendant(
-      of: find.byType(AlertDialog),
+      of: find.byType(Dialog),
       matching: find.text(text),
     );
     expect(inDialog(r'$100.000'), findsOneWidget);
