@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mi_cancha/core/widgets/app_top_bar.dart';
 import 'package:mi_cancha/core/widgets/notifications_bell_scope.dart';
+import 'package:mi_cancha/features/business_notifications/domain/entities/app_notification.dart';
 import 'package:mi_cancha/features/business_notifications/presentation/bloc/notifications_inbox_cubit.dart';
 import 'package:mi_cancha/features/business_notifications/presentation/widgets/notifications_inbox_sheet.dart';
 import 'package:mocktail/mocktail.dart';
@@ -125,6 +126,36 @@ void main() {
       expect(find.byKey(const Key('notification-detail')), findsNothing);
       // La bandeja sigue abierta: no se navegó a otra pantalla.
       expect(find.byType(NotificationTile), findsOneWidget);
+    });
+
+    testWidgets('un aviso con imagen la muestra en el listado y el detalle', (
+      tester,
+    ) async {
+      final withImage = notification(
+        'img',
+        unread: false,
+        kind: NotificationKind.adminBroadcast,
+        imageUrl: 'https://api.test/api/v1/images/notifications/i1',
+      );
+      when(() => cubit.markRead(withImage)).thenAnswer((_) async {});
+      await pump(
+        tester,
+        NotificationsInboxState(
+          status: InboxStatus.ready,
+          items: [withImage, notification('sin', unread: false)],
+          page: 1,
+        ),
+      );
+      // Solo el aviso con imagen lleva miniatura.
+      expect(find.byKey(const Key('inbox-thumbnail')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('img')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        find.byKey(const Key('notification-detail-image')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('sin no leídas el botón de marcar todas está deshabilitado', (

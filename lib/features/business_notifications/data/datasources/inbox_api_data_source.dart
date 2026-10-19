@@ -59,6 +59,7 @@ class InboxApiDataSource {
         title: json['title'] as String? ?? '',
         body: json['body'] as String? ?? '',
         url: json['url'] as String?,
+        imageUrl: json['imageUrl'] as String?,
         readAt: switch (json['readAt']) {
           final String at => DateTime.parse(at).toLocal(),
           _ => null,

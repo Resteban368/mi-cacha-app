@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../domain/entities/app_notification.dart';
 import '../bloc/notifications_inbox_cubit.dart';
 
@@ -145,42 +146,76 @@ Future<void> showNotificationDetail(
   final (icon, color, kind) = _kindStyle(n.kind);
   return showDialog<void>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => Dialog(
       key: const Key('notification-detail'),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      icon: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Icon(icon, color: color),
-      ),
-      title: Text(n.title, textAlign: TextAlign.center),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$kind · ${AppFormatters.longDate(n.createdAt)}, '
-            '${AppFormatters.time(n.createdAt)}',
-            textAlign: TextAlign.center,
-            style: AppTypography.labelSm.copyWith(color: AppColors.outline),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        // Con imagen y texto largo, el detalle se desplaza en pantallas bajas.
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: color),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                n.title,
+                textAlign: TextAlign.center,
+                style: AppTypography.headlineSm.copyWith(
+                  color: AppColors.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$kind · ${AppFormatters.longDate(n.createdAt)}, '
+                '${AppFormatters.time(n.createdAt)}',
+                textAlign: TextAlign.center,
+                style: AppTypography.labelSm.copyWith(color: AppColors.outline),
+              ),
+              if (n.imageUrl case final image?) ...[
+                const SizedBox(height: 16),
+                ClipRRect(
+                  key: const Key('notification-detail-image'),
+                  borderRadius: BorderRadius.circular(12),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: AppNetworkImage(image, cacheWidth: 900),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              Text(
+                n.body,
+                textAlign: TextAlign.center,
+                style: AppTypography.bodyMd.copyWith(
+                  color: AppColors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cerrar'),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            n.body,
-            textAlign: TextAlign.center,
-            style: AppTypography.bodyMd.copyWith(color: AppColors.onSurface),
-          ),
-        ],
-      ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cerrar'),
         ),
-      ],
+      ),
     ),
   );
 }
@@ -280,6 +315,17 @@ class NotificationTile extends StatelessWidget {
                   ],
                 ),
               ),
+              if (n.imageUrl case final image?) ...[
+                const SizedBox(width: 8),
+                ClipRRect(
+                  key: const Key('inbox-thumbnail'),
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox.square(
+                    dimension: 48,
+                    child: AppNetworkImage(image, cacheWidth: 144),
+                  ),
+                ),
+              ],
               if (n.isUnread) ...[
                 const SizedBox(width: 8),
                 Container(

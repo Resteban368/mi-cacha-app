@@ -13,6 +13,8 @@ self.addEventListener('push', (event) => {
         body: data.body,
         tag: data.tag,
         icon: '/icons/Icon-192.png',
+        // Imagen grande del aviso del admin; se ignora donde no se soporta.
+        image: data.image,
         data: { url, ...(data.data || {}) },
       });
 

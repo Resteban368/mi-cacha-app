@@ -7,12 +7,14 @@ AppNotification notification(
   bool unread = true,
   NotificationKind kind = NotificationKind.newReservation,
   String? url = '/negocio/reservas',
+  String? imageUrl,
 }) => AppNotification(
   id: id,
   kind: kind,
   title: 'Nueva reserva',
   body: 'Pedro Pérez · Cancha 1 · mar 22 oct, 6:30 p. m.',
   url: url,
+  imageUrl: imageUrl,
   readAt: unread ? null : inboxNow,
   createdAt: inboxNow.subtract(const Duration(minutes: 5)),
 );

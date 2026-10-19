@@ -25,6 +25,7 @@ class AppNotification extends Equatable {
     required this.body,
     required this.createdAt,
     this.url,
+    this.imageUrl,
     this.readAt,
   });
 
@@ -35,6 +36,9 @@ class AppNotification extends Equatable {
 
   /// Ruta de la app que se abre al tocarla.
   final String? url;
+
+  /// Imagen del aviso (URL pública), si tiene. Las reservas no traen.
+  final String? imageUrl;
 
   /// `null` = sin leer.
   final DateTime? readAt;
@@ -48,12 +52,22 @@ class AppNotification extends Equatable {
     title: title,
     body: body,
     url: url,
+    imageUrl: imageUrl,
     readAt: readAt ?? at,
     createdAt: createdAt,
   );
 
   @override
-  List<Object?> get props => [id, kind, title, body, url, readAt, createdAt];
+  List<Object?> get props => [
+    id,
+    kind,
+    title,
+    body,
+    url,
+    imageUrl,
+    readAt,
+    createdAt,
+  ];
 }
 
 /// Una página de la bandeja (de la más reciente a la más antigua).

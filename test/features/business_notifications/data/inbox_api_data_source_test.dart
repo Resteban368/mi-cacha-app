@@ -23,6 +23,7 @@ void main() {
             'title': 'Mantenimiento',
             'body': 'El domingo de 2 a 4 a. m.',
             'url': null,
+            'imageUrl': 'https://api.test/api/v1/images/notifications/i1',
             'data': null,
             'readAt': '2026-10-19T19:00:00.000Z',
             'createdAt': '2026-10-18T10:00:00.000Z',
@@ -55,6 +56,8 @@ void main() {
     expect(second.kind, NotificationKind.adminBroadcast);
     expect(second.isUnread, isFalse);
     expect(second.url, isNull);
+    expect(second.imageUrl, 'https://api.test/api/v1/images/notifications/i1');
+    expect(first.imageUrl, isNull);
     expect(third.kind, NotificationKind.other);
   });
 }
