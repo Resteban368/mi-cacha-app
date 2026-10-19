@@ -265,6 +265,16 @@ void main() {
       await tester.tap(find.byKey(const Key('confirm-cancel')));
       await tester.pump();
       expect(find.text('Escribe el motivo (mínimo 3 letras).'), findsOneWidget);
+      // Motivos rápidos: al tocar uno se escribe en el campo.
+      await tester.tap(find.text('El cliente no pagó'));
+      await tester.pump();
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const Key('cancel-reason')))
+            .controller!
+            .text,
+        'El cliente no pagó',
+      );
       await tester.enterText(find.byKey(const Key('cancel-reason')), 'Llueve');
       await tester.tap(find.byKey(const Key('confirm-cancel')));
       await settle(tester);
