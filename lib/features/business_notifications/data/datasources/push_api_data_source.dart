@@ -47,6 +47,19 @@ class PushApiDataSource {
     }
   }
 
+  /// Baja sin sesión (cierre de sesión o token vencido): basta el endpoint,
+  /// que es un secreto de este navegador.
+  Future<void> forgetSubscription(String endpoint) async {
+    try {
+      await _dio.delete<void>(
+        '/public/notifications/subscriptions',
+        data: {'endpoint': endpoint},
+      );
+    } on DioException catch (error) {
+      throw _failure(error);
+    }
+  }
+
   static PushException _failure(DioException error) =>
       PushException(switch (error.type) {
         DioExceptionType.connectionError ||

@@ -71,7 +71,17 @@ class PushRepositoryImpl implements PushRepository {
   }
 
   @override
+  Future<void> forget() async {
+    final endpoint = await _browser.currentEndpoint();
+    if (endpoint != null) await _api.forgetSubscription(endpoint);
+    await _browser.unsubscribe();
+  }
+
+  @override
   Stream<void> get newReservations => _browser.newReservationMessages;
+
+  @override
+  Stream<void> get notificationsChanged => _browser.notificationMessages;
 
   /// Clave VAPID en base64url (sin relleno) a bytes.
   static Uint8List _decodeKey(String key) {

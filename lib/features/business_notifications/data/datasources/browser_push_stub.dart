@@ -31,4 +31,7 @@ class BrowserPushStub implements BrowserPush {
 
   @override
   Stream<void> get newReservationMessages => const Stream.empty();
+
+  @override
+  Stream<void> get notificationMessages => const Stream.empty();
 }

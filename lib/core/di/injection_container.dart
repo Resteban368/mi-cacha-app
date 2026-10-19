@@ -33,7 +33,6 @@ import '../../features/business_clients/presentation/bloc/business_clients_bloc.
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/datasources/business_auth_api_data_source.dart';
 import '../../features/auth/domain/usecases/sign_out.dart';
-import '../usecase/usecase.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/sign_in.dart';
@@ -95,6 +94,11 @@ import '../../features/business_dashboard/domain/repositories/business_dashboard
 import '../../features/business_dashboard/domain/usecases/get_business_dashboard.dart';
 import '../../features/business_dashboard/presentation/bloc/dashboard_bloc.dart';
 import '../../features/business_notifications/data/datasources/browser_push.dart';
+import '../../features/business_notifications/data/datasources/inbox_api_data_source.dart';
+import '../../features/business_notifications/data/repositories/notifications_inbox_repository_impl.dart';
+import '../../features/business_notifications/domain/repositories/notifications_inbox_repository.dart';
+import '../../features/business_notifications/domain/usecases/inbox_usecases.dart';
+import '../../features/business_notifications/presentation/bloc/notifications_inbox_cubit.dart';
 import '../../features/business_notifications/data/datasources/push_api_data_source.dart';
 import '../../features/business_notifications/data/repositories/push_repository_impl.dart';
 import '../../features/business_notifications/domain/repositories/push_repository.dart';
@@ -291,13 +295,12 @@ void _initBusinessProfile() {
     );
 }
 
-/// Quita el aviso push del navegador antes de cerrar sesión. Si falla (sin
+/// Quita el aviso push del navegador antes de cerrar sesión (endpoint
+/// público: funciona aunque el token haya vencido). Si falla (sin
 /// red, por ejemplo) se ignora: cerrar sesión no puede quedar bloqueado.
 Future<void> _disablePushQuietly() async {
   try {
-    await sl<DisablePush>()(
-      const NoParams(),
-    ).timeout(const Duration(seconds: 5));
+    await sl<PushRepository>().forget().timeout(const Duration(seconds: 5));
   } catch (_) {}
 }
 
@@ -311,6 +314,23 @@ void _initBusinessNotifications() {
     ..registerLazySingleton(() => GetPushStatus(sl()))
     ..registerLazySingleton(() => EnablePush(sl()))
     ..registerLazySingleton(() => DisablePush(sl()))
+    ..registerLazySingleton(() => InboxApiDataSource(sl()))
+    ..registerLazySingleton<NotificationsInboxRepository>(
+      () => NotificationsInboxRepositoryImpl(sl()),
+    )
+    ..registerLazySingleton(() => GetNotifications(sl()))
+    ..registerLazySingleton(() => GetUnreadNotificationsCount(sl()))
+    ..registerLazySingleton(() => MarkNotificationRead(sl()))
+    ..registerLazySingleton(() => MarkAllNotificationsRead(sl()))
+    ..registerFactory(
+      () => NotificationsInboxCubit(
+        getNotifications: sl(),
+        getUnreadCount: sl(),
+        markRead: sl(),
+        markAllRead: sl(),
+        clock: sl(),
+      ),
+    )
     ..registerFactory(
       () => BusinessNotificationsCubit(
         getStatus: sl(),

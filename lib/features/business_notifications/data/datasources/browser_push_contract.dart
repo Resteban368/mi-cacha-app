@@ -37,4 +37,8 @@ abstract interface class BrowserPush {
 
   /// Mensajes del Service Worker que indican una reserva nueva.
   Stream<void> get newReservationMessages;
+
+  /// Cualquier aviso que llega con la app abierta (reservas y avisos del
+  /// administrador): sirve para refrescar la bandeja.
+  Stream<void> get notificationMessages;
 }

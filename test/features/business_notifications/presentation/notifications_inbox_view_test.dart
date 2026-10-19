@@ -1,0 +1,126 @@
+import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:mi_cancha/core/widgets/app_top_bar.dart';
+import 'package:mi_cancha/core/widgets/notifications_bell_scope.dart';
+import 'package:mi_cancha/features/business_notifications/presentation/bloc/notifications_inbox_cubit.dart';
+import 'package:mi_cancha/features/business_notifications/presentation/widgets/notifications_inbox_sheet.dart';
+import 'package:mocktail/mocktail.dart';
+
+import '../inbox_fixtures.dart';
+
+class _MockCubit extends MockCubit<NotificationsInboxState>
+    implements NotificationsInboxCubit {}
+
+void main() {
+  setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
+
+  group('campana', () {
+    Future<void> pump(
+      WidgetTester tester, {
+      int unread = 0,
+      VoidCallback? onOpen,
+    }) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: NotificationsBellScope(
+            unread: unread,
+            onOpen: onOpen ?? () {},
+            child: const AppTopBar(title: 'Pagos', icon: Icons.payments),
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('con no leídas lo anuncia y al tocarla abre la bandeja', (
+      tester,
+    ) async {
+      var opened = false;
+      await pump(tester, unread: 3, onOpen: () => opened = true);
+      expect(
+        find.bySemanticsLabel('Notificaciones, tienes nuevas'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byTooltip('Notificaciones'));
+      expect(opened, isTrue);
+    });
+
+    testWidgets('sin no leídas no muestra el aviso', (tester) async {
+      await pump(tester);
+      expect(
+        find.bySemanticsLabel('Notificaciones, tienes nuevas'),
+        findsNothing,
+      );
+    });
+  });
+
+  group('bandeja', () {
+    late _MockCubit cubit;
+    setUp(() => cubit = _MockCubit());
+
+    Future<void> pump(
+      WidgetTester tester,
+      NotificationsInboxState state,
+    ) async {
+      when(() => cubit.state).thenReturn(state);
+      when(() => cubit.markAllRead()).thenAnswer((_) async {});
+      when(() => cubit.loadMore()).thenAnswer((_) async {});
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlocProvider<NotificationsInboxCubit>.value(
+              value: cubit,
+              child: const NotificationsInboxView(),
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('lista las notificaciones y marca las no leídas', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        NotificationsInboxState(
+          status: InboxStatus.ready,
+          items: [notification('a'), notification('b', unread: false)],
+          unread: 1,
+          page: 1,
+        ),
+      );
+      expect(find.byType(NotificationTile), findsNWidgets(2));
+      expect(find.byKey(const Key('inbox-unread-dot')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('inbox-read-all')));
+      verify(() => cubit.markAllRead()).called(1);
+    });
+
+    testWidgets('sin no leídas el botón de marcar todas está deshabilitado', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        NotificationsInboxState(
+          status: InboxStatus.ready,
+          items: [notification('b', unread: false)],
+          page: 1,
+        ),
+      );
+      final button = tester.widget<TextButton>(
+        find.byKey(const Key('inbox-read-all')),
+      );
+      expect(button.onPressed, isNull);
+    });
+
+    testWidgets('bandeja vacía', (tester) async {
+      await pump(
+        tester,
+        const NotificationsInboxState(status: InboxStatus.ready),
+      );
+      expect(find.text('No tienes notificaciones.'), findsOneWidget);
+    });
+  });
+}

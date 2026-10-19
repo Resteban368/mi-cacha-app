@@ -10,6 +10,8 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/business_account/domain/usecases/get_business_account.dart';
 import '../../features/business_notifications/domain/repositories/push_repository.dart';
 import '../../features/business_notifications/presentation/bloc/business_notifications_cubit.dart';
+import '../../features/business_notifications/presentation/bloc/notifications_inbox_cubit.dart';
+import '../../features/business_notifications/presentation/widgets/notifications_inbox_host.dart';
 import '../../features/business_account/presentation/bloc/business_account_bloc.dart';
 import '../../features/business_account/presentation/pages/business_account_page.dart';
 import '../../features/business_clients/presentation/bloc/business_clients_bloc.dart';
@@ -149,10 +151,14 @@ GoRouter _buildRouter(
       builder: (_, state, child) => WriteAccessRefresher(
         writeAccess: sl<WriteAccess>(),
         loadCanWrite: _loadCanWrite,
-        child: BusinessHomeShell(
-          location: state.uri.path,
-          onSignOut: _signOut,
-          child: child,
+        child: NotificationsInboxHost(
+          createCubit: () => sl<NotificationsInboxCubit>(),
+          notificationsChanged: sl<PushRepository>().notificationsChanged,
+          child: BusinessHomeShell(
+            location: state.uri.path,
+            onSignOut: _signOut,
+            child: child,
+          ),
         ),
       ),
       routes: [

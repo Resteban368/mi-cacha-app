@@ -11,6 +11,12 @@ abstract interface class PushRepository {
   /// Quita la suscripción en el servidor y en el navegador.
   Future<void> disable();
 
+  /// Quita la suscripción al cerrar sesión, sin depender del token.
+  Future<void> forget();
+
   /// Se emite cuando llega una reserva nueva mientras la app está abierta.
   Stream<void> get newReservations;
+
+  /// Se emite con cualquier aviso que llega con la app abierta.
+  Stream<void> get notificationsChanged;
 }

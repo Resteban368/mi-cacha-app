@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import 'notifications_bell_scope.dart';
 
 /// Barra superior de las secciones internas: título, subtítulo y
 /// notificaciones sobre un degradado teal con líneas de cancha sutiles.
@@ -56,6 +57,10 @@ class AppTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // La campana toma la insignia y la acción del panel, si no se le pasan.
+    final bell = NotificationsBellScope.maybeOf(context);
+    final hasUnread = this.hasUnread || (bell?.unread ?? 0) > 0;
+    final onNotifications = this.onNotifications ?? bell?.onOpen;
     final scaffold = _drawerScaffold(context);
     final hasDrawer = scaffold != null;
 
@@ -191,7 +196,6 @@ class AppTopBar extends StatelessWidget {
                             semanticLabel: hasUnread
                                 ? 'Notificaciones, tienes nuevas'
                                 : 'Notificaciones',
-                            // TODO: abrir centro de notificaciones.
                             onPressed: onNotifications ?? () {},
                             child: Stack(
                               alignment: Alignment.center,

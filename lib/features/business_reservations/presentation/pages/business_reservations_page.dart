@@ -136,7 +136,6 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
               title: 'Reservas',
               subtitle: 'Agenda de tus canchas',
               icon: Icons.event_note_rounded,
-              hasUnread: true,
             ),
             Expanded(
               child: MediaQuery.removePadding(

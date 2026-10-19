@@ -22,7 +22,9 @@ class BrowserPushWeb implements BrowserPush {
         ((web.Event event) {
           final data = (event as web.MessageEvent).data;
           final type = (data as JSObject?)?.getProperty<JSString?>('type'.toJS);
-          if (type?.toDart == 'NEW_RESERVATION') {
+          if (type == null) return;
+          _anyMessages.add(null);
+          if (type.toDart == 'NEW_RESERVATION') {
             _playChime();
             _messages.add(null);
           }
@@ -35,6 +37,7 @@ class BrowserPushWeb implements BrowserPush {
   static const _scope = '/push/';
 
   final _messages = StreamController<void>.broadcast();
+  final _anyMessages = StreamController<void>.broadcast();
   web.AudioContext? _audio;
 
   /// Dos tonos cortos para avisar con la app abierta. El navegador puede
@@ -142,4 +145,7 @@ class BrowserPushWeb implements BrowserPush {
 
   @override
   Stream<void> get newReservationMessages => _messages.stream;
+
+  @override
+  Stream<void> get notificationMessages => _anyMessages.stream;
 }
