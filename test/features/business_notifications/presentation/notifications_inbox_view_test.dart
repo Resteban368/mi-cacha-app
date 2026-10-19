@@ -98,6 +98,35 @@ void main() {
       verify(() => cubit.markAllRead()).called(1);
     });
 
+    testWidgets('al tocar una se marca como leída y muestra su detalle', (
+      tester,
+    ) async {
+      final unread = notification('a');
+      when(() => cubit.markRead(unread)).thenAnswer((_) async {});
+      await pump(
+        tester,
+        NotificationsInboxState(
+          status: InboxStatus.ready,
+          items: [unread],
+          unread: 1,
+          page: 1,
+        ),
+      );
+      await tester.tap(find.byType(NotificationTile));
+      await tester.pumpAndSettle();
+
+      verify(() => cubit.markRead(unread)).called(1);
+      expect(find.byKey(const Key('notification-detail')), findsOneWidget);
+      // El texto completo se ve en el detalle (además del listado).
+      expect(find.text(unread.body), findsNWidgets(2));
+
+      await tester.tap(find.text('Cerrar'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('notification-detail')), findsNothing);
+      // La bandeja sigue abierta: no se navegó a otra pantalla.
+      expect(find.byType(NotificationTile), findsOneWidget);
+    });
+
     testWidgets('sin no leídas el botón de marcar todas está deshabilitado', (
       tester,
     ) async {

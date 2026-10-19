@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -45,11 +44,10 @@ Future<void> showNotificationsInbox(
 class NotificationsInboxView extends StatelessWidget {
   const NotificationsInboxView({super.key});
 
+  /// Tocar una notificación solo muestra su detalle (no navega).
   void _open(BuildContext context, AppNotification notification) {
     context.read<NotificationsInboxCubit>().markRead(notification);
-    final url = notification.url;
-    Navigator.of(context).pop();
-    if (url != null && url.startsWith('/')) context.go(url);
+    showNotificationDetail(context, notification);
   }
 
   @override
@@ -138,6 +136,73 @@ class NotificationsInboxView extends StatelessWidget {
   }
 }
 
+/// Detalle de una notificación: tipo, título, texto completo y fecha.
+Future<void> showNotificationDetail(
+  BuildContext context,
+  AppNotification notification,
+) {
+  final n = notification;
+  final (icon, color, kind) = _kindStyle(n.kind);
+  return showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      key: const Key('notification-detail'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      icon: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(icon, color: color),
+      ),
+      title: Text(n.title, textAlign: TextAlign.center),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$kind · ${AppFormatters.longDate(n.createdAt)}, '
+            '${AppFormatters.time(n.createdAt)}',
+            textAlign: TextAlign.center,
+            style: AppTypography.labelSm.copyWith(color: AppColors.outline),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            n.body,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodyMd.copyWith(color: AppColors.onSurface),
+          ),
+        ],
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cerrar'),
+        ),
+      ],
+    ),
+  );
+}
+
+(IconData, Color, String) _kindStyle(NotificationKind kind) => switch (kind) {
+  NotificationKind.newReservation => (
+    Icons.event_available_rounded,
+    AppColors.brandTeal,
+    'Reserva nueva',
+  ),
+  NotificationKind.adminBroadcast => (
+    Icons.campaign_outlined,
+    AppColors.statusDeposit,
+    'Aviso de Mi Cancha',
+  ),
+  NotificationKind.other => (
+    Icons.notifications_none_rounded,
+    AppColors.onSurfaceVariant,
+    'Notificación',
+  ),
+};
+
 class NotificationTile extends StatelessWidget {
   const NotificationTile({
     super.key,
@@ -153,20 +218,7 @@ class NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final n = notification;
-    final (icon, color) = switch (n.kind) {
-      NotificationKind.newReservation => (
-        Icons.event_available_rounded,
-        AppColors.brandTeal,
-      ),
-      NotificationKind.adminBroadcast => (
-        Icons.campaign_outlined,
-        AppColors.statusDeposit,
-      ),
-      NotificationKind.other => (
-        Icons.notifications_none_rounded,
-        AppColors.onSurfaceVariant,
-      ),
-    };
+    final (icon, color, _) = _kindStyle(n.kind);
     return Material(
       color: n.isUnread
           ? AppColors.brandTealLight.withValues(alpha: 0.35)
