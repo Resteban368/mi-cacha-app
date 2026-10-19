@@ -61,4 +61,45 @@ void main() {
     expect(empty.collectedRatio, 0);
     expect(empty.pendingRatio, 0);
   });
+
+  test('una reserva de varias canchas suma su saldo una sola vez', () {
+    const group = ReservationGroup(
+      id: 'g1',
+      courts: [
+        ReservationGroupCourt(
+          reservationId: 'a',
+          courtId: 'c1',
+          courtName: 'A',
+        ),
+        ReservationGroupCourt(
+          reservationId: 'b',
+          courtId: 'c2',
+          courtName: 'B',
+        ),
+      ],
+      totalPrice: 200000,
+      amountPaid: 150000,
+    );
+    // El pago del grupo (150.000) quedó en la primera cancha.
+    Reservation member(String id, int paid) => Reservation(
+      id: id,
+      courtName: 'Cancha $id',
+      sport: reservation(id: id, startHour: 20).sport,
+      start: DateTime(2026, 10, 9, 20),
+      end: DateTime(2026, 10, 9, 21),
+      customerName: 'Equipo',
+      phone: '',
+      totalPrice: 100000,
+      amountPaid: paid,
+      status: ReservationStatus.confirmed,
+      group: group,
+    );
+    final grouped = DayAgenda(
+      day: day,
+      now: now,
+      reservations: [member('a', 150000), member('b', 0)],
+    );
+    expect(grouped.collected, 150000);
+    expect(grouped.pending, 50000);
+  });
 }

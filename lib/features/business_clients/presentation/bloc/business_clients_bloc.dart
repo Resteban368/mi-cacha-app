@@ -23,13 +23,26 @@ class BusinessClientsBloc
        _updateCustomer = updateBusinessCustomer,
        super(const BusinessClientsState()) {
     on<BusinessClientsStarted>(_onStarted, transformer: restartable());
-    on<BusinessClientsSearchChanged>(_onSearchChanged, transformer: restartable());
-    on<BusinessClientsSegmentChanged>(_onSegmentChanged, transformer: restartable());
+    on<BusinessClientsSearchChanged>(
+      _onSearchChanged,
+      transformer: restartable(),
+    );
+    on<BusinessClientsSegmentChanged>(
+      _onSegmentChanged,
+      transformer: restartable(),
+    );
     on<BusinessClientsSortChanged>(_onSortChanged, transformer: restartable());
-    on<BusinessClientsPageChanged>(_onPageChanged, transformer: restartable());
+    // Cargar más: mientras carga una página se ignoran los demás pedidos.
+    on<BusinessClientsNextPageRequested>(_onNextPage, transformer: droppable());
     on<BusinessClientsRefreshed>(_onRefreshed, transformer: restartable());
-    on<BusinessClientsCustomerCreated>(_onCustomerCreated, transformer: droppable());
-    on<BusinessClientsCustomerUpdated>(_onCustomerUpdated, transformer: droppable());
+    on<BusinessClientsCustomerCreated>(
+      _onCustomerCreated,
+      transformer: droppable(),
+    );
+    on<BusinessClientsCustomerUpdated>(
+      _onCustomerUpdated,
+      transformer: droppable(),
+    );
   }
 
   final GetBusinessCustomers _getCustomers;
@@ -37,28 +50,39 @@ class BusinessClientsBloc
   final UpdateBusinessCustomer _updateCustomer;
   final Duration searchDebounce;
 
+  /// Sube con cada consulta nueva (búsqueda, filtro, orden o recarga): las
+  /// páginas que llegan de una consulta anterior se descartan.
+  int _generation = 0;
+
+  /// Carga la primera página de [query]; gana la última consulta.
   Future<void> _fetchCustomers(
     CustomerQuery query,
     Emitter<BusinessClientsState> emit,
   ) async {
+    final generation = ++_generation;
+    final first = query.copyWith(page: 1);
     emit(
       state.copyWith(
         status: ClientsStatus.loading,
-        query: query,
+        query: first,
+        loadMore: LoadMoreStatus.idle,
         errorMessage: () => null,
       ),
     );
 
     try {
-      final result = await _getCustomers(query);
+      final result = await _getCustomers(first);
+      if (generation != _generation) return;
       emit(
         state.copyWith(
           status: ClientsStatus.success,
           result: () => result,
+          items: () => result.items,
           errorMessage: () => null,
         ),
       );
     } on CustomerException catch (e) {
+      if (generation != _generation) return;
       emit(
         state.copyWith(
           status: ClientsStatus.failure,
@@ -66,6 +90,7 @@ class BusinessClientsBloc
         ),
       );
     } catch (e) {
+      if (generation != _generation) return;
       emit(
         state.copyWith(
           status: ClientsStatus.failure,
@@ -90,10 +115,7 @@ class BusinessClientsBloc
       await Future<void>.delayed(searchDebounce);
       if (emit.isDone) return;
     }
-    final newQuery = state.query.copyWith(
-      search: event.search,
-      page: 1,
-    );
+    final newQuery = state.query.copyWith(search: event.search, page: 1);
     await _fetchCustomers(newQuery, emit);
   }
 
@@ -101,10 +123,7 @@ class BusinessClientsBloc
     BusinessClientsSegmentChanged event,
     Emitter<BusinessClientsState> emit,
   ) async {
-    final newQuery = state.query.copyWith(
-      segment: event.segment,
-      page: 1,
-    );
+    final newQuery = state.query.copyWith(segment: event.segment, page: 1);
     await _fetchCustomers(newQuery, emit);
   }
 
@@ -112,20 +131,39 @@ class BusinessClientsBloc
     BusinessClientsSortChanged event,
     Emitter<BusinessClientsState> emit,
   ) async {
-    final newQuery = state.query.copyWith(
-      sort: event.sort,
-      page: 1,
-    );
+    final newQuery = state.query.copyWith(sort: event.sort, page: 1);
     await _fetchCustomers(newQuery, emit);
   }
 
-  Future<void> _onPageChanged(
-    BusinessClientsPageChanged event,
+  /// Agrega la página siguiente a la lista (scroll infinito).
+  Future<void> _onNextPage(
+    BusinessClientsNextPageRequested event,
     Emitter<BusinessClientsState> emit,
   ) async {
-    if (event.page == state.query.page || event.page < 1) return;
-    final newQuery = state.query.copyWith(page: event.page);
-    await _fetchCustomers(newQuery, emit);
+    if (state.status != ClientsStatus.success || !state.hasNextPage) return;
+    final generation = _generation;
+    final next = state.query.copyWith(page: state.currentPage + 1);
+    emit(state.copyWith(loadMore: LoadMoreStatus.loading));
+    try {
+      final result = await _getCustomers(next);
+      // Cambió la búsqueda o el filtro mientras cargaba: se descarta.
+      if (generation != _generation) return;
+      final seen = {for (final c in state.clients) c.id};
+      emit(
+        state.copyWith(
+          query: next,
+          result: () => result,
+          items: () => [
+            ...state.clients,
+            ...result.items.where((c) => !seen.contains(c.id)),
+          ],
+          loadMore: LoadMoreStatus.idle,
+        ),
+      );
+    } catch (_) {
+      if (generation != _generation) return;
+      emit(state.copyWith(loadMore: LoadMoreStatus.failure));
+    }
   }
 
   Future<void> _onRefreshed(
@@ -161,7 +199,8 @@ class BusinessClientsBloc
       emit(
         state.copyWith(
           saveStatus: SaveCustomerStatus.failure,
-          saveErrorMessage: () => e.message ?? 'No fue posible crear el cliente.',
+          saveErrorMessage: () =>
+              e.message ?? 'No fue posible crear el cliente.',
         ),
       );
     } catch (_) {
@@ -202,7 +241,8 @@ class BusinessClientsBloc
       emit(
         state.copyWith(
           saveStatus: SaveCustomerStatus.failure,
-          saveErrorMessage: () => e.message ?? 'No fue posible actualizar el cliente.',
+          saveErrorMessage: () =>
+              e.message ?? 'No fue posible actualizar el cliente.',
         ),
       );
     } catch (_) {

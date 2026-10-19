@@ -67,6 +67,45 @@ class ReservationPayment extends Equatable {
   ];
 }
 
+/// Cancha de una reserva de varias canchas.
+class ReservationGroupCourt extends Equatable {
+  const ReservationGroupCourt({
+    required this.reservationId,
+    required this.courtId,
+    required this.courtName,
+  });
+
+  final String reservationId;
+  final String courtId;
+  final String courtName;
+
+  @override
+  List<Object?> get props => [reservationId, courtId, courtName];
+}
+
+/// Varias canchas reservadas a la vez en la misma franja: se pagan y se
+/// cancelan juntas. Cada cancha llega como su propia [Reservation].
+class ReservationGroup extends Equatable {
+  const ReservationGroup({
+    required this.id,
+    required this.courts,
+    required this.totalPrice,
+    required this.amountPaid,
+  });
+
+  final String id;
+  final List<ReservationGroupCourt> courts;
+
+  /// Suma de las canchas, con el descuento.
+  final int totalPrice;
+  final int amountPaid;
+
+  int get balance => (totalPrice - amountPaid).clamp(0, totalPrice);
+
+  @override
+  List<Object?> get props => [id, courts, totalPrice, amountPaid];
+}
+
 /// Momento de la reserva respecto a "ahora".
 enum ReservationTiming { past, live, upcoming }
 
@@ -95,6 +134,7 @@ class Reservation extends Equatable {
     this.cancellationReason,
     this.cancelledAt,
     this.cancelledBy,
+    this.group,
   }) : subtotal = subtotal ?? totalPrice;
 
   final String id;
@@ -138,9 +178,26 @@ class Reservation extends Equatable {
   /// Nombre de quien canceló.
   final String? cancelledBy;
 
+  /// Si es parte de una reserva de varias canchas.
+  final ReservationGroup? group;
+
+  /// Saldo de esta cancha (para sumar por cancha). Para mostrar al cliente
+  /// usa [displayBalance], que en un grupo es el de todas las canchas.
   int get balance => (totalPrice - amountPaid).clamp(0, totalPrice);
 
-  bool get isFullyPaid => balance == 0;
+  /// Total, pagado y saldo que ve el negocio: los del grupo si lo hay (los
+  /// pagos de un grupo quedan en su primera reserva).
+  int get displayTotal => group?.totalPrice ?? totalPrice;
+  int get displayPaid => group?.amountPaid ?? amountPaid;
+  int get displayBalance => group?.balance ?? balance;
+
+  bool get isFullyPaid => displayBalance == 0;
+
+  /// "Sintética 1" o, en un grupo, "Sintética 1 + Sintética 2".
+  String get courtsLabel => switch (group) {
+    final group? => group.courts.map((c) => c.courtName).join(' + '),
+    null => courtName,
+  };
 
   Duration get duration => end.difference(start);
 
@@ -180,5 +237,6 @@ class Reservation extends Equatable {
     cancellationReason,
     cancelledAt,
     cancelledBy,
+    group,
   ];
 }

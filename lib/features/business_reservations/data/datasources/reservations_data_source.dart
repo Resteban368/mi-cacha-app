@@ -9,7 +9,7 @@ import '../../domain/entities/reservation_query.dart';
 abstract interface class ReservationsDataSource {
   Future<List<Reservation>> getReservationsForDay(DateTime day);
 
-  Future<Availability> getAvailability(String courtId, DateTime day);
+  Future<SportAvailability> getSportAvailability(Sport sport, DateTime day);
 
   Future<ReservationPage> listReservations(
     ReservationQuery query, {
@@ -141,7 +141,7 @@ class FakeReservationsDataSource implements ReservationsDataSource {
   }) => throw UnimplementedError();
 
   @override
-  Future<Availability> getAvailability(String courtId, DateTime day) =>
+  Future<SportAvailability> getSportAvailability(Sport sport, DateTime day) =>
       throw UnimplementedError();
 
   @override

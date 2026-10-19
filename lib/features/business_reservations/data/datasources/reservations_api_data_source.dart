@@ -11,7 +11,7 @@ import '../../domain/entities/reservation_query.dart';
 import 'reservations_data_source.dart';
 
 /// Reservas del negocio en la API (`/business/reservations`, la
-/// disponibilidad de cada cancha y los clientes).
+/// disponibilidad por deporte y los clientes).
 class ReservationsApiDataSource implements ReservationsDataSource {
   const ReservationsApiDataSource(this._dio);
 
@@ -70,23 +70,24 @@ class ReservationsApiDataSource implements ReservationsDataSource {
   }
 
   @override
-  Future<Availability> getAvailability(String courtId, DateTime day) async {
+  Future<SportAvailability> getSportAvailability(
+    Sport sport,
+    DateTime day,
+  ) async {
     final response = await apiCall(
       () => _dio.get<Map<String, dynamic>>(
-        '/business/courts/$courtId/availability',
-        queryParameters: {'date': dayParam(day)},
+        '/business/availability',
+        queryParameters: {'date': dayParam(day), 'sport': sport.apiCode},
       ),
     );
     final json = response.data!;
-    return Availability(
+    return SportAvailability(
       date: json['date'] as String,
-      courtId: json['courtId'] as String,
-      slotDuration: (json['slotDuration'] as num).toInt(),
-      currency: json['currency'] as String? ?? 'COP',
+      sport: Sport.fromApi(json['sport'] as String?) ?? sport,
       maxSlots: (json['maxSlots'] as num?)?.toInt() ?? NewReservation.maxSlots,
-      slots: [
-        for (final slot in (json['slots'] as List<dynamic>? ?? const []))
-          _slot(slot as Map<String, dynamic>),
+      courts: [
+        for (final item in (json['courts'] as List<dynamic>? ?? const []))
+          _courtSlots(item as Map<String, dynamic>, sport),
       ],
     );
   }
@@ -159,7 +160,14 @@ class ReservationsApiDataSource implements ReservationsDataSource {
     final customer = r.customer;
     final payment = r.payment;
     return {
-      'courtId': r.courtId,
+      ...switch (r.target) {
+        CourtById(:final courtId) => {'courtId': courtId},
+        CourtsByIds(:final courtIds) => {'courtIds': courtIds},
+        AnyCourtOfSport(:final sport, :final courts) => {
+          'sport': sport.apiCode,
+          if (courts > 1) 'courts': courts,
+        },
+      },
       // Tal como llegó en la disponibilidad.
       'start': r.start,
       'slots': r.slots,
@@ -186,6 +194,29 @@ class ReservationsApiDataSource implements ReservationsDataSource {
   }
 
   static int _money(Object? value) => (value as num? ?? 0).round();
+
+  static CourtSlots _courtSlots(Map<String, dynamic> json, Sport sport) {
+    final court = json['court'] as Map<String, dynamic>;
+    final slots = [
+      for (final slot in (json['slots'] as List<dynamic>? ?? const []))
+        _slot(slot as Map<String, dynamic>),
+    ];
+    return CourtSlots(
+      court: AvailabilityCourt(
+        id: court['id'] as String,
+        name: court['name'] as String,
+        sport: Sport.fromApi(court['sport'] as String?) ?? sport,
+        isCovered: court['isCovered'] as bool? ?? false,
+        slotDuration: (court['slotDuration'] as num).toInt(),
+        currency: court['currency'] as String? ?? 'COP',
+        photoUrl: court['photoUrl'] as String?,
+      ),
+      availableCount:
+          (json['availableCount'] as num?)?.toInt() ??
+          slots.where((s) => s.isAvailable).length,
+      slots: slots,
+    );
+  }
 
   static Slot _slot(Map<String, dynamic> json) {
     final start = json['start'] as String;
@@ -251,5 +282,28 @@ class ReservationsApiDataSource implements ReservationsDataSource {
       _ => null,
     },
     cancelledBy: json['cancelledBy'] as String?,
+    group: switch (json['group']) {
+      final Map<String, dynamic> group => _group(group),
+      _ => null,
+    },
+  );
+
+  static ReservationGroup _group(Map<String, dynamic> json) => ReservationGroup(
+    id: json['id'] as String,
+    courts: [
+      for (final item in (json['courts'] as List<dynamic>? ?? const []))
+        if (item case {
+          'reservationId': final String reservationId,
+          'courtId': final String courtId,
+          'courtName': final String courtName,
+        })
+          ReservationGroupCourt(
+            reservationId: reservationId,
+            courtId: courtId,
+            courtName: courtName,
+          ),
+    ],
+    totalPrice: _money(json['totalPrice']),
+    amountPaid: _money(json['amountPaid']),
   );
 }

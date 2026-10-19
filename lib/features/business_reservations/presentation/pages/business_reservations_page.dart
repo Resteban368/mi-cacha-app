@@ -10,6 +10,7 @@ import '../../../../core/widgets/sliver_card_grid.dart';
 import '../../domain/entities/day_agenda.dart';
 import '../../domain/entities/reservation.dart';
 import '../bloc/business_reservations_bloc.dart';
+import '../widgets/agenda_metric_cards.dart';
 import '../widgets/day_header.dart';
 import '../widgets/live_reservation_card.dart';
 import '../bloc/reservation_detail/reservation_detail_cubit.dart';
@@ -22,18 +23,26 @@ import '../../../../core/widgets/loading_dialog.dart';
 import '../../../../core/session/write_access.dart';
 
 /// Pestaña "Reservas" del home de negocio (diseño "Reservas de Hoy").
-class BusinessReservationsPage extends StatelessWidget {
+class BusinessReservationsPage extends StatefulWidget {
   const BusinessReservationsPage({super.key, this.createDetailCubit});
 
   /// Crea el cubit del detalle de una reserva; sin él, las reservas no se
   /// abren (p. ej. en tests de la agenda).
   final ReservationDetailCubit Function()? createDetailCubit;
 
+  @override
+  State<BusinessReservationsPage> createState() =>
+      _BusinessReservationsPageState();
+}
+
+class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
+  String? _selectedReservationId;
+
   Future<void> _openDetail(
     BuildContext context,
     Reservation reservation,
   ) async {
-    final create = createDetailCubit;
+    final create = widget.createDetailCubit;
     if (create == null) return;
     final bloc = context.read<BusinessReservationsBloc>();
     final changed = await showReservationDetail(
@@ -42,6 +51,25 @@ class BusinessReservationsPage extends StatelessWidget {
       createCubit: create,
     );
     if (changed) bloc.add(const ReservationsRefreshed());
+  }
+
+  void _changeDay(BuildContext context, DateTime? day) {
+    context.read<BusinessReservationsBloc>().add(ReservationsRequested(day));
+  }
+
+  Future<void> _pickDate(BuildContext context, DateTime currentDay) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: currentDay,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      helpText: 'Seleccionar día de agenda',
+      confirmText: 'Ver agenda',
+      cancelText: 'Cancelar',
+    );
+    if (picked != null && context.mounted) {
+      _changeDay(context, picked);
+    }
   }
 
   @override
@@ -86,6 +114,7 @@ class BusinessReservationsPage extends StatelessWidget {
                           final layout = CardGridLayout.of(
                             constraints.maxWidth,
                           );
+
                           return RefreshIndicator(
                             color: AppColors.brandTeal,
                             onRefresh: () => _refresh(context),
@@ -94,15 +123,40 @@ class BusinessReservationsPage extends StatelessWidget {
                               slivers: [
                                 SliverToBoxAdapter(
                                   child: Padding(
-                                    padding: layout.paddingBeyond(12),
+                                    padding: layout.paddingBeyond(0),
                                     child: DayHeader(
                                       day: state.day,
                                       isToday: state.agenda.isToday,
-                                      // TODO: selector de fecha (requiere localización es).
-                                      onOpenCalendar: () {},
+                                      onPreviousDay: () => _changeDay(
+                                        context,
+                                        state.day.subtract(
+                                          const Duration(days: 1),
+                                        ),
+                                      ),
+                                      onNextDay: () => _changeDay(
+                                        context,
+                                        state.day.add(const Duration(days: 1)),
+                                      ),
+                                      onJumpToday: () => _changeDay(context, null),
+                                      onOpenCalendar: () =>
+                                          _pickDate(context, state.day),
                                     ),
                                   ),
                                 ),
+                                if (state.status == ReservationsStatus.success &&
+                                    state.agenda.reservations.isNotEmpty) ...[
+                                  const SliverToBoxAdapter(
+                                    child: SizedBox(height: 10),
+                                  ),
+                                  SliverToBoxAdapter(
+                                    child: Padding(
+                                      padding: layout.paddingBeyond(0),
+                                      child: AgendaMetricCards(
+                                        agenda: state.agenda,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                                 // Acceso al listado de todas las reservas.
                                 SliverToBoxAdapter(
                                   child: Padding(
@@ -259,9 +313,19 @@ class BusinessReservationsPage extends StatelessWidget {
     Widget card(Reservation r) {
       final timing = r.timingAt(now);
       final isLive = !r.isVoid && timing == ReservationTiming.live;
+      final isSelected = r.id == _selectedReservationId;
       final child = isLive
-          ? LiveReservationCard(reservation: r)
-          : ReservationCard(reservation: r, timing: timing);
+          ? LiveReservationCard(
+              reservation: r,
+              isSelected: isSelected,
+              onQuickCollect: () => _openDetail(context, r),
+            )
+          : ReservationCard(
+              reservation: r,
+              timing: timing,
+              isSelected: isSelected,
+              onQuickCollect: () => _openDetail(context, r),
+            );
       // Tocar la reserva abre su detalle (cancelar, marcar jugada…).
       return Semantics(
         key: ValueKey(r.id),
@@ -269,7 +333,10 @@ class BusinessReservationsPage extends StatelessWidget {
         onTapHint: 'ver detalle',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => _openDetail(context, r),
+          onTap: () {
+            setState(() => _selectedReservationId = r.id);
+            _openDetail(context, r);
+          },
           child: child,
         ),
       );
@@ -367,7 +434,7 @@ class _Message extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: AppTypography.bodyMd.copyWith(
+            style: AppTypography.bodySm.copyWith(
               color: AppColors.onSurfaceVariant,
             ),
           ),

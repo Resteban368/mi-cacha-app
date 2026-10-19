@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/catalogs/domain/entities/catalog_payment_method.dart';
 import '../../../../../core/catalogs/domain/usecases/get_catalogs.dart';
+import '../../../../../core/domain/entities/sport.dart';
 import '../../../../../core/usecase/usecase.dart';
 import '../../../../../core/utils/clock.dart';
 import '../../../../business_courts/domain/entities/court.dart';
@@ -18,32 +19,36 @@ import '../../../domain/usecases/booking_usecases.dart';
 part 'new_reservation_event.dart';
 part 'new_reservation_state.dart';
 
-/// Flujo de "Nueva reserva": cancha y día → turnos → cliente → pago.
+/// Flujo de "Nueva reserva": deporte y día → turnos de sus canchas (o de
+/// cualquier cancha libre) → cliente → pago.
 class NewReservationBloc
     extends Bloc<NewReservationEvent, NewReservationState> {
   NewReservationBloc({
     required GetCourts getCourts,
     required GetCatalogs getCatalogs,
-    required GetAvailability getAvailability,
+    required GetSportAvailability getSportAvailability,
     required SearchCustomers searchCustomers,
     required CreateReservation createReservation,
     required Clock clock,
-    this.searchDebounce = const Duration(milliseconds: 300),
+    this.searchDebounce = const Duration(milliseconds: 250),
   }) : _getCourts = getCourts,
        _getCatalogs = getCatalogs,
-       _getAvailability = getAvailability,
+       _getSportAvailability = getSportAvailability,
        _searchCustomers = searchCustomers,
        _createReservation = createReservation,
        _clock = clock,
        super(NewReservationState(day: _dateOnly(clock.now()))) {
     on<NewReservationStarted>(_onStarted, transformer: restartable());
-    // Cambiar de cancha o día cancela la carga anterior de turnos.
+    // Cambiar de deporte o día cancela la carga anterior de turnos.
     on<NewReservationAvailabilityEvent>(
       _onAvailability,
       transformer: restartable(),
     );
+    on<NewReservationAnyCourtToggled>(_onAnyCourtToggled);
     on<NewReservationSlotTapped>(_onSlotTapped);
     on<NewReservationSlotCountChanged>(_onSlotCountChanged);
+    on<NewReservationExtraCourtToggled>(_onExtraCourtToggled);
+    on<NewReservationAnyCourtCountChanged>(_onAnyCourtCountChanged);
     // Gana la última búsqueda (con espera mientras se escribe).
     on<NewReservationCustomerQueryChanged>(
       _onCustomerQuery,
@@ -56,7 +61,7 @@ class NewReservationBloc
 
   final GetCourts _getCourts;
   final GetCatalogs _getCatalogs;
-  final GetAvailability _getAvailability;
+  final GetSportAvailability _getSportAvailability;
   final SearchCustomers _searchCustomers;
   final CreateReservation _createReservation;
   final Clock _clock;
@@ -76,12 +81,15 @@ class NewReservationBloc
         _getCourts(const NoParams()),
         _getCatalogs(const NoParams()),
       ).wait;
-      final bookable = courts.where((c) => c.isBookable);
-      final court =
-          courts
-              .where((c) => c.id == event.courtId && c.isBookable)
-              .firstOrNull ??
-          bookable.firstOrNull;
+      // Desde la agenda: el deporte de esa cancha, con su tarjeta a la vista.
+      final requestedCourt = courts
+          .where((c) => c.id == event.courtId && c.isBookable)
+          .firstOrNull;
+      final sports = [
+        for (final sport in Sport.values)
+          if (courts.any((c) => c.sport == sport && c.isBookable)) sport,
+      ];
+      final sport = requestedCourt?.sport ?? sports.firstOrNull;
       final requested = event.day == null ? null : _dateOnly(event.day!);
       final day = requested != null && !requested.isBefore(_today)
           ? requested
@@ -89,10 +97,11 @@ class NewReservationBloc
       emit(
         state.copyWith(
           load: NewReservationLoad.ready,
-          courts: [...bookable, ...courts.where((c) => !c.isBookable)],
+          courts: courts,
           paymentMethods: [...catalogs.paymentMethods.where((m) => m.active)]
             ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)),
-          court: () => court,
+          sport: () => sport,
+          focusCourtId: () => requestedCourt?.id,
           day: day,
           customer: () => event.customer ?? state.customer,
         ),
@@ -101,7 +110,7 @@ class NewReservationBloc
       emit(state.copyWith(load: NewReservationLoad.failure));
       return;
     }
-    if (state.court != null) add(const NewReservationAvailabilityReloaded());
+    if (state.sport != null) add(const NewReservationAvailabilityReloaded());
     add(const NewReservationCustomerQueryChanged(''));
   }
 
@@ -110,9 +119,9 @@ class NewReservationBloc
     Emitter<NewReservationState> emit,
   ) async {
     switch (event) {
-      case NewReservationCourtSelected(:final court):
-        if (!court.isBookable) return;
-        emit(state.copyWith(court: () => court));
+      case NewReservationSportSelected(:final sport):
+        if (sport == state.sport) return;
+        emit(state.copyWith(sport: () => sport, focusCourtId: () => null));
       case NewReservationDaySelected(:final day):
         final date = _dateOnly(day);
         if (date.isBefore(_today)) return;
@@ -120,19 +129,23 @@ class NewReservationBloc
       case NewReservationAvailabilityReloaded():
         break;
     }
-    final court = state.court;
-    if (court == null) return;
+    final sport = state.sport;
+    if (sport == null) return;
+    // Al cambiar de deporte o de día (o recargar) se limpia la selección.
     emit(
       state.copyWith(
         availabilityLoad: AvailabilityLoad.loading,
         availability: () => null,
-        startIndex: () => null,
+        selectedCourtId: () => null,
+        selectedStart: () => null,
         slotCount: 1,
+        extraCourtIds: const [],
+        anyCourtCount: 1,
       ),
     );
     try {
-      final availability = await _getAvailability((
-        courtId: court.id,
+      final availability = await _getSportAvailability((
+        sport: sport,
         day: state.day,
       ));
       emit(
@@ -146,31 +159,158 @@ class NewReservationBloc
     }
   }
 
+  void _onAnyCourtToggled(
+    NewReservationAnyCourtToggled event,
+    Emitter<NewReservationState> emit,
+  ) {
+    if (event.enabled == state.anyCourt) return;
+    final start = state.selectedStart;
+    final availability = state.availability;
+    // Cambiar de modo deja una sola cancha.
+    emit(state.copyWith(extraCourtIds: const [], anyCourtCount: 1));
+    if (start == null || availability == null) {
+      emit(state.copyWith(anyCourt: event.enabled));
+      return;
+    }
+    if (event.enabled) {
+      // Se conserva la hora; la duración se ajusta a la cancha con más turnos.
+      final reach = availability.anyCourtReach(start);
+      emit(
+        state.copyWith(
+          anyCourt: true,
+          slotCount: reach == 0 ? 1 : state.slotCount.clamp(1, reach),
+          selectedStart: reach == 0 ? () => null : null,
+        ),
+      );
+      return;
+    }
+    // Al apagarlo queda elegida la cancha que se iba a asignar.
+    final court = availability.firstFreeCourt(start, state.slotCount);
+    emit(
+      state.copyWith(
+        anyCourt: false,
+        selectedCourtId: () => court?.court.id,
+        selectedStart: court == null ? () => null : null,
+        slotCount: court == null ? 1 : null,
+      ),
+    );
+  }
+
   void _onSlotTapped(
     NewReservationSlotTapped event,
     Emitter<NewReservationState> emit,
   ) {
     final availability = state.availability;
     if (availability == null) return;
-    final index = event.index;
-    final start = state.startIndex;
-    // Tocar un turno dentro del bloque libre que sigue al inicio lo extiende.
-    if (start != null && index > start) {
-      final reach = availability.consecutiveFrom(start);
-      if (index < start + reach) {
-        emit(state.copyWith(slotCount: index - start + 1));
+    final tapped = event.start;
+    final current = state.selectedStart;
+    final sameTarget = state.anyCourt || event.courtId == state.selectedCourtId;
+
+    if (state.anyCourt) {
+      final slots = availability.anyCourtSlots;
+      // Tocar un horario dentro del alcance desde el inicio lo extiende.
+      if (current != null && tapped.isAfter(current)) {
+        final from = slots.indexWhere((s) => s.start == current);
+        final to = slots.indexWhere((s) => s.start == tapped);
+        final count = to - from + 1;
+        if (from >= 0 &&
+            count <= availability.reachFor(current, state.anyCourtCount)) {
+          emit(state.copyWith(slotCount: count));
+          return;
+        }
+      }
+      if (tapped == current) {
+        emit(state.copyWith(selectedStart: () => null, slotCount: 1));
+        return;
+      }
+      // Si a esa hora hay menos canchas libres que las pedidas, se ajusta.
+      final free = availability.courtsFreeAt(tapped, 1).length;
+      if (free == 0) return;
+      final courts = state.anyCourtCount.clamp(1, free);
+      final max = availability.reachFor(tapped, courts);
+      emit(
+        state.copyWith(
+          selectedStart: () => tapped,
+          anyCourtCount: courts,
+          slotCount: state.slotCount.clamp(1, max),
+        ),
+      );
+      return;
+    }
+
+    final court = availability.courtById(event.courtId);
+    if (court == null) return;
+    if (sameTarget && current != null && tapped.isAfter(current)) {
+      // Un turno libre seguido de la misma cancha extiende el rango.
+      // El alcance es el de todas las canchas elegidas.
+      final from = court.indexOf(current);
+      final to = court.indexOf(tapped);
+      final reach = state.maxSlotCount;
+      if (from >= 0 && to < from + reach) {
+        emit(state.copyWith(slotCount: to - from + 1));
         return;
       }
     }
-    if (index == start) {
-      emit(state.copyWith(startIndex: () => null, slotCount: 1));
+    if (sameTarget && tapped == current) {
+      emit(
+        state.copyWith(
+          selectedCourtId: () => null,
+          selectedStart: () => null,
+          slotCount: 1,
+          extraCourtIds: const [],
+        ),
+      );
       return;
     }
-    final max = availability.consecutiveFrom(index);
+    final max = court.consecutiveFrom(
+      court.indexOf(tapped),
+      availability.maxSlots,
+    );
     if (max == 0) return;
     emit(
       state.copyWith(
-        startIndex: () => index,
+        selectedCourtId: () => court.court.id,
+        selectedStart: () => tapped,
+        slotCount: state.slotCount.clamp(1, max),
+        extraCourtIds: const [],
+      ),
+    );
+  }
+
+  void _onExtraCourtToggled(
+    NewReservationExtraCourtToggled event,
+    Emitter<NewReservationState> emit,
+  ) {
+    final extras = state.extraCourtIds;
+    if (extras.contains(event.courtId)) {
+      emit(
+        state.copyWith(
+          extraCourtIds: [
+            for (final id in extras)
+              if (id != event.courtId) id,
+          ],
+        ),
+      );
+      return;
+    }
+    if (!state.addableCourts.any((c) => c.court.id == event.courtId)) return;
+    emit(state.copyWith(extraCourtIds: [...extras, event.courtId]));
+  }
+
+  void _onAnyCourtCountChanged(
+    NewReservationAnyCourtCountChanged event,
+    Emitter<NewReservationState> emit,
+  ) {
+    final start = state.selectedStart;
+    final availability = state.availability;
+    if (!state.anyCourt || start == null || availability == null) return;
+    final free = availability.courtsFreeAt(start, 1).length;
+    final courts = event.count.clamp(1, free.clamp(1, NewReservation.maxCourts));
+    final max = availability.reachFor(start, courts);
+    if (max == 0) return;
+    emit(
+      state.copyWith(
+        anyCourtCount: courts,
         slotCount: state.slotCount.clamp(1, max),
       ),
     );
@@ -223,7 +363,7 @@ class NewReservationBloc
   ) async {
     final error = CreateReservation.validate(
       event.reservation,
-      subtotal: state.subtotal,
+      subtotal: state.lowestSubtotal,
     );
     if (error != null) {
       emit(
@@ -258,7 +398,8 @@ class NewReservationBloc
           failureMessage: () => error.message,
         ),
       );
-      // Otro tomó el turno: se recargan los turnos para elegir de nuevo.
+      // Otro tomó el turno (o todas las canchas): se recargan los turnos
+      // para elegir de nuevo.
       if (error.failure == ReservationFailure.slotTaken) {
         add(const NewReservationAvailabilityReloaded());
       }

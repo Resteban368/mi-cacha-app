@@ -348,53 +348,150 @@ class _LocationPreview extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.7),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: 180,
+            height: 185,
             child: Semantics(
               label: 'Mapa con el punto de llegada de la sede',
-              child: FlutterMap(
-                // Se recrea si cambia el punto (la vista previa no se mueve).
-                key: ValueKey(point),
-                options: MapOptions(
-                  initialCenter: latLng,
-                  initialZoom: MapConfig.pointZoom - 1,
-                  interactionOptions: const InteractionOptions(
-                    flags: InteractiveFlag.none,
-                  ),
-                ),
+              child: Stack(
                 children: [
-                  OsmTileLayer(tileProvider: tileProvider),
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: latLng,
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.topCenter,
-                        child: const Icon(
-                          Icons.location_on,
-                          size: 40,
-                          color: AppColors.statusDue,
-                        ),
+                  FlutterMap(
+                    key: ValueKey(point),
+                    options: MapOptions(
+                      initialCenter: latLng,
+                      initialZoom: MapConfig.pointZoom - 1,
+                      interactionOptions: const InteractionOptions(
+                        flags: InteractiveFlag.none,
                       ),
+                    ),
+                    children: [
+                      OsmTileLayer(tileProvider: tileProvider),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: latLng,
+                            width: 48,
+                            height: 48,
+                            alignment: Alignment.center,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.primary.withValues(alpha: 0.2),
+                                    border: Border.all(
+                                      color: AppColors.primary.withValues(alpha: 0.6),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        AppColors.brandTeal,
+                                        AppColors.primary,
+                                      ],
+                                    ),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x33000000),
+                                        blurRadius: 6,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.location_on,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const OsmAttribution(),
                     ],
                   ),
-                  const OsmAttribution(),
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerLowest.withValues(
+                          alpha: 0.92,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Punto de llegada',
+                            style: AppTypography.labelSm.copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
             child: Row(
               children: [
                 const Icon(
-                  Icons.pin_drop_outlined,
+                  Icons.place_rounded,
                   size: 18,
                   color: AppColors.brandTeal,
                 ),
@@ -404,6 +501,7 @@ class _LocationPreview extends StatelessWidget {
                     point.label,
                     style: AppTypography.bodySm.copyWith(
                       color: AppColors.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
@@ -412,10 +510,10 @@ class _LocationPreview extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+            padding: const EdgeInsets.fromLTRB(6, 4, 8, 6),
             child: OverflowBar(
               alignment: MainAxisAlignment.end,
-              spacing: 4,
+              spacing: 6,
               children: [
                 TextButton(
                   onPressed: onClear,
@@ -425,13 +523,22 @@ class _LocationPreview extends StatelessWidget {
                   ),
                   child: const Text('Quitar'),
                 ),
-                TextButton.icon(
+                FilledButton.tonalIcon(
                   onPressed: onChange,
-                  style: TextButton.styleFrom(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.brandTeal.withValues(
+                      alpha: 0.12,
+                    ),
                     foregroundColor: AppColors.brandTeal,
                     visualDensity: VisualDensity.compact,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
+                  icon: const Icon(
+                    Icons.edit_location_alt_rounded,
+                    size: 16,
+                  ),
                   label: const Text('Cambiar ubicación'),
                 ),
               ],
@@ -457,15 +564,27 @@ class _EmptyLocation extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 200),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const _IconBubble(
-                icon: Icons.wrong_location_outlined,
-                color: AppColors.outline,
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.brandTeal.withValues(alpha: 0.1),
+                  border: Border.all(
+                    color: AppColors.brandTeal.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.wrong_location_rounded,
+                  size: 26,
+                  color: AppColors.brandTeal,
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 'Sin ubicación fijada',
                 textAlign: TextAlign.center,
@@ -477,7 +596,7 @@ class _EmptyLocation extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 280),
+                constraints: const BoxConstraints(maxWidth: 290),
                 child: Text(
                   'Ubica el pin en el mapa para facilitar la llegada de '
                   'tus clientes',
@@ -487,20 +606,22 @@ class _EmptyLocation extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               FilledButton.icon(
                 onPressed: onPinTap,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.brandTeal,
                   foregroundColor: AppColors.onPrimary,
                   minimumSize: const Size(0, 44),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  textStyle: AppTypography.labelMd,
+                  textStyle: AppTypography.labelMd.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                icon: const Icon(Icons.pin_drop_outlined, size: 18),
+                icon: const Icon(Icons.pin_drop_rounded, size: 18),
                 label: const Text('Fijar en el mapa'),
               ),
             ],

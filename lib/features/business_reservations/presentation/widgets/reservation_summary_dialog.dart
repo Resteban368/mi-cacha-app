@@ -8,11 +8,13 @@ import 'reservation_section_card.dart';
 
 enum ReservationSummaryAction { viewAgenda, createAnother }
 
-/// Resumen tras crear la reserva: total, pagado, saldo y estado.
+/// Resumen tras crear la reserva: total, pagado, saldo y estado. Con
+/// [courtAssigned] (la API eligió la cancha) se destaca en cuál quedó.
 Future<ReservationSummaryAction?> showReservationSummary(
   BuildContext context,
-  Reservation reservation,
-) => showDialog<ReservationSummaryAction>(
+  Reservation reservation, {
+  bool courtAssigned = false,
+}) => showDialog<ReservationSummaryAction>(
   context: context,
   barrierDismissible: false,
   builder: (context) => AlertDialog(
@@ -24,8 +26,27 @@ Future<ReservationSummaryAction?> showReservationSummary(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (courtAssigned) ...[
+            Container(
+              key: const Key('assigned-court'),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.brandTealLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Reserva creada en ${reservation.courtsLabel}',
+                textAlign: TextAlign.center,
+                style: AppTypography.labelLg.copyWith(
+                  color: AppColors.brandTealDeep,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           Text(
-            '${reservation.courtName} · '
+            '${reservation.courtsLabel} · '
             '${AppFormatters.shortDate(reservation.start)} · '
             '${AppFormatters.timeRange(reservation.start, reservation.end)}',
             textAlign: TextAlign.center,
@@ -52,16 +73,16 @@ Future<ReservationSummaryAction?> showReservationSummary(
           ],
           ReservationAmountRow(
             label: 'Total',
-            value: AppFormatters.cop(reservation.totalPrice),
+            value: AppFormatters.cop(reservation.displayTotal),
             emphasis: true,
           ),
           ReservationAmountRow(
             label: 'Pagado',
-            value: AppFormatters.cop(reservation.amountPaid),
+            value: AppFormatters.cop(reservation.displayPaid),
           ),
           ReservationAmountRow(
             label: 'Saldo',
-            value: AppFormatters.cop(reservation.balance),
+            value: AppFormatters.cop(reservation.displayBalance),
             valueColor: reservation.isFullyPaid ? AppColors.brandTeal : null,
           ),
           ReservationAmountRow(

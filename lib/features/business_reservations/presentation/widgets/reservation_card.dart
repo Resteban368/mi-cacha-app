@@ -12,10 +12,14 @@ class ReservationCard extends StatelessWidget {
     super.key,
     required this.reservation,
     required this.timing,
+    this.isSelected = false,
+    this.onQuickCollect,
   });
 
   final Reservation reservation;
   final ReservationTiming timing;
+  final bool isSelected;
+  final VoidCallback? onQuickCollect;
 
   bool get _isFinished =>
       reservation.status == ReservationStatus.completed ||
@@ -38,9 +42,31 @@ class ReservationCard extends StatelessWidget {
 
     return StripedCard(
       stripeColor: _stripeColor,
+      isSelected: isSelected,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (isSelected)
+            Align(
+              alignment: Alignment.topRight,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.brandTeal,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Seleccionada en Taquilla',
+                  style: AppTypography.labelSm.copyWith(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -98,10 +124,13 @@ class ReservationCard extends StatelessWidget {
               color: AppColors.surfaceContainerLow.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                Expanded(child: _PaymentSummary(card: this)),
-                const SizedBox(width: 8),
+                _PaymentSummary(card: this),
                 _trailing(),
               ],
             ),
@@ -138,19 +167,30 @@ class ReservationCard extends StatelessWidget {
     }
     return Material(
       color: AppColors.secondaryFixed,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(6),
       child: InkWell(
-        // TODO: flujo de cobro en taquilla.
-        onTap: () {},
-        borderRadius: BorderRadius.circular(4),
+        onTap: onQuickCollect,
+        borderRadius: BorderRadius.circular(6),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          child: Text(
-            'Cobrar en taquilla',
-            style: AppTypography.labelSm.copyWith(
-              color: AppColors.onSecondaryFixedVariant,
-              fontSize: 11,
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.point_of_sale_rounded,
+                size: 13,
+                color: AppColors.onSecondaryFixedVariant,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Cobrar en taquilla',
+                style: AppTypography.labelSm.copyWith(
+                  color: AppColors.onSecondaryFixedVariant,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -208,13 +248,15 @@ class _PaymentSummary extends StatelessWidget {
 
     if (r.isFullyPaid) {
       final amount = card._isFinished
-          ? '${AppFormatters.cop(r.totalPrice)} COP'
-          : 'Total: ${AppFormatters.cop(r.totalPrice)} COP';
+          ? '${AppFormatters.cop(r.displayTotal)} COP'
+          : 'Total: ${AppFormatters.cop(r.displayTotal)} COP';
       return Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Flexible(
             child: Text(
               amount,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: label.copyWith(color: AppColors.statusPaid),
             ),
@@ -228,29 +270,30 @@ class _PaymentSummary extends StatelessWidget {
     final balanceColor = r.status == ReservationStatus.noShow
         ? AppColors.statusDue
         : AppColors.statusDeposit;
-    return Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: 'Anticipo: ${AppFormatters.cop(r.amountPaid)}',
-            style: label.copyWith(
-              color: AppColors.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Anticipo: ${AppFormatters.cop(r.displayPaid)}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: label.copyWith(
+            color: AppColors.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
           ),
-          const TextSpan(
-            text: ' · ',
-            style: TextStyle(color: AppColors.outlineVariant),
+        ),
+        Text(
+          'Saldo: ${AppFormatters.cop(r.displayBalance)}'
+          '${card._isFinished ? '' : ' COP'}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: label.copyWith(
+            color: balanceColor,
+            fontWeight: FontWeight.w700,
           ),
-          TextSpan(
-            text:
-                'Saldo: ${AppFormatters.cop(r.balance)}'
-                '${card._isFinished ? '' : ' COP'}',
-            style: label.copyWith(color: balanceColor),
-          ),
-        ],
-      ),
-      style: label,
+        ),
+      ],
     );
   }
 }

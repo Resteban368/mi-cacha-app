@@ -38,6 +38,7 @@ enum BusinessSection {
     label: 'Dashboard',
     icon: Icons.insights_outlined,
     activeIcon: Icons.insights,
+    fullWidth: true,
   ),
   pagos(
     group: BusinessSectionGroup.gestion,

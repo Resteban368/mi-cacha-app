@@ -51,14 +51,10 @@ final class BusinessClientsSortChanged extends BusinessClientsEvent {
   List<Object?> get props => [sort];
 }
 
-/// Cambia la página actual en la paginación.
-final class BusinessClientsPageChanged extends BusinessClientsEvent {
-  const BusinessClientsPageChanged(this.page);
-
-  final int page;
-
-  @override
-  List<Object?> get props => [page];
+/// Pide la página siguiente al acercarse al final del scroll (se agrega
+/// a la lista; los pedidos repetidos mientras carga se descartan).
+final class BusinessClientsNextPageRequested extends BusinessClientsEvent {
+  const BusinessClientsNextPageRequested();
 }
 
 /// Recarga los clientes con la consulta actual.

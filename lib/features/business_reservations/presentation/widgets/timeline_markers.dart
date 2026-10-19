@@ -21,7 +21,7 @@ class TimelineSectionLabel extends StatelessWidget {
             label.toUpperCase(),
             style: AppTypography.labelSm.copyWith(
               color: AppColors.onSurfaceVariant,
-              letterSpacing: 1.1,
+              letterSpacing: 0.5,
             ),
           ),
           const SizedBox(width: 8),

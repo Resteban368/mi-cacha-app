@@ -1,3 +1,4 @@
+import '../../../../core/domain/entities/sport.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../entities/availability.dart';
 import '../entities/customer.dart';
@@ -7,16 +8,18 @@ import '../entities/reservation_failure.dart';
 import '../entities/reservation_query.dart';
 import '../repositories/reservations_repository.dart';
 
-typedef AvailabilityParams = ({String courtId, DateTime day});
+typedef SportAvailabilityParams = ({Sport sport, DateTime day});
 
-class GetAvailability implements UseCase<Availability, AvailabilityParams> {
-  const GetAvailability(this._repository);
+/// Turnos del día de todas las canchas reservables de un deporte.
+class GetSportAvailability
+    implements UseCase<SportAvailability, SportAvailabilityParams> {
+  const GetSportAvailability(this._repository);
 
   final ReservationsRepository _repository;
 
   @override
-  Future<Availability> call(AvailabilityParams params) =>
-      _repository.getAvailability(params.courtId, params.day);
+  Future<SportAvailability> call(SportAvailabilityParams params) =>
+      _repository.getSportAvailability(params.sport, params.day);
 }
 
 class SearchCustomers implements UseCase<List<Customer>, String> {
@@ -46,7 +49,9 @@ class CreateReservation implements UseCase<Reservation, NewReservation> {
   }
 
   /// [subtotal] es la suma estimada de los turnos (para validar descuento
-  /// y pago); si no se conoce, esas dos reglas las valida la API.
+  /// y pago); si no se conoce, esas dos reglas las valida la API. Con
+  /// "Cualquier cancha" es el valor más bajo posible, porque la API puede
+  /// asignar una cancha más barata.
   static String? validate(NewReservation r, {int? subtotal}) {
     if (r.slots < 1 || r.slots > NewReservation.maxSlots) {
       return 'Elige entre 1 y ${NewReservation.maxSlots} turnos.';

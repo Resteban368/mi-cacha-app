@@ -2,10 +2,9 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mi_cancha/core/domain/entities/sport.dart';
+import 'package:mi_cancha/core/network/api_exception.dart';
 import 'package:mi_cancha/features/business_clients/data/datasources/business_customers_api_data_source.dart';
 import 'package:mi_cancha/features/business_clients/domain/entities/client_filter.dart';
-import 'package:mi_cancha/features/business_clients/domain/entities/customer_failure.dart';
 import 'package:mi_cancha/features/business_clients/domain/entities/customer_payload.dart';
 import 'package:mi_cancha/features/business_clients/domain/entities/customer_query.dart';
 
@@ -71,8 +70,8 @@ void main() {
           page: 2,
           pageSize: 10,
           search: 'Carlos',
-          segment: ClientFilterSegment.loyal,
-          sort: ClientFilterSort.mostReservations,
+          segment: ClientFilterType.vip,
+          sort: ClientSortBy.mostActive,
         ),
       );
 
@@ -91,17 +90,17 @@ void main() {
       expect(res.overview.pendingBalance, 115000);
       expect(res.items.length, 1);
       expect(res.items.first.name, 'Carlos Mendoza');
-      expect(res.items.first.preferredSport, Sport.futbol);
+      expect(res.items.first.preferredSport, 'FUTBOL');
       expect(res.items.first.metrics?.reservations, 24);
     });
 
-    test('mapea error genérico en falla 500', () async {
+    test('lanza ApiException en falla 500', () async {
       adapter = FakeHttpAdapter((_) => (500, {'message': 'Server error'}));
       dataSource = BusinessCustomersApiDataSource(apiDio(adapter));
 
       expect(
         () => dataSource.getCustomers(const CustomerQuery()),
-        throwsA(isA<CustomerFailure>()),
+        throwsA(isA<ApiException>()),
       );
     });
   });
@@ -116,7 +115,7 @@ void main() {
           name: 'Carlos Mendoza',
           phone: '+573114567890',
           documentId: '1020334881',
-          preferredSport: Sport.futbol,
+          preferredSport: 'FUTBOL',
           notes: 'Capitán de equipo',
         ),
       );
@@ -135,11 +134,16 @@ void main() {
       expect(created.id, 'cust-1');
     });
 
-    test('mapea 409 Conflict a CustomerFailure.conflict', () async {
-      adapter = FakeHttpAdapter((_) => (409, {
+    test('lanza ApiException con status 409', () async {
+      adapter = FakeHttpAdapter(
+        (_) => (
+          409,
+          {
             'error': 'CONFLICT',
             'message': 'Ya existe un cliente con este teléfono',
-          }));
+          },
+        ),
+      );
       dataSource = BusinessCustomersApiDataSource(apiDio(adapter));
 
       expect(
@@ -147,14 +151,11 @@ void main() {
           const CustomerPayload(
             name: 'Carlos Mendoza',
             phone: '+573114567890',
+            documentId: '1020334881',
           ),
         ),
         throwsA(
-          isA<CustomerFailure>().having(
-            (e) => e.isConflict,
-            'isConflict',
-            isTrue,
-          ),
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 409),
         ),
       );
     });
@@ -169,6 +170,8 @@ void main() {
         'cust-1',
         const CustomerPayload(
           name: 'Carlos Editado',
+          phone: '+573114567890',
+          documentId: '1020334881',
           notes: 'Nueva nota',
         ),
       );

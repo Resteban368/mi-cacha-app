@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mi_cancha/core/domain/entities/sport.dart';
 import 'package:mi_cancha/features/business_reservations/domain/entities/availability.dart';
 import 'package:mi_cancha/features/business_reservations/domain/entities/customer.dart';
 import 'package:mi_cancha/features/business_reservations/domain/entities/new_reservation.dart';
@@ -7,48 +8,99 @@ import 'package:mi_cancha/features/business_reservations/domain/usecases/booking
 import '../booking_fixtures.dart';
 
 void main() {
-  group('Availability', () {
+  group('CourtSlots', () {
     test('ordena los turnos por hora', () {
-      expect(availability.slots.first.start.hour, 8);
-      expect(availability.slots.last.start.hour, 21);
+      expect(c1Slots.slots.first.start.hour, 8);
+      expect(c1Slots.slots.last.start.hour, 21);
     });
 
     test('turnos libres seguidos: corta en el ocupado', () {
       // 16:00 → 16, 17, 18 (19 ocupado).
-      expect(availability.consecutiveFrom(1), 3);
-      expect(availability.consecutiveFrom(3), 1);
+      expect(c1Slots.consecutiveFrom(1, 5), 3);
+      expect(c1Slots.consecutiveFrom(3, 5), 1);
       // Ocupado o pasado: 0.
-      expect(availability.consecutiveFrom(4), 0);
-      expect(availability.consecutiveFrom(0), 0);
+      expect(c1Slots.consecutiveFrom(4, 5), 0);
+      expect(c1Slots.consecutiveFrom(0, 5), 0);
+      expect(c1Slots.consecutiveFrom(-1, 5), 0);
     });
 
     test('respeta el máximo de turnos', () {
-      final long = Availability(
-        date: '2026-10-15',
-        courtId: 'c1',
-        slotDuration: 60,
-        currency: 'COP',
-        maxSlots: 2,
-        slots: [slotAt(16), slotAt(17), slotAt(18)],
-      );
-      expect(long.consecutiveFrom(0), 2);
+      expect(c1Slots.consecutiveFrom(1, 2), 2);
     });
 
     test('un hueco en el horario corta la secuencia', () {
-      final gap = Availability(
-        date: '2026-10-15',
-        courtId: 'c1',
-        slotDuration: 60,
-        currency: 'COP',
-        maxSlots: 5,
+      final gap = CourtSlots(
+        court: availabilityCourt('c1'),
+        availableCount: 2,
         slots: [slotAt(16), slotAt(18)],
       );
-      expect(gap.consecutiveFrom(0), 1);
+      expect(gap.consecutiveFrom(0, 5), 1);
     });
 
     test('suma el precio de los turnos elegidos', () {
       // 17:00 (60.000) + 18:00 (90.000).
-      expect(availability.priceFor(2, 2), 150000);
+      expect(c1Slots.priceFor(2, 2), 150000);
+      expect(c1Slots.indexOf(at(17)), 2);
+      expect(c1Slots.indexOf(at(23)), -1);
+    });
+  });
+
+  group('SportAvailability (cualquier cancha)', () {
+    test('une los horarios de todas las canchas', () {
+      final slots = availability.anyCourtSlots;
+      expect(slots.map((s) => s.start.hour), [8, 16, 17, 18, 19, 20, 21]);
+      // 16:00 solo libre en c1; 19:00 solo en c2; 08:00 pasado.
+      expect(slots[0].status, SlotStatus.past);
+      expect(slots[1].freeCourts, 1);
+      expect(slots[1].price, 60000);
+      // 17:00 libre en las dos: el precio más bajo y "desde".
+      expect(slots[2].freeCourts, 2);
+      expect(slots[2].price, 50000);
+      expect(slots[2].priceVaries, isTrue);
+      expect(slots[4].status, SlotStatus.available);
+      expect(slots[4].priceVaries, isFalse);
+    });
+
+    test('ocupado si ninguna cancha lo tiene libre', () {
+      final full = SportAvailability(
+        date: '2026-10-15',
+        sport: Sport.futbol,
+        maxSlots: 5,
+        courts: [
+          CourtSlots(
+            court: availabilityCourt('c1'),
+            availableCount: 0,
+            slots: [slotAt(16, status: SlotStatus.booked)],
+          ),
+          CourtSlots(
+            court: availabilityCourt('c2'),
+            availableCount: 0,
+            slots: [slotAt(16, status: SlotStatus.past)],
+          ),
+        ],
+      );
+      expect(full.anyCourtSlots.single.status, SlotStatus.booked);
+      expect(full.anyCourtReach(at(16)), 0);
+    });
+
+    test('alcance: la cancha con más turnos libres seguidos', () {
+      expect(availability.anyCourtReach(at(16)), 3); // c1
+      expect(availability.anyCourtReach(at(17)), 3); // c2: 17, 18, 19
+      expect(availability.anyCourtReach(at(8)), 0);
+    });
+
+    test('asigna como la API: la primera por nombre con turnos libres', () {
+      expect(availability.firstFreeCourt(at(17), 2)!.court.id, 'c1');
+      expect(availability.firstFreeCourt(at(17), 3)!.court.id, 'c2');
+      expect(availability.firstFreeCourt(at(19), 1)!.court.id, 'c2');
+      expect(availability.firstFreeCourt(at(16), 4), isNull);
+    });
+
+    test('valor más bajo posible', () {
+      // c1: 60.000 + 90.000; c2: 50.000 + 50.000.
+      expect(availability.lowestPriceAt(at(17), 2), 100000);
+      expect(availability.lowestPriceAt(at(16), 1), 60000);
+      expect(availability.lowestPriceAt(at(16), 5), isNull);
     });
   });
 
@@ -67,7 +119,7 @@ void main() {
 
   group('CreateReservation.validate', () {
     const base = NewReservation(
-      courtId: 'c1',
+      target: CourtById('c1'),
       start: '2026-10-15T21:00:00.000Z',
       slots: 2,
       customerId: 'cu1',
@@ -79,7 +131,7 @@ void main() {
 
     test('descuento mayor que el subtotal', () {
       const r = NewReservation(
-        courtId: 'c1',
+        target: CourtById('c1'),
         start: 's',
         slots: 1,
         customerId: 'cu1',
@@ -93,7 +145,7 @@ void main() {
 
     test('pago mayor que el total', () {
       const r = NewReservation(
-        courtId: 'c1',
+        target: CourtById('c1'),
         start: 's',
         slots: 1,
         customerId: 'cu1',
@@ -108,7 +160,7 @@ void main() {
 
     test('más turnos de los permitidos', () {
       const r = NewReservation(
-        courtId: 'c1',
+        target: CourtById('c1'),
         start: 's',
         slots: 6,
         customerId: 'cu1',
@@ -118,7 +170,7 @@ void main() {
 
     test('cliente nuevo inválido', () {
       const r = NewReservation(
-        courtId: 'c1',
+        target: CourtById('c1'),
         start: 's',
         slots: 1,
         customer: NewCustomer(name: 'Laura', phone: '12', documentId: '1234'),

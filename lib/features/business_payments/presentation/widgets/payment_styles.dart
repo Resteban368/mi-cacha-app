@@ -45,6 +45,16 @@ extension PaymentMethodStyle on PaymentMethod {
     PaymentMethod.otro => AppColors.surfaceContainerHigh,
     PaymentMethod.transferencia => AppColors.brandTealLight,
   };
+
+  String get subtitle => switch (this) {
+    PaymentMethod.efectivo => 'En taquilla',
+    PaymentMethod.nequi => 'Billetera digital',
+    PaymentMethod.daviplata => 'App Daviplata',
+    PaymentMethod.bancolombiaQr => 'Código QR',
+    PaymentMethod.breB => 'Inmediata',
+    PaymentMethod.transferencia => 'Cta. Ahorros',
+    PaymentMethod.otro => 'Manual',
+  };
 }
 
 extension PaymentConceptLabel on PaymentConcept {

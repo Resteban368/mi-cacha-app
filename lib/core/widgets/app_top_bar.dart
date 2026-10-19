@@ -8,7 +8,8 @@ import '../theme/app_typography.dart';
 /// notificaciones sobre un degradado teal con líneas de cancha sutiles.
 ///
 /// Si el `Scaffold` contenedor tiene menú lateral (`drawer`), a la izquierda
-/// se muestra el botón para abrirlo; si no, la insignia con [icon].
+/// se muestra el botón para abrirlo (también junto a "Volver"); si no, la
+/// insignia con [icon].
 class AppTopBar extends StatelessWidget {
   const AppTopBar({
     super.key,
@@ -19,6 +20,7 @@ class AppTopBar extends StatelessWidget {
     this.onNotifications,
     this.onBack,
     this.showNotifications = true,
+    this.titleBadge,
   });
 
   final String title;
@@ -27,16 +29,35 @@ class AppTopBar extends StatelessWidget {
   final bool hasUnread;
   final VoidCallback? onNotifications;
 
-  /// Si se indica, se muestra el botón "Volver" en lugar del menú/insignia.
+  /// Si se indica, se muestra el botón "Volver" (seguido del menú, si hay).
   final VoidCallback? onBack;
   final bool showNotifications;
 
+  /// Etiqueta junto al título (p. ej. "Manual").
+  final String? titleBadge;
+
   static const _radius = Radius.circular(24);
+
+  /// El `Scaffold` más cercano que tenga menú lateral: las pantallas con
+  /// su propio `Scaffold` (p. ej. "Crear Reserva") abren el del panel.
+  static ScaffoldState? _drawerScaffold(BuildContext context) {
+    ScaffoldState? found;
+    context.visitAncestorElements((element) {
+      if (element is StatefulElement &&
+          element.state is ScaffoldState &&
+          (element.state as ScaffoldState).hasDrawer) {
+        found = element.state as ScaffoldState;
+        return false;
+      }
+      return true;
+    });
+    return found;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final scaffold = Scaffold.maybeOf(context);
-    final hasDrawer = scaffold?.hasDrawer ?? false;
+    final scaffold = _drawerScaffold(context);
+    final hasDrawer = scaffold != null;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
@@ -77,7 +98,7 @@ class AppTopBar extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 12, 12, 16),
                     child: Row(
                       children: [
-                        if (onBack != null)
+                        if (onBack != null) ...[
                           _GlassButton(
                             tooltip: 'Volver',
                             onPressed: onBack!,
@@ -87,11 +108,24 @@ class AppTopBar extends StatelessWidget {
                               size: 24,
                               color: AppColors.onPrimary,
                             ),
-                          )
-                        else if (hasDrawer)
+                          ),
+                          if (hasDrawer) ...[
+                            const SizedBox(width: 8),
+                            _GlassButton(
+                              tooltip: 'Abrir menú',
+                              onPressed: scaffold.openDrawer,
+                              shape: BoxShape.rectangle,
+                              child: const Icon(
+                                Icons.menu_rounded,
+                                size: 24,
+                                color: AppColors.onPrimary,
+                              ),
+                            ),
+                          ],
+                        ] else if (hasDrawer)
                           _GlassButton(
                             tooltip: 'Abrir menú',
-                            onPressed: scaffold!.openDrawer,
+                            onPressed: scaffold.openDrawer,
                             shape: BoxShape.rectangle,
                             child: const Icon(
                               Icons.menu_rounded,
@@ -107,17 +141,32 @@ class AppTopBar extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Semantics(
-                                header: true,
-                                child: Text(
-                                  title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTypography.headlineLg.copyWith(
-                                    color: AppColors.onPrimary,
-                                    height: 1.1,
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Semantics(
+                                      header: true,
+                                      child: Text(
+                                        title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTypography.headlineLg
+                                            .copyWith(
+                                              color: AppColors.onPrimary,
+                                              height: 1.1,
+                                            ),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  // En pantallas angostas el título tiene
+                                  // prioridad.
+                                  if (titleBadge case final badge?
+                                      when MediaQuery.sizeOf(context).width >=
+                                          600) ...[
+                                    const SizedBox(width: 8),
+                                    _TitleBadge(badge),
+                                  ],
+                                ],
                               ),
                               if (subtitle != null) ...[
                                 const SizedBox(height: 2),
@@ -282,4 +331,30 @@ class _CourtLinesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _TitleBadge extends StatelessWidget {
+  const _TitleBadge(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.accentLime.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.accentLime.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        text.toUpperCase(),
+        style: AppTypography.labelSm.copyWith(
+          color: AppColors.accentLime,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
 }

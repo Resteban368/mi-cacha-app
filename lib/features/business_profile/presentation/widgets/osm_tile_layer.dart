@@ -13,6 +13,7 @@ class OsmTileLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TileLayer(
     urlTemplate: MapConfig.tileUrl,
+    subdomains: MapConfig.subdomains,
     userAgentPackageName: MapConfig.userAgentPackageName,
     tileProvider: tileProvider,
   );

@@ -17,6 +17,7 @@ import '../widgets/client_form_dialog.dart';
 import '../widgets/clients_data_table.dart';
 import '../widgets/clients_filter_bar.dart';
 import '../widgets/clients_metric_cards.dart';
+import '../widgets/clients_shimmer.dart';
 
 /// Pantalla principal optimizada para Web y Móvil: Directorio y CRM de Clientes del negocio.
 class BusinessClientsPage extends StatefulWidget {
@@ -30,11 +31,34 @@ class BusinessClientsPage extends StatefulWidget {
 
 class _BusinessClientsPageState extends State<BusinessClientsPage> {
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
+
+  /// A esta distancia del final se pide la página siguiente.
+  static const _loadMoreThreshold = 600.0;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Pide más clientes si el final de la lista está cerca (o si la lista
+  /// no alcanza a llenar la pantalla).
+  void _maybeLoadMore() {
+    if (!_scrollController.hasClients) return;
+    final state = context.read<BusinessClientsBloc>().state;
+    if (widget.initialClients != null ||
+        state.status != ClientsStatus.success ||
+        !state.hasNextPage ||
+        state.loadMore != LoadMoreStatus.idle) {
+      return;
+    }
+    if (_scrollController.position.extentAfter < _loadMoreThreshold) {
+      context.read<BusinessClientsBloc>().add(
+        const BusinessClientsNextPageRequested(),
+      );
+    }
   }
 
   void _onWhatsApp(ClientProfile client) {
@@ -114,6 +138,9 @@ class _BusinessClientsPageState extends State<BusinessClientsPage> {
         ),
         Expanded(
           child: BlocConsumer<BusinessClientsBloc, BusinessClientsState>(
+            listenWhen: (prev, curr) =>
+                prev.status != curr.status ||
+                prev.clients.length != curr.clients.length,
             listener: (context, state) {
               if (state.errorMessage != null &&
                   state.status == ClientsStatus.failure) {
@@ -124,117 +151,162 @@ class _BusinessClientsPageState extends State<BusinessClientsPage> {
                   ),
                 );
               }
+              // Si la página no llena la pantalla, se pide la siguiente.
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _maybeLoadMore();
+              });
             },
             builder: (context, state) {
               final clients = widget.initialClients ?? state.clients;
               final isLoading = state.status == ClientsStatus.loading;
-              final isFailure = state.status == ClientsStatus.failure && clients.isEmpty;
+              final isFailure =
+                  state.status == ClientsStatus.failure && clients.isEmpty;
 
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final width = constraints.maxWidth;
                   final isDesktop = width >= 840;
                   final gutter = isDesktop ? 24.0 : 16.0;
+                  // Contenido centrado con un ancho máximo de 1440.
+                  final side = width > 1440 + gutter * 2
+                      ? (width - 1440) / 2
+                      : gutter;
 
                   return RefreshIndicator(
                     onRefresh: () async {
                       bloc.add(const BusinessClientsRefreshed());
                     },
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(gutter, 16, gutter, 32),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 1440),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // KPI Metric Cards Row
-                              ClientsMetricCards(
+                    child: NotificationListener<ScrollUpdateNotification>(
+                      onNotification: (_) {
+                        _maybeLoadMore();
+                        return false;
+                      },
+                      child: CustomScrollView(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          SliverPadding(
+                            padding: EdgeInsets.fromLTRB(side, 16, side, 20),
+                            sliver: SliverToBoxAdapter(
+                              child: ClientsMetricCards(
                                 overview: state.overview,
                                 clients: clients,
                               ),
-                              const SizedBox(height: 20),
-
-                              // Search and Filter Bar
-                              ClientsFilterBar(
-                                searchController: _searchController,
-                                selectedFilter: state.query.segment,
-                                selectedSort: state.query.sort,
-                                totalClients: state.totalClients,
-                                filteredClients: clients.length,
-                                onSearchChanged: (query) {
-                                  bloc.add(BusinessClientsSearchChanged(query));
-                                },
-                                onFilterChanged: (filter) {
-                                  bloc.add(BusinessClientsSegmentChanged(filter));
-                                },
-                                onSortChanged: (sort) {
-                                  bloc.add(BusinessClientsSortChanged(sort));
-                                },
-                                onNewClientPressed: _openNewClientDialog,
-                              ),
-                              const SizedBox(height: 20),
-
-                              if (isFailure)
-                                _buildErrorState(state.errorMessage, () {
-                                  bloc.add(const BusinessClientsRefreshed());
-                                })
-                              else if (isLoading && clients.isEmpty)
-                                const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(48.0),
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                )
-                              else ...[
-                                if (isLoading)
-                                  const Padding(
-                                    padding: EdgeInsets.only(bottom: 12),
-                                    child: LinearProgressIndicator(
-                                      color: AppColors.brandTeal,
-                                      backgroundColor: AppColors.brandTealLight,
-                                    ),
-                                  ),
-
-                                // Data Table for Web / Desktop OR Cards for Mobile
-                                if (isDesktop)
-                                  ClientsDataTable(
-                                    clients: clients,
-                                    onClientTap: _openDetail,
-                                    onWhatsAppTap: _onWhatsApp,
-                                    onNewReservationTap: _onNewReservation,
-                                    onHistoryTap: _onOpenHistory,
-                                  )
-                                else
-                                  ListView.separated(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: clients.length,
-                                    separatorBuilder: (_, _) =>
-                                        const SizedBox(height: 12),
-                                    itemBuilder: (context, i) {
-                                      final client = clients[i];
-                                      return ClientCardItem(
-                                        client: client,
-                                        onTap: () => _openDetail(client),
-                                        onWhatsAppTap: () => _onWhatsApp(client),
-                                        onNewReservationTap: () =>
-                                            _onNewReservation(client),
-                                        onHistoryTap: () => _onOpenHistory(client),
-                                      );
-                                    },
-                                  ),
-
-                                // Pagination Footer
-                                if (state.totalPages > 1) ...[
-                                  const SizedBox(height: 16),
-                                  _buildPaginationBar(state, bloc),
-                                ],
-                              ],
-                            ],
+                            ),
                           ),
-                        ),
+                          // Búsqueda y filtros: quedan fijos arriba al
+                          // desplazar la lista.
+                          PinnedHeaderSliver(
+                            child: ColoredBox(
+                              key: const Key('clients-pinned-filters'),
+                              color: AppColors.surface,
+                              child: Padding(
+                                padding: EdgeInsets.fromLTRB(side, 0, side, 12),
+                                child: ClientsFilterBar(
+                                  searchController: _searchController,
+                                  selectedFilter: state.query.segment,
+                                  selectedSort: state.query.sort,
+                                  totalClients: state.totalClients,
+                                  filteredClients: clients.length,
+                                  onSearchChanged: (query) {
+                                    bloc.add(
+                                      BusinessClientsSearchChanged(query),
+                                    );
+                                  },
+                                  onFilterChanged: (filter) {
+                                    bloc.add(
+                                      BusinessClientsSegmentChanged(filter),
+                                    );
+                                  },
+                                  onSortChanged: (sort) {
+                                    bloc.add(BusinessClientsSortChanged(sort));
+                                  },
+                                  onNewClientPressed: _openNewClientDialog,
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (isLoading && clients.isNotEmpty)
+                            SliverPadding(
+                              padding: EdgeInsets.fromLTRB(side, 0, side, 12),
+                              sliver: const SliverToBoxAdapter(
+                                child: LinearProgressIndicator(
+                                  color: AppColors.brandTeal,
+                                  backgroundColor: AppColors.brandTealLight,
+                                ),
+                              ),
+                            ),
+                          if (isFailure)
+                            SliverPadding(
+                              padding: EdgeInsets.symmetric(horizontal: side),
+                              sliver: SliverToBoxAdapter(
+                                child: _buildErrorState(
+                                  state.errorMessage,
+                                  () => bloc.add(
+                                    const BusinessClientsRefreshed(),
+                                  ),
+                                ),
+                              ),
+                            )
+                          else if (isLoading && clients.isEmpty)
+                            SliverPadding(
+                              padding: EdgeInsets.symmetric(horizontal: side),
+                              sliver: SliverToBoxAdapter(
+                                child: ClientsShimmer(isDesktop: isDesktop),
+                              ),
+                            )
+                          // Tabla en web / escritorio.
+                          else if (isDesktop)
+                            SliverPadding(
+                              padding: EdgeInsets.symmetric(horizontal: side),
+                              sliver: SliverToBoxAdapter(
+                                child: ClientsDataTable(
+                                  clients: clients,
+                                  onClientTap: _openDetail,
+                                  onWhatsAppTap: _onWhatsApp,
+                                  onNewReservationTap: _onNewReservation,
+                                  onHistoryTap: _onOpenHistory,
+                                ),
+                              ),
+                            )
+                          // Tarjetas en móvil (se construyen solo las
+                          // visibles).
+                          else
+                            SliverPadding(
+                              padding: EdgeInsets.symmetric(horizontal: side),
+                              sliver: SliverList.separated(
+                                itemCount: clients.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (context, i) {
+                                  final client = clients[i];
+                                  return ClientCardItem(
+                                    client: client,
+                                    onTap: () => _openDetail(client),
+                                    onWhatsAppTap: () => _onWhatsApp(client),
+                                    onNewReservationTap: () =>
+                                        _onNewReservation(client),
+                                    onHistoryTap: () => _onOpenHistory(client),
+                                  );
+                                },
+                              ),
+                            ),
+                          if (!isFailure && clients.isNotEmpty)
+                            SliverToBoxAdapter(
+                              child: _LoadMoreFooter(
+                                status: state.loadMore,
+                                hasMore:
+                                    widget.initialClients == null &&
+                                    state.hasNextPage,
+                                loaded: clients.length,
+                                total: state.totalClients,
+                                onRetry: () => bloc.add(
+                                  const BusinessClientsNextPageRequested(),
+                                ),
+                              ),
+                            ),
+                          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                        ],
                       ),
                     ),
                   );
@@ -304,56 +376,50 @@ class _BusinessClientsPageState extends State<BusinessClientsPage> {
       ),
     );
   }
+}
 
-  Widget _buildPaginationBar(
-    BusinessClientsState state,
-    BusinessClientsBloc bloc,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+/// Pie de la lista: cargando más, reintentar o "ya están todos".
+class _LoadMoreFooter extends StatelessWidget {
+  const _LoadMoreFooter({
+    required this.status,
+    required this.hasMore,
+    required this.loaded,
+    required this.total,
+    required this.onRetry,
+  });
+
+  final LoadMoreStatus status;
+  final bool hasMore;
+  final int loaded;
+  final int total;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = switch (status) {
+      LoadMoreStatus.loading => const SizedBox.square(
+        key: Key('clients-loading-more'),
+        dimension: 24,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          color: AppColors.brandTeal,
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          OutlinedButton.icon(
-            onPressed: state.hasPreviousPage
-                ? () => bloc.add(BusinessClientsPageChanged(state.currentPage - 1))
-                : null,
-            icon: const Icon(Icons.chevron_left_rounded, size: 18),
-            label: const Text('Anterior'),
-            style: OutlinedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          Text(
-            'Página ${state.currentPage} de ${state.totalPages}',
-            style: AppTypography.labelMd.copyWith(
-              color: AppColors.slate700,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          OutlinedButton.icon(
-            onPressed: state.hasNextPage
-                ? () => bloc.add(BusinessClientsPageChanged(state.currentPage + 1))
-                : null,
-            icon: const Icon(Icons.chevron_right_rounded, size: 18),
-            label: const Text('Siguiente'),
-            style: OutlinedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ],
+      LoadMoreStatus.failure => TextButton.icon(
+        key: const Key('clients-load-more-retry'),
+        onPressed: onRetry,
+        icon: const Icon(Icons.refresh_rounded, size: 18),
+        label: const Text('No pudimos cargar más clientes. Reintentar'),
       ),
+      LoadMoreStatus.idle when !hasMore => Text(
+        'Ya ves todos los resultados ($loaded de $total)',
+        style: AppTypography.bodySm.copyWith(color: AppColors.slate500),
+      ),
+      LoadMoreStatus.idle => const SizedBox(height: 24),
+    };
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Center(child: child),
     );
   }
 }

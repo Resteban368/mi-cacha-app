@@ -9,12 +9,15 @@ import '../../../../core/utils/cop_input_formatter.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/app_top_bar.dart';
+import '../../../business_reservations/domain/entities/reservation.dart';
 import '../../domain/entities/new_payment.dart';
 import '../../domain/entities/payment.dart';
 import '../bloc/new_payment/new_payment_bloc.dart';
+import '../widgets/new_payment_target_selector.dart';
 import '../widgets/payment_styles.dart';
 
-/// Registrar un pago recibido en el negocio (efectivo, Nequi, etc.).
+/// Registrar un pago recibido en el negocio (efectivo, Nequi, etc.),
+/// asociándolo a un cliente o reserva específica si aplica.
 class NewPaymentPage extends StatefulWidget {
   const NewPaymentPage({super.key});
 
@@ -31,7 +34,7 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
   /// Ancho del formulario desde el que se reparte en dos columnas.
   static const _twoColumnFormWidth = 680.0;
 
-  static const _summaryWidth = 360.0;
+  static const _summaryWidth = 370.0;
 
   final _formKey = GlobalKey<FormState>();
   final _customer = TextEditingController();
@@ -48,6 +51,7 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
   @override
   void initState() {
     super.initState();
+    context.read<NewPaymentBloc>().add(const NewPaymentStarted());
     // Redibuja el total de la barra inferior al escribir el monto.
     _amount.addListener(() => setState(() {}));
   }
@@ -65,7 +69,28 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
     _amount.text = CopInputFormatter.format(_amountValue + value);
   }
 
+  void _onFillReservationBalance(Reservation reservation) {
+    if (reservation.displayBalance > 0) {
+      _amount.text = CopInputFormatter.format(reservation.displayBalance);
+      if (reservation.displayPaid == 0) {
+        _concept = PaymentConcept.anticipo;
+      } else {
+        _concept = PaymentConcept.saldo;
+      }
+      setState(() {});
+    }
+  }
+
   void _submit() {
+    final state = context.read<NewPaymentBloc>().state;
+    if (_customer.text.trim().isEmpty) {
+      if (state.selectedCustomer != null) {
+        _customer.text = state.selectedCustomer!.name;
+      } else if (state.selectedReservation != null) {
+        _customer.text = state.selectedReservation!.customerName;
+      }
+    }
+
     if (!_formKey.currentState!.validate()) {
       setState(() => _autovalidate = AutovalidateMode.onUserInteraction);
       return;
@@ -76,6 +101,10 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
       NewPaymentSubmitted(
         NewPayment(
           customerName: _customer.text.trim(),
+          customerId: state.selectedCustomer?.id,
+          reservationId: state.selectedReservation?.id,
+          courtName: state.selectedReservation?.courtsLabel,
+          reservationStart: state.selectedReservation?.start,
           amount: _amountValue,
           method: _method,
           concept: _concept,
@@ -109,58 +138,63 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
             break;
         }
       },
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= _wideBreakpoint;
-          return Scaffold(
-            backgroundColor: AppColors.surface,
-            body: Column(
-              children: [
-                AppTopBar(
-                  title: 'Nuevo pago',
-                  subtitle: 'Registra un pago recibido',
-                  icon: Icons.add_card_rounded,
-                  showNotifications: false,
-                  onBack: () => context.pop(),
-                ),
-                Expanded(
-                  child: MediaQuery.removePadding(
-                    context: context,
-                    removeTop: true,
-                    child: Form(
-                      key: _formKey,
-                      autovalidateMode: _autovalidate,
-                      child: isWide ? _wideBody() : _narrowBody(),
+      child: BlocBuilder<NewPaymentBloc, NewPaymentState>(
+        builder: (context, state) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= _wideBreakpoint;
+              return Scaffold(
+                backgroundColor: AppColors.surface,
+                body: Column(
+                  children: [
+                    AppTopBar(
+                      title: 'Nuevo pago',
+                      subtitle:
+                          'Registra cobro, abono o liquidación total de reservas',
+                      icon: Icons.add_card_rounded,
+                      showNotifications: false,
+                      onBack: () => context.pop(),
                     ),
-                  ),
+                    Expanded(
+                      child: MediaQuery.removePadding(
+                        context: context,
+                        removeTop: true,
+                        child: Form(
+                          key: _formKey,
+                          autovalidateMode: _autovalidate,
+                          child: isWide ? _wideBody(state) : _narrowBody(state),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            bottomNavigationBar: isWide
-                ? null
-                : _BottomBar(
-                    amount: _amountValue,
-                    method: _method,
-                    onSubmit: _submit,
-                  ),
+                bottomNavigationBar: isWide
+                    ? null
+                    : _BottomBar(
+                        amount: _amountValue,
+                        method: _method,
+                        onSubmit: _submit,
+                      ),
+              );
+            },
           );
         },
       ),
     );
   }
 
-  Widget _narrowBody() => ListView(
-    padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+  Widget _narrowBody(NewPaymentState state) => ListView(
+    padding: const EdgeInsets.fromLTRB(14, 16, 14, 24),
     children: [
-      ..._customerAndAmountFields(),
-      const SizedBox(height: 20),
-      ..._methodAndNoteFields(),
+      ..._customerAndAmountCards(state),
+      const SizedBox(height: 12),
+      ..._methodAndNoteCards(),
     ],
   );
 
   /// Formulario a la izquierda (2 columnas si cabe) y resumen fijo a la
   /// derecha con el botón de registrar.
-  Widget _wideBody() => Row(
+  Widget _wideBody(NewPaymentState state) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Expanded(
@@ -168,7 +202,7 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
           builder: (context, constraints) {
             final twoColumns = constraints.maxWidth - 48 >= _twoColumnFormWidth;
             return ListView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 12, 24),
+              padding: const EdgeInsets.fromLTRB(24, 20, 12, 24),
               children: [
                 if (twoColumns)
                   Row(
@@ -177,22 +211,22 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: _customerAndAmountFields(),
+                          children: _customerAndAmountCards(state),
                         ),
                       ),
-                      const SizedBox(width: 24),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: _methodAndNoteFields(),
+                          children: _methodAndNoteCards(),
                         ),
                       ),
                     ],
                   )
                 else ...[
-                  ..._customerAndAmountFields(),
-                  const SizedBox(height: 20),
-                  ..._methodAndNoteFields(),
+                  ..._customerAndAmountCards(state),
+                  const SizedBox(height: 12),
+                  ..._methodAndNoteCards(),
                 ],
               ],
             );
@@ -202,11 +236,19 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
       SizedBox(
         width: _summaryWidth,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(12, 24, 24, 24),
+          padding: const EdgeInsets.fromLTRB(12, 20, 24, 24),
           child: ListenableBuilder(
             listenable: _customer,
             builder: (context, _) => _SummaryPanel(
-              customer: _customer.text.trim(),
+              customer: _customer.text.trim().isNotEmpty
+                  ? _customer.text.trim()
+                  : (state.selectedCustomer?.name ??
+                        state.selectedReservation?.customerName ??
+                        ''),
+              reservationCourt: state.selectedReservation?.courtsLabel,
+              reservationDate: state.selectedReservation?.start,
+              reservationPrice: state.selectedReservation?.displayTotal,
+              reservationAmountPaid: state.selectedReservation?.displayPaid,
               concept: _concept,
               method: _method,
               amount: _amountValue,
@@ -218,165 +260,382 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
     ],
   );
 
-  List<Widget> _customerAndAmountFields() {
+  List<Widget> _customerAndAmountCards(NewPaymentState state) {
+    final bloc = context.read<NewPaymentBloc>();
+    final hasReservation = state.selectedReservation != null;
+    final resBalance = state.selectedReservation?.displayBalance ?? 0;
+
     return [
-      AppTextField(
-        label: 'Cliente',
-        prefixIcon: Icons.person_outline,
-        controller: _customer,
-        hintText: 'Nombre de quien paga',
-        textInputAction: TextInputAction.next,
-        textCapitalization: TextCapitalization.words,
-        validator: (v) => (v?.trim().isEmpty ?? true)
-            ? 'Ingresa el nombre del cliente'
-            : null,
+      _SectionCard(
+        title: 'Destino del pago',
+        subtitle: 'Asociar los recibos contables',
+        child: NewPaymentTargetSelector(
+          state: state,
+          onModeChanged: (mode) => bloc.add(NewPaymentTargetModeChanged(mode)),
+          onCustomerSearchChanged: (query) =>
+              bloc.add(NewPaymentCustomerSearchChanged(query)),
+          onLoadMoreCustomers: () =>
+              bloc.add(const NewPaymentCustomersNextPage()),
+          onCustomerSelected: (c) {
+            bloc.add(NewPaymentCustomerSelected(c));
+            if (c != null) {
+              _customer.text = c.name;
+            }
+          },
+          onReservationSearchChanged: (query) =>
+              bloc.add(NewPaymentReservationSearchChanged(query)),
+          onReservationSelected: (r) {
+            bloc.add(NewPaymentReservationSelected(r));
+            if (r != null) {
+              _customer.text = r.customerName;
+              _onFillReservationBalance(r);
+            }
+          },
+          manualCustomerController: _customer,
+          onFillReservationBalance: _onFillReservationBalance,
+        ),
       ),
-      const SizedBox(height: 20),
-      const _SectionLabel('Concepto'),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final concept in PaymentConcept.values)
-            _ChoicePill(
-              label: concept.label,
-              selected: concept == _concept,
-              onTap: () => setState(() => _concept = concept),
-            ),
-        ],
-      ),
-      const SizedBox(height: 20),
-      AppTextField(
-        label: 'Monto (COP)',
-        prefixIcon: Icons.attach_money_rounded,
-        controller: _amount,
-        hintText: '0',
-        keyboardType: TextInputType.number,
-        inputFormatters: const [CopInputFormatter()],
-        validator: (v) => CopInputFormatter.parse(v ?? '') <= 0
-            ? 'Ingresa un monto mayor a cero'
-            : null,
-      ),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final value in NewPaymentPage.quickAmounts)
-            ActionChip(
-              label: Text('+${AppFormatters.cop(value)}'),
-              labelStyle: AppTypography.labelMd.copyWith(
-                color: AppColors.brandTealDeep,
+      const SizedBox(height: 12),
+      _SectionCard(
+        title: 'Concepto y Monto',
+        subtitle: 'Registro de caja',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'CONCEPTO',
+              style: AppTypography.labelSm.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.slate600,
+                letterSpacing: 0.5,
               ),
-              backgroundColor: AppColors.accentLimeTint,
-              side: BorderSide(
-                color: AppColors.accentLime.withValues(alpha: 0.8),
-              ),
-              shape: const StadiumBorder(),
-              onPressed: () => _addAmount(value),
             ),
-          if (_amountValue > 0)
-            ActionChip(
-              label: const Text('Limpiar'),
-              labelStyle: AppTypography.labelMd.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
-              backgroundColor: AppColors.surfaceContainer,
-              side: BorderSide.none,
-              shape: const StadiumBorder(),
-              onPressed: _amount.clear,
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final concept in PaymentConcept.values)
+                  _ChoicePill(
+                    label: concept.label,
+                    selected: concept == _concept,
+                    onTap: () => setState(() => _concept = concept),
+                  ),
+              ],
             ),
-        ],
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'MONTO (COP)',
+                  style: AppTypography.labelSm.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.slate600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                if (hasReservation && resBalance > 0)
+                  Text(
+                    'Sugerido por reserva',
+                    style: AppTypography.labelSm.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.emerald600,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.slate50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _amountValue > 0
+                      ? AppColors.brandTeal
+                      : AppColors.slate200,
+                  width: _amountValue > 0 ? 1.5 : 1,
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Row(
+                children: [
+                  Text(
+                    r'$',
+                    style: AppTypography.headlineMd.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.slate400,
+                      fontSize: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _amount,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: const [CopInputFormatter()],
+                      style: AppTypography.headlineMd.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.slate900,
+                        fontSize: 20,
+                        letterSpacing: -0.5,
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: '0',
+                        hintStyle: TextStyle(
+                          color: AppColors.slate400,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 8),
+                      ),
+                      validator: (v) => CopInputFormatter.parse(v ?? '') <= 0
+                          ? 'Ingresa un monto mayor a cero'
+                          : null,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.slate200.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'COP',
+                      style: AppTypography.labelSm.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.slate600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                if (hasReservation && resBalance > 0)
+                  ActionChip(
+                    avatar: const Icon(
+                      Icons.bolt_rounded,
+                      size: 14,
+                      color: AppColors.brandDark,
+                    ),
+                    label: Text(
+                      '= Liquidar Exacto (${AppFormatters.cop(resBalance)})',
+                    ),
+                    labelStyle: AppTypography.labelSm.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF3F4C00),
+                    ),
+                    backgroundColor: AppColors.accentLimeTint,
+                    side: const BorderSide(color: Color(0xFFCCFF00)),
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    onPressed: () {
+                      _amount.text = CopInputFormatter.format(resBalance);
+                      setState(() {});
+                    },
+                  ),
+                for (final value in NewPaymentPage.quickAmounts)
+                  ActionChip(
+                    label: Text('+${AppFormatters.cop(value)}'),
+                    labelStyle: AppTypography.labelSm.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.brandTealDeep,
+                    ),
+                    backgroundColor: AppColors.brandTealLight,
+                    side: BorderSide(
+                      color: AppColors.brandTeal.withValues(alpha: 0.3),
+                    ),
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    onPressed: () => _addAmount(value),
+                  ),
+                if (_amountValue > 0)
+                  ActionChip(
+                    label: const Text('Limpiar'),
+                    labelStyle: AppTypography.labelSm.copyWith(
+                      color: AppColors.slate600,
+                    ),
+                    backgroundColor: AppColors.slate100,
+                    side: BorderSide.none,
+                    shape: const StadiumBorder(),
+                    onPressed: _amount.clear,
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     ];
   }
 
-  List<Widget> _methodAndNoteFields() {
+  List<Widget> _methodAndNoteCards() {
     final needsReference = NewPayment.requiresReference(_method);
     return [
-      const _SectionLabel('Método de pago'),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final method in PaymentMethod.selectable)
-            _ChoicePill(
-              label: method.label,
-              icon: method.icon,
-              iconColor: method.color,
-              selected: method == _method,
-              onTap: () => setState(() => _method = method),
+      _SectionCard(
+        title: 'Método de pago',
+        subtitle: 'Acreditación instantánea',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 400;
+                final crossAxisCount = isCompact ? 2 : 3;
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    mainAxisExtent: 58,
+                  ),
+                  itemCount: PaymentMethod.selectable.length,
+                  itemBuilder: (context, index) {
+                    final method = PaymentMethod.selectable[index];
+                    final isSelected = method == _method;
+                    return _MethodCardTile(
+                      method: method,
+                      selected: isSelected,
+                      onTap: () => setState(() => _method = method),
+                    );
+                  },
+                );
+              },
             ),
-        ],
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              alignment: Alignment.topCenter,
+              child: needsReference
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 14),
+                      child: AppTextField(
+                        label: 'Referencia (opcional)',
+                        prefixIcon: Icons.tag_rounded,
+                        controller: _reference,
+                        hintText: 'Número de transacción o comprobante',
+                        textInputAction: TextInputAction.next,
+                        inputFormatters: [LengthLimitingTextInputFormatter(40)],
+                      ),
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
+          ],
+        ),
       ),
-      AnimatedSize(
-        duration: const Duration(milliseconds: 200),
-        alignment: Alignment.topCenter,
-        child: needsReference
-            ? Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: AppTextField(
-                  label: 'Referencia',
-                  prefixIcon: Icons.tag_rounded,
-                  controller: _reference,
-                  hintText: 'Número de la transacción',
-                  textInputAction: TextInputAction.next,
-                  inputFormatters: [LengthLimitingTextInputFormatter(40)],
-                  validator: (v) => (v?.trim().isEmpty ?? true)
-                      ? 'Ingresa la referencia del pago'
-                      : null,
-                ),
-              )
-            : const SizedBox(width: double.infinity),
-      ),
-      const SizedBox(height: 20),
-      AppTextField(
-        label: 'Nota (opcional)',
-        prefixIcon: Icons.notes_rounded,
-        controller: _note,
-        hintText: 'Ej.: pagó en taquilla',
-        maxLines: 3,
-        textCapitalization: TextCapitalization.sentences,
-        inputFormatters: [LengthLimitingTextInputFormatter(200)],
+      const SizedBox(height: 12),
+      _SectionCard(
+        title: 'Nota adicional',
+        subtitle: 'Opcional',
+        child: AppTextField(
+          label: 'Nota (opcional)',
+          prefixIcon: Icons.notes_rounded,
+          controller: _note,
+          hintText: 'Ej.: pagó en taquilla con billete de \$50.000',
+          maxLines: 2,
+          textCapitalization: TextCapitalization.sentences,
+          inputFormatters: [LengthLimitingTextInputFormatter(200)],
+        ),
       ),
     ];
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
+/// Contenedor en tarjeta blanca con bordes suaves y cabecera estándar Stitch.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.title, this.subtitle, required this.child});
 
-  final String text;
+  final String title;
+  final String? subtitle;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text.toUpperCase(),
-      style: AppTypography.labelMd.copyWith(
-        color: AppColors.slate700,
-        letterSpacing: 0.6,
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.slate200),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A0A312B),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: AppColors.brandTeal,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  title.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.labelSm.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.slate700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    subtitle!,
+                    maxLines: 1,
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodySm.copyWith(
+                      color: AppColors.slate400,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }
 }
 
-/// Pastilla seleccionable (concepto y método de pago).
+/// Pastilla seleccionable para concepto.
 class _ChoicePill extends StatelessWidget {
   const _ChoicePill({
     required this.label,
     required this.selected,
     required this.onTap,
-    this.icon,
-    this.iconColor,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final IconData? icon;
-  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -386,43 +645,128 @@ class _ChoicePill extends StatelessWidget {
       label: label,
       excludeSemantics: true,
       child: Material(
-        color: selected
-            ? AppColors.brandTealLight
-            : AppColors.surfaceContainerLowest,
-        shape: StadiumBorder(
+        color: selected ? AppColors.brandTealLight : AppColors.slate50,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
           side: BorderSide(
             color: selected ? AppColors.brandTeal : AppColors.slate200,
-            width: 1.5,
+            width: selected ? 1.5 : 1,
           ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (selected)
+                if (selected) ...[
                   const Icon(
-                    Icons.check_circle,
-                    size: 18,
+                    Icons.check_circle_rounded,
+                    size: 15,
                     color: AppColors.brandTeal,
-                  )
-                else if (icon != null)
-                  Icon(icon, size: 18, color: iconColor),
-                if (selected || icon != null) const SizedBox(width: 6),
+                  ),
+                  const SizedBox(width: 5),
+                ],
                 Text(
                   label,
-                  style: AppTypography.labelLg.copyWith(
+                  style: AppTypography.labelMd.copyWith(
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                     color: selected
                         ? AppColors.brandTealDeep
-                        : AppColors.onSurface,
-                    letterSpacing: 0,
+                        : AppColors.slate700,
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta de método de pago en cuadrícula.
+class _MethodCardTile extends StatelessWidget {
+  const _MethodCardTile({
+    required this.method,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final PaymentMethod method;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? AppColors.brandTealLight.withValues(alpha: 0.6)
+          : AppColors.surfaceContainerLowest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: selected ? AppColors.brandTeal : AppColors.slate200,
+          width: selected ? 2 : 1,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: method.tint,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: method.color.withValues(alpha: 0.2),
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Icon(method.icon, size: 16, color: method.color),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      method.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.labelMd.copyWith(
+                        fontWeight: selected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
+                        color: selected
+                            ? AppColors.brandTealDeep
+                            : AppColors.slate800,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      method.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySm.copyWith(
+                        fontSize: 10,
+                        color: selected
+                            ? AppColors.brandTeal
+                            : AppColors.slate500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -481,8 +825,8 @@ class _BottomBar extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.headlineMd.copyWith(
                         fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.slate900,
                       ),
                     ),
                   ],
@@ -498,10 +842,14 @@ class _BottomBar extends StatelessWidget {
   }
 }
 
-/// Resumen fijo (pantallas anchas): datos clave, total y botón principal.
+/// Resumen ticket fiscal / taquilla (pantallas anchas).
 class _SummaryPanel extends StatelessWidget {
   const _SummaryPanel({
     required this.customer,
+    this.reservationCourt,
+    this.reservationDate,
+    this.reservationPrice,
+    this.reservationAmountPaid,
     required this.concept,
     required this.method,
     required this.amount,
@@ -509,6 +857,10 @@ class _SummaryPanel extends StatelessWidget {
   });
 
   final String customer;
+  final String? reservationCourt;
+  final DateTime? reservationDate;
+  final int? reservationPrice;
+  final int? reservationAmountPaid;
   final PaymentConcept concept;
   final PaymentMethod method;
   final int amount;
@@ -516,50 +868,253 @@ class _SummaryPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasReservation = reservationCourt != null;
+    final totalTurno = reservationPrice ?? 0;
+    final anticiposPrevios = reservationAmountPaid ?? 0;
+    final pendingAfter = (totalTurno - (anticiposPrevios + amount)).clamp(
+      0,
+      999999999,
+    );
+
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.slate200),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x1417231C),
-            blurRadius: 16,
+            color: Color(0x140A312B),
+            blurRadius: 18,
             offset: Offset(0, 4),
           ),
         ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SectionLabel('Resumen'),
-          const SizedBox(height: 12),
-          _SummaryRow(
-            label: 'Cliente',
-            value: customer.isEmpty ? '—' : customer,
-          ),
-          _SummaryRow(label: 'Concepto', value: concept.label),
-          _SummaryRow(label: 'Método', value: method.label),
-          const Divider(height: 28, color: AppColors.slate200),
-          Text(
-            'Total',
-            style: AppTypography.labelSm.copyWith(
-              color: AppColors.onSurfaceVariant,
+          // Barra de acento gradiente superior
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.brandDark,
+                  AppColors.brandTeal,
+                  AppColors.accentLimeSignal,
+                ],
+              ),
             ),
           ),
-          Text(
-            '${AppFormatters.cop(amount)} COP',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.headlineMd.copyWith(
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.brandTealLight,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'RESUMEN',
+                              style: AppTypography.labelSm.copyWith(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.brandTealDeep,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Resumen del cobro',
+                            style: AppTypography.labelLg.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.slate900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: AppColors.emerald600,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Caja #1',
+                          style: AppTypography.labelSm.copyWith(
+                            fontSize: 10,
+                            color: AppColors.slate500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _SummaryRow(
+                  label: 'Cliente',
+                  value: customer.isEmpty ? '—' : customer,
+                ),
+                _SummaryRow(
+                  label: 'Concepto',
+                  value: concept.label,
+                  isPill: true,
+                ),
+                _SummaryRow(
+                  label: 'Método registrado',
+                  value: method.label,
+                  dotColor: method.color,
+                ),
+                if (hasReservation) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.slate50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.slate200),
+                    ),
+                    child: Column(
+                      children: [
+                        _SubRow(
+                          label: 'Cancha vinculada',
+                          value: reservationCourt!,
+                        ),
+                        if (reservationDate != null)
+                          _SubRow(
+                            label: 'Horario reserva',
+                            value:
+                                '${AppFormatters.shortDate(reservationDate!)} · ${AppFormatters.time(reservationDate!)}',
+                          ),
+                        if (totalTurno > 0) ...[
+                          const Divider(height: 12, color: AppColors.slate200),
+                          _SubRow(
+                            label: 'Valor total turno',
+                            value: '${AppFormatters.cop(totalTurno)} COP',
+                          ),
+                          _SubRow(
+                            label: 'Anticipos previos',
+                            value: '${AppFormatters.cop(anticiposPrevios)} COP',
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+                const _TicketPerforationDivider(),
+                Text(
+                  'TOTAL A COBRAR AHORA',
+                  style: AppTypography.labelSm.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.slate500,
+                    letterSpacing: 0.5,
+                    fontSize: 10,
+                  ),
+                ),
+                Text(
+                  '${AppFormatters.cop(amount)} COP',
+                  style: AppTypography.headlineLg.copyWith(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.brandDark,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                if (hasReservation && totalTurno > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          pendingAfter == 0
+                              ? Icons.check_circle_rounded
+                              : Icons.info_outline_rounded,
+                          size: 13,
+                          color: pendingAfter == 0
+                              ? AppColors.emerald600
+                              : AppColors.amber500,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            pendingAfter == 0
+                                ? 'El saldo de esta reserva quedará en \$0 COP'
+                                : 'Saldo restante: ${AppFormatters.cop(pendingAfter)} COP',
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 10,
+                              color: AppColors.slate600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                _SubmitButton(onSubmit: onSubmit),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.only(top: 8),
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: AppColors.slate100)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: const BoxDecoration(
+                              color: AppColors.emerald600,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Soporte DIAN POS',
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 10,
+                              color: AppColors.slate400,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'v2.4.0-CO',
+                        style: AppTypography.bodySm.copyWith(
+                          fontSize: 10,
+                          color: AppColors.slate400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          _SubmitButton(onSubmit: onSubmit),
         ],
       ),
     );
@@ -567,7 +1122,93 @@ class _SummaryPanel extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.label, required this.value});
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.isPill = false,
+    this.dotColor,
+  });
+
+  final String label;
+  final String value;
+  final bool isPill;
+  final Color? dotColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppTypography.bodySm.copyWith(
+              color: AppColors.slate500,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: isPill
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.brandTealLight,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.labelSm.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.brandTealDeep,
+                        fontSize: 10,
+                      ),
+                    ),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (dotColor != null) ...[
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: dotColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      Flexible(
+                        child: Text(
+                          value,
+                          textAlign: TextAlign.end,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.labelMd.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.slate900,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SubRow extends StatelessWidget {
+  const _SubRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -575,30 +1216,45 @@ class _SummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
-            style: AppTypography.bodyMd.copyWith(
-              color: AppColors.onSurfaceVariant,
+            style: AppTypography.bodySm.copyWith(
+              color: AppColors.slate500,
+              fontSize: 11,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
+          Flexible(
             child: Text(
               value,
               textAlign: TextAlign.end,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTypography.labelLg.copyWith(
-                color: AppColors.onSurface,
-                letterSpacing: 0,
+              style: AppTypography.labelSm.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.slate800,
+                fontSize: 11,
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Línea divisoria para el estilo ticket de taquilla.
+class _TicketPerforationDivider extends StatelessWidget {
+  const _TicketPerforationDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 10),
+      child: Divider(height: 1, thickness: 1, color: AppColors.slate200),
     );
   }
 }
@@ -620,22 +1276,35 @@ class _SubmitButton extends StatelessWidget {
           disabledBackgroundColor: AppColors.brandTeal,
           foregroundColor: AppColors.onPrimary,
           disabledForegroundColor: AppColors.onPrimary,
-          minimumSize: const Size(0, 52),
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
           ),
-          textStyle: AppTypography.labelLg,
+          textStyle: AppTypography.labelLg.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         child: state.isSubmitting
             ? const SizedBox.square(
-                dimension: 22,
+                dimension: 20,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
+                  strokeWidth: 2.2,
                   color: AppColors.onPrimary,
                 ),
               )
-            : const Text('Registrar pago'),
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.check_rounded,
+                    size: 18,
+                    color: AppColors.accentLimeSignal,
+                  ),
+                  SizedBox(width: 6),
+                  Text('Registrar pago'),
+                ],
+              ),
       ),
     );
   }

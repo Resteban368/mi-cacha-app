@@ -31,7 +31,7 @@ class CourtChip extends StatelessWidget {
           const SizedBox(width: 4),
           Flexible(
             child: Text(
-              reservation.courtName,
+              reservation.courtsLabel,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.labelSm.copyWith(color: AppColors.onSurface),
             ),
@@ -203,6 +203,7 @@ class StripedCard extends StatelessWidget {
     this.radius = 12,
     this.padding = const EdgeInsets.fromLTRB(16, 12, 12, 12),
     this.elevated = false,
+    this.isSelected = false,
   });
 
   final Color stripeColor;
@@ -211,6 +212,7 @@ class StripedCard extends StatelessWidget {
   final double radius;
   final EdgeInsets padding;
   final bool elevated;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -219,13 +221,21 @@ class StripedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(radius),
-        boxShadow: elevated
-            ? const [
+        border: isSelected
+            ? Border.all(color: AppColors.brandTeal, width: 2)
+            : Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.25),
+                width: 1,
+              ),
+        boxShadow: elevated || isSelected
+            ? [
                 BoxShadow(
-                  color: Color(0x1A000000),
-                  blurRadius: 6,
-                  offset: Offset(0, 4),
-                  spreadRadius: -1,
+                  color: isSelected
+                      ? AppColors.brandTeal.withValues(alpha: 0.2)
+                      : const Color(0x1A000000),
+                  blurRadius: isSelected ? 10 : 6,
+                  offset: const Offset(0, 4),
+                  spreadRadius: isSelected ? 1 : -1,
                 ),
               ]
             : const [
@@ -251,3 +261,4 @@ class StripedCard extends StatelessWidget {
     );
   }
 }
+

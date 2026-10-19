@@ -12,16 +12,20 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_top_bar.dart';
 import '../../../../core/widgets/loading_dialog.dart';
 import '../../../business_home/presentation/widgets/read_only_banner.dart';
+import '../../../business_courts/presentation/widgets/court_pricing_card.dart';
+import '../../../business_courts/presentation/widgets/court_summaries.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/new_reservation.dart';
 import '../../domain/entities/reservation_failure.dart';
 import '../bloc/new_reservation/new_reservation_bloc.dart';
 import '../widgets/create_reservation_bottom_bar.dart';
 import '../widgets/create_reservation_client_card.dart';
-import '../widgets/create_reservation_court_card.dart';
+import '../widgets/create_reservation_day_card.dart';
+import '../widgets/create_reservation_courts_card.dart';
 import '../widgets/create_reservation_options_card.dart';
 import '../widgets/create_reservation_payment_card.dart';
 import '../widgets/create_reservation_schedule_card.dart';
+import '../widgets/create_reservation_summary_card.dart';
 import '../widgets/reservation_summary_dialog.dart';
 
 /// "Crear Reserva": registro manual de un turno por el administrador.
@@ -46,6 +50,7 @@ class BusinessNewReservationPage extends StatelessWidget {
           children: [
             AppTopBar(
               title: 'Crear Reserva',
+              titleBadge: 'Manual',
               subtitle: 'Registro manual de turno',
               icon: Icons.event_available,
               onBack: () => _back(context),
@@ -100,6 +105,9 @@ class _ReservationForm extends StatefulWidget {
 
 class _ReservationFormState extends State<_ReservationForm> {
   static const _wideBreakpoint = 900.0;
+
+  /// Altura de la columna derecha desde la que el resumen va completo.
+  static const _fullSummaryHeight = 820.0;
 
   final _formKey = GlobalKey<FormState>();
   var _autovalidate = AutovalidateMode.disabled;
@@ -172,16 +180,12 @@ class _ReservationFormState extends State<_ReservationForm> {
 
   /// Lo que falta para poder confirmar (vacío = listo).
   List<String> _missing(NewReservationState state) => [
-    if (state.court == null) 'cancha',
-    if (state.startIndex == null) 'turno',
+    if (state.sport == null) 'deporte',
+    if (state.selectedSlots.isEmpty) 'turno',
     if (_isNewCustomer ? _newCustomer.error != null : state.customer == null)
       'cliente',
     if (_registerPayment && CopInputFormatter.parse(_amount.text) <= 0)
       'monto del pago',
-    if (_registerPayment &&
-        (_method?.requiresReference ?? false) &&
-        _reference.text.trim().isEmpty)
-      'referencia del pago',
   ];
 
   void _submit(NewReservationState state) {
@@ -191,12 +195,16 @@ class _ReservationFormState extends State<_ReservationForm> {
       return;
     }
     FocusScope.of(context).unfocus();
-    final slot = state.availability!.slots[state.startIndex!];
+    final slot = state.selectedSlots.first;
     final method = _method;
     context.read<NewReservationBloc>().add(
       NewReservationSubmitted(
         NewReservation(
-          courtId: state.court!.id,
+          target: state.anyCourt
+              ? AnyCourtOfSport(state.sport!, courts: state.anyCourtCount)
+              : state.extraCourtIds.isEmpty
+              ? CourtById(state.selectedCourtId!)
+              : CourtsByIds([state.selectedCourtId!, ...state.extraCourtIds]),
           start: slot.startIso,
           slots: state.slotCount,
           customerId: _isNewCustomer ? null : state.customer!.id,
@@ -225,7 +233,11 @@ class _ReservationFormState extends State<_ReservationForm> {
     switch (state.submit) {
       case NewReservationSubmit.success:
         final reservation = state.created!;
-        final action = await showReservationSummary(context, reservation);
+        final action = await showReservationSummary(
+          context,
+          reservation,
+          courtAssigned: state.anyCourt,
+        );
         if (!context.mounted) return;
         if (action == ReservationSummaryAction.createAnother) {
           context.go(
@@ -252,6 +264,9 @@ class _ReservationFormState extends State<_ReservationForm> {
   static String _failureMessage(NewReservationState state) {
     final message = state.failureMessage;
     return switch (state.failure) {
+      ReservationFailure.slotTaken when state.anyCourt =>
+        'Ya no hay canchas libres a esa hora. Actualizamos los turnos: '
+            'elige otro.',
       ReservationFailure.slotTaken =>
         'Ese horario se acaba de ocupar. Actualizamos los turnos: elige otro.',
       ReservationFailure.subscriptionInactive =>
@@ -265,12 +280,69 @@ class _ReservationFormState extends State<_ReservationForm> {
   }
 
   String _summary(NewReservationState state) {
-    final court = state.court?.name ?? 'Sin cancha';
+    final sport = state.sport;
+    final court = state.anyCourt && sport != null
+        ? state.anyCourtCount > 1
+              ? '${state.anyCourtCount} canchas de '
+                    '${CourtSummaries.sport(sport).toLowerCase()}'
+              : 'Cualquier cancha de ${CourtSummaries.sport(sport).toLowerCase()}'
+        : _courtNames(state) ??
+              (sport == null ? 'Sin deporte' : CourtSummaries.sport(sport));
     final day = AppFormatters.shortDate(state.day);
     final slots = state.selectedSlots;
     if (slots.isEmpty) return '$court · $day';
     return '$court · $day · '
         '${AppFormatters.timeRange(slots.first.start, slots.last.end)}';
+  }
+
+  /// "Fútbol · Cancha c1" (o "Fútbol · Cualquier cancha libre").
+  String _summaryTitle(NewReservationState state) {
+    final sport = state.sport;
+    final sportLabel = sport == null
+        ? 'Sin deporte'
+        : CourtSummaries.sport(sport);
+    final court = state.anyCourt
+        ? state.anyCourtCount > 1
+              ? '${state.anyCourtCount} canchas libres'
+              : 'Cualquier cancha libre'
+        : _courtNames(state);
+    return court == null ? sportLabel : '$sportLabel · $court';
+  }
+
+  /// "Cancha 1" o "Cancha 1 + Cancha 2" con varias canchas a la vez.
+  static String? _courtNames(NewReservationState state) {
+    final courts = state.selectedCourts;
+    if (courts.isEmpty) return state.selectedCourt?.court.name;
+    return courts.map((c) => c.court.name).join(' + ');
+  }
+
+  String? _schedule(NewReservationState state) {
+    final slots = state.selectedSlots;
+    if (slots.isEmpty) return null;
+    return '${AppFormatters.shortDate(state.day)} · '
+        '${AppFormatters.timeRange(slots.first.start, slots.last.end)}';
+  }
+
+  String? _customerLabel(NewReservationState state) {
+    if (_isNewCustomer) {
+      final name = _name.text.trim();
+      return name.isEmpty ? null : '$name (nuevo)';
+    }
+    final customer = state.customer;
+    if (customer == null) return null;
+    return customer.phone.isEmpty
+        ? customer.name
+        : '${customer.name} (${customer.phone})';
+  }
+
+  String _paymentLabel(NewReservationState state) {
+    if (!_registerPayment) return 'Sin abono';
+    final paid = CopInputFormatter.parse(_amount.text);
+    if (paid <= 0) return 'Sin abono';
+    final total = _total(state);
+    if (total == null || paid >= total) return 'Pago total';
+    return 'Abono ${AppFormatters.cop(paid)} '
+        '(resta ${AppFormatters.cop(total - paid)})';
   }
 
   int? _total(NewReservationState state) {
@@ -293,25 +365,55 @@ class _ReservationFormState extends State<_ReservationForm> {
         final missing = _missing(state);
         final submitting = state.submit == NewReservationSubmit.submitting;
 
-        final courtCard = CreateReservationCourtCard(
-          courts: state.courts,
-          selectedCourt: state.court,
+        final dayCard = CreateReservationDayCard(
+          sports: state.sports,
+          sport: state.sport,
           day: state.day,
           minDay: today.isAfter(state.day) ? state.day : today,
-          onCourtChanged: (court) =>
-              bloc.add(NewReservationCourtSelected(court)),
+          onSportChanged: (sport) =>
+              bloc.add(NewReservationSportSelected(sport)),
           onDayChanged: (day) => bloc.add(NewReservationDaySelected(day)),
         );
         final scheduleCard = CreateReservationScheduleCard(
           load: state.availabilityLoad,
           availability: state.availability,
-          startIndex: state.startIndex,
+          hiddenCourtCount: state.hiddenCourtCount,
+          anyCourt: state.anyCourt,
+          selectedCourtId: state.selectedCourtId,
+          selectedStart: state.selectedStart,
+          selectedCourt: state.selectedCourt,
+          selectedSlots: state.selectedSlots,
           slotCount: state.slotCount,
           maxSlotCount: state.maxSlotCount,
-          onSlotTap: (i) => bloc.add(NewReservationSlotTapped(i)),
+          subtotal: state.subtotal,
+          priceMayVary: state.priceMayVary,
+          focusCourtId: state.focusCourtId,
+          onAnyCourtChanged: (on) =>
+              bloc.add(NewReservationAnyCourtToggled(on)),
+          onSlotTap: (courtId, start) => bloc.add(
+            NewReservationSlotTapped(courtId: courtId, start: start),
+          ),
           onCountChanged: (n) => bloc.add(NewReservationSlotCountChanged(n)),
           onRetry: () => bloc.add(const NewReservationAvailabilityReloaded()),
+          onManageCourts: () => context.go(AppRoutes.businessCourts),
         );
+        // Con un turno elegido, se pueden sumar otras canchas en la franja.
+        final courtsCard =
+            state.selectedSlots.isNotEmpty &&
+                (state.availability?.courts.length ?? 0) > 1
+            ? CreateReservationCourtsCard(
+                anyCourt: state.anyCourt,
+                selectedCourts: state.selectedCourts,
+                extraCourtIds: state.extraCourtIds,
+                addableCourts: state.addableCourts,
+                anyCourtCount: state.anyCourtCount,
+                anyCourtCountMax: state.anyCourtCountMax,
+                onExtraCourtToggled: (id) =>
+                    bloc.add(NewReservationExtraCourtToggled(id)),
+                onAnyCourtCountChanged: (n) =>
+                    bloc.add(NewReservationAnyCourtCountChanged(n)),
+              )
+            : null;
         final clientCard = CreateReservationClientCard(
           isNewCustomer: _isNewCustomer,
           onModeChanged: (isNew) => setState(() => _isNewCustomer = isNew),
@@ -329,6 +431,12 @@ class _ReservationFormState extends State<_ReservationForm> {
         );
         final paymentCard = CreateReservationPaymentCard(
           subtotal: state.subtotal,
+          lowestSubtotal: state.lowestSubtotal,
+          durationLabel: state.selectedCourt == null
+              ? null
+              : CourtPricingCard.durationLabel(
+                  state.slotCount * state.selectedCourt!.court.slotDuration,
+                ),
           discountController: _discount,
           registerPayment: _registerPayment,
           onRegisterPaymentChanged: (on) =>
@@ -363,45 +471,75 @@ class _ReservationFormState extends State<_ReservationForm> {
               key: _formKey,
               autovalidateMode: _autovalidate,
               child: isWide
-                  ? SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 3,
+                  // Web: turnos a la izquierda; cliente y pago a la derecha,
+                  // cada columna con su scroll y "Confirmar" siempre visible.
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: SingleChildScrollView(
+                            key: const Key('reservation-main-scroll'),
+                            padding: const EdgeInsets.fromLTRB(24, 24, 12, 24),
                             child: Column(
                               children: [
-                                courtCard,
+                                dayCard,
                                 gap,
                                 scheduleCard,
-                                gap,
-                                clientCard,
+                                if (courtsCard != null) ...[gap, courtsCard],
                                 gap,
                                 optionsCard,
                               ],
                             ),
                           ),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            flex: 2,
-                            child: Column(
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: LayoutBuilder(
+                            // Con poca altura el resumen se compacta para no
+                            // tapar el cliente y el pago.
+                            builder: (context, column) => Column(
                               children: [
-                                paymentCard,
-                                gap,
-                                Card(
-                                  color: AppColors.surfaceContainerLowest,
-                                  elevation: 0,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: bar(inline: true),
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      12,
+                                      24,
+                                      24,
+                                      16,
+                                    ),
+                                    child: Column(
+                                      children: [clientCard, gap, paymentCard],
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    0,
+                                    24,
+                                    24,
+                                  ),
+                                  child: CreateReservationSummaryCard(
+                                    compact:
+                                        column.maxHeight < _fullSummaryHeight,
+                                    title: _summaryTitle(state),
+                                    schedule: _schedule(state),
+                                    customer: _customerLabel(state),
+                                    payment: _paymentLabel(state),
+                                    total: _total(state),
+                                    missing: missing,
+                                    isLoading: submitting,
+                                    onConfirm: missing.isEmpty
+                                        ? () => _submit(state)
+                                        : null,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     )
                   : Column(
                       children: [
@@ -410,9 +548,10 @@ class _ReservationFormState extends State<_ReservationForm> {
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                             child: Column(
                               children: [
-                                courtCard,
+                                dayCard,
                                 gap,
                                 scheduleCard,
+                                if (courtsCard != null) ...[gap, courtsCard],
                                 gap,
                                 clientCard,
                                 gap,

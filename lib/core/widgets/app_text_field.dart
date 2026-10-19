@@ -24,6 +24,7 @@ class AppTextField extends StatefulWidget {
     this.onChanged,
     this.maxLines = 1,
     this.textCapitalization = TextCapitalization.none,
+    this.suffixIcon,
   });
 
   final String label;
@@ -41,6 +42,7 @@ class AppTextField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final int maxLines;
   final TextCapitalization textCapitalization;
+  final Widget? suffixIcon;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -123,7 +125,7 @@ class _AppTextFieldState extends State<AppTextField> {
                       color: AppColors.slate400,
                     ),
                   )
-                : null,
+                : widget.suffixIcon,
             border: _border(AppColors.slate200),
             enabledBorder: _border(AppColors.slate200),
             disabledBorder: _border(AppColors.slate200),

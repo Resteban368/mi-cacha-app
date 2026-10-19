@@ -1,3 +1,4 @@
+import '../../../../core/domain/entities/sport.dart';
 import '../entities/availability.dart';
 import '../entities/customer.dart';
 import '../entities/new_reservation.dart';
@@ -16,8 +17,8 @@ abstract interface class ReservationsRepository {
     int pageSize = ReservationPage.defaultPageSize,
   });
 
-  /// Turnos de [courtId] en [day] (día local).
-  Future<Availability> getAvailability(String courtId, DateTime day);
+  /// Turnos de [day] (día local) de las canchas reservables de [sport].
+  Future<SportAvailability> getSportAvailability(Sport sport, DateTime day);
 
   /// Clientes por nombre, teléfono o cédula (máx. 20); sin texto, los
   /// más recientes.

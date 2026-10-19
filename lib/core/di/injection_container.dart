@@ -88,6 +88,11 @@ import '../../features/splash/data/repositories/app_info_repository_impl.dart';
 import '../../features/splash/data/repositories/session_repository_impl.dart';
 import '../../features/splash/domain/repositories/app_info_repository.dart';
 import '../../features/splash/domain/repositories/session_repository.dart';
+import '../../features/business_dashboard/data/datasources/business_dashboard_api_data_source.dart';
+import '../../features/business_dashboard/data/repositories/business_dashboard_repository_impl.dart';
+import '../../features/business_dashboard/domain/repositories/business_dashboard_repository.dart';
+import '../../features/business_dashboard/domain/usecases/get_business_dashboard.dart';
+import '../../features/business_dashboard/presentation/bloc/dashboard_bloc.dart';
 import '../../features/splash/domain/usecases/get_app_version.dart';
 import '../../features/splash/domain/usecases/resolve_start_destination.dart';
 import '../../features/splash/presentation/bloc/splash_bloc.dart';
@@ -118,6 +123,7 @@ Future<void> initDependencies() async {
   _initBusinessAccount();
   _initBusinessCourts();
   _initBusinessClients();
+  _initBusinessDashboard();
 }
 
 void _initCatalogs() {
@@ -192,7 +198,7 @@ void _initBusinessReservations() {
       () => ReservationsRepositoryImpl(sl()),
     )
     ..registerLazySingleton(() => GetDayReservations(sl()))
-    ..registerLazySingleton(() => GetAvailability(sl()))
+    ..registerLazySingleton(() => GetSportAvailability(sl()))
     ..registerLazySingleton(() => SearchCustomers(sl()))
     ..registerLazySingleton(() => CreateReservation(sl()))
     ..registerLazySingleton(() => GetReservation(sl()))
@@ -216,7 +222,7 @@ void _initBusinessReservations() {
       () => NewReservationBloc(
         getCourts: sl(),
         getCatalogs: sl(),
-        getAvailability: sl(),
+        getSportAvailability: sl(),
         searchCustomers: sl(),
         createReservation: sl(),
         clock: sl(),
@@ -238,7 +244,13 @@ void _initBusinessPayments() {
     ..registerFactory(
       () => PaymentsBloc(getPayments: sl(), validatePayment: sl()),
     )
-    ..registerFactory(() => NewPaymentBloc(createPayment: sl()));
+    ..registerFactory(
+      () => NewPaymentBloc(
+        createPayment: sl(),
+        getBusinessCustomers: sl(),
+        listReservations: sl(),
+      ),
+    );
 }
 
 void _initBusinessProfile() {
@@ -326,4 +338,16 @@ void _initBusinessClients() {
         updateBusinessCustomer: sl(),
       ),
     );
+}
+
+void _initBusinessDashboard() {
+  sl
+    ..registerLazySingleton<BusinessDashboardDataSource>(
+      () => BusinessDashboardApiDataSource(sl()),
+    )
+    ..registerLazySingleton<BusinessDashboardRepository>(
+      () => BusinessDashboardRepositoryImpl(sl()),
+    )
+    ..registerLazySingleton(() => GetBusinessDashboard(sl()))
+    ..registerFactory(() => DashboardBloc(getDashboard: sl(), getCourts: sl()));
 }

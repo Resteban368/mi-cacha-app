@@ -7,8 +7,6 @@ import 'package:mi_cancha/core/session/write_access.dart';
 import 'package:mi_cancha/core/widgets/app_top_bar.dart';
 import 'package:mi_cancha/features/business_home/presentation/navigation/business_section.dart';
 import 'package:mi_cancha/features/business_home/presentation/pages/business_home_shell.dart';
-import 'package:mi_cancha/features/business_clients/presentation/pages/business_clients_page.dart';
-import 'package:mi_cancha/features/business_home/presentation/pages/business_tab_pages.dart';
 import 'package:mi_cancha/features/business_home/presentation/widgets/business_side_menu.dart';
 
 void main() {
@@ -54,13 +52,25 @@ void main() {
                 children: [
                   AppTopBar(
                     title: 'Clientes',
-                    subtitle: 'Directorio de jugadores, fidelidad y contacto directo',
+                    subtitle:
+                        'Directorio de jugadores, fidelidad y contacto directo',
                     icon: Icons.group_rounded,
                   ),
                 ],
               ),
             ),
-            section(AppRoutes.businessDashboard, const BusinessDashboardPage()),
+            section(
+              AppRoutes.businessDashboard,
+              const Column(
+                children: [
+                  AppTopBar(
+                    title: 'Dashboard',
+                    subtitle: 'Rendimiento de tu negocio',
+                    icon: Icons.insights,
+                  ),
+                ],
+              ),
+            ),
             // Con su barra superior: ahí está el botón del menú.
             section(
               AppRoutes.businessCourts,
@@ -115,6 +125,12 @@ void main() {
     test('mapea cada ruta a su sección', () {
       for (final section in BusinessSection.values) {
         expect(BusinessSection.fromLocation(section.path), section);
+      }
+    });
+
+    test('todas las secciones usan el ancho completo en web', () {
+      for (final section in BusinessSection.values) {
+        expect(section.fullWidth, isTrue, reason: section.label);
       }
     });
 
@@ -202,24 +218,28 @@ void main() {
     });
   });
 
-  group('escritorio (menú fijo)', () {
+  group('escritorio (menú escondido)', () {
     const desktop = Size(1280, 800);
 
-    testWidgets('muestra el menú siempre y sin botón ☰', (tester) async {
+    testWidgets('el menú está escondido y se abre con ☰', (tester) async {
       await pumpShell(tester, size: desktop);
+      expect(find.byType(BusinessSideMenu), findsNothing);
 
+      await openMenu(tester);
       expect(find.byType(BusinessSideMenu), findsOneWidget);
-      expect(find.byTooltip('Abrir menú'), findsNothing);
     });
 
-    testWidgets('navegar mantiene el menú visible', (tester) async {
+    testWidgets('elegir una opción navega y vuelve a esconder el menú', (
+      tester,
+    ) async {
       await pumpShell(tester, size: desktop);
+      await openMenu(tester);
 
       await tester.tap(menuItem('Dashboard'));
       await tester.pumpAndSettle();
 
       expect(location(), AppRoutes.businessDashboard);
-      expect(find.byType(BusinessSideMenu), findsOneWidget);
+      expect(find.byType(BusinessSideMenu), findsNothing);
     });
   });
 
@@ -231,9 +251,7 @@ void main() {
   ]) {
     testWidgets('sin overflow en ${size.width}x${size.height}', (tester) async {
       await pumpShell(tester, size: size);
-      if (size.width < BusinessHomeShell.wideBreakpoint) {
-        await openMenu(tester);
-      }
+      await openMenu(tester);
       expect(tester.takeException(), isNull);
     });
   }

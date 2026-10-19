@@ -44,11 +44,11 @@ class ReservationListTile extends StatelessWidget {
         ? 'Cancelada'
         : r.isFullyPaid
         ? 'Pagada'
-        : 'Saldo ${AppFormatters.cop(r.balance)}';
+        : 'Saldo ${AppFormatters.cop(r.displayBalance)}';
     return Semantics(
       button: true,
       label:
-          '${r.customerName}, ${r.courtName}, '
+          '${r.customerName}, ${r.courtsLabel}, '
           '${AppFormatters.shortDate(r.start)} '
           '${AppFormatters.timeRange(r.start, r.end)}, ${r.status.label}',
       excludeSemantics: true,
@@ -120,7 +120,7 @@ class ReservationListTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${r.courtName} · '
+                        '${r.courtsLabel} · '
                         '${AppFormatters.timeRange(r.start, r.end)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -139,7 +139,7 @@ class ReservationListTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      AppFormatters.cop(r.totalPrice),
+                      AppFormatters.cop(r.displayTotal),
                       style: AppTypography.labelLg.copyWith(
                         color: cancelled
                             ? AppColors.onSurfaceVariant

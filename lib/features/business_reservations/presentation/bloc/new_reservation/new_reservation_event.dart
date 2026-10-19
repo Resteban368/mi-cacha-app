@@ -7,7 +7,8 @@ sealed class NewReservationEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Carga canchas y métodos de pago. [courtId] y [day] preseleccionan.
+/// Carga canchas y métodos de pago. [courtId] elige su deporte (y se
+/// resalta su tarjeta); [day] preselecciona el día.
 final class NewReservationStarted extends NewReservationEvent {
   const NewReservationStarted({this.courtId, this.day, this.customer});
 
@@ -24,14 +25,14 @@ sealed class NewReservationAvailabilityEvent extends NewReservationEvent {
   const NewReservationAvailabilityEvent();
 }
 
-final class NewReservationCourtSelected
+final class NewReservationSportSelected
     extends NewReservationAvailabilityEvent {
-  const NewReservationCourtSelected(this.court);
+  const NewReservationSportSelected(this.sport);
 
-  final Court court;
+  final Sport sport;
 
   @override
-  List<Object?> get props => [court];
+  List<Object?> get props => [sport];
 }
 
 final class NewReservationDaySelected extends NewReservationAvailabilityEvent {
@@ -48,14 +49,48 @@ final class NewReservationAvailabilityReloaded
   const NewReservationAvailabilityReloaded();
 }
 
-/// Elige el turno inicial, lo deselecciona o extiende el rango.
-final class NewReservationSlotTapped extends NewReservationEvent {
-  const NewReservationSlotTapped(this.index);
+/// "Cualquier cancha libre a esa hora": la API asigna la cancha.
+final class NewReservationAnyCourtToggled extends NewReservationEvent {
+  const NewReservationAnyCourtToggled(this.enabled);
 
-  final int index;
+  final bool enabled;
 
   @override
-  List<Object?> get props => [index];
+  List<Object?> get props => [enabled];
+}
+
+/// Elige el turno inicial, lo deselecciona o extiende el rango.
+/// [courtId] es `null` en la grilla de "Cualquier cancha".
+final class NewReservationSlotTapped extends NewReservationEvent {
+  const NewReservationSlotTapped({this.courtId, required this.start});
+
+  final String? courtId;
+
+  /// Inicio (hora local) del turno tocado.
+  final DateTime start;
+
+  @override
+  List<Object?> get props => [courtId, start];
+}
+
+/// Suma o quita otra cancha en la misma franja que la elegida.
+final class NewReservationExtraCourtToggled extends NewReservationEvent {
+  const NewReservationExtraCourtToggled(this.courtId);
+
+  final String courtId;
+
+  @override
+  List<Object?> get props => [courtId];
+}
+
+/// Con "Cualquier cancha": cuántas canchas libres reservar a la vez.
+final class NewReservationAnyCourtCountChanged extends NewReservationEvent {
+  const NewReservationAnyCourtCountChanged(this.count);
+
+  final int count;
+
+  @override
+  List<Object?> get props => [count];
 }
 
 final class NewReservationSlotCountChanged extends NewReservationEvent {

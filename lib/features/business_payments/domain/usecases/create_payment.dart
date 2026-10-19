@@ -16,10 +16,6 @@ class CreatePayment implements UseCase<Payment, NewPayment> {
     if (payment.amount <= 0) {
       throw ArgumentError('El monto debe ser mayor a cero');
     }
-    if (NewPayment.requiresReference(payment.method) &&
-        (payment.reference?.trim().isEmpty ?? true)) {
-      throw ArgumentError('La referencia es obligatoria');
-    }
     return _repository.create(payment);
   }
 }

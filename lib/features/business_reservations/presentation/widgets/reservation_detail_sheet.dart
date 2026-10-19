@@ -76,7 +76,15 @@ class ReservationDetailView extends StatelessWidget {
     if (!ensureCanWrite(context)) return;
     final reason = await showDialog<String>(
       context: context,
-      builder: (_) => const _CancelDialog(),
+      builder: (_) => _CancelDialog(
+        courts: switch (context
+            .read<ReservationDetailCubit>()
+            .state
+            .reservation) {
+          final r? when r.group != null => r.courtsLabel,
+          _ => null,
+        },
+      ),
     );
     if (reason == null || !context.mounted) return;
     await context.read<ReservationDetailCubit>().cancel(reason);
@@ -92,12 +100,12 @@ class ReservationDetailView extends StatelessWidget {
       '🏟️ *RESERVA EN MI CANCHA*',
       'Cliente: ${r.customerName}',
       if (r.phone.isNotEmpty) 'Tel: ${r.phone}',
-      'Cancha: ${r.courtName} (${r.sport.name})',
+      'Cancha: ${r.courtsLabel} (${r.sport.name})',
       'Fecha: ${AppFormatters.shortDate(r.start)}',
       'Horario: ${AppFormatters.timeRange(r.start, r.end)}',
-      'Total: ${AppFormatters.cop(r.totalPrice)}',
-      'Pagado: ${AppFormatters.cop(r.amountPaid)}',
-      'Saldo: ${AppFormatters.cop(r.balance)}',
+      'Total: ${AppFormatters.cop(r.displayTotal)}',
+      'Pagado: ${AppFormatters.cop(r.displayPaid)}',
+      'Saldo: ${AppFormatters.cop(r.displayBalance)}',
       'Estado: ${r.status.label}',
     ].join('\n');
 
@@ -332,7 +340,7 @@ class _HeaderBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${r.sport.name.toUpperCase()} · ${r.courtName}',
+                  '${r.sport.name.toUpperCase()} · ${r.courtsLabel}',
                   style: AppTypography.bodySm.copyWith(
                     color: AppColors.slate500,
                     fontWeight: FontWeight.w600,
@@ -378,7 +386,7 @@ class _Details extends StatelessWidget {
     final dateStr = AppFormatters.shortDate(reservation.start);
     final timeStr = AppFormatters.timeRange(reservation.start, reservation.end);
     final message = Uri.encodeComponent(
-      'Hola ${reservation.customerName}, te escribimos de Mi Cancha para confirmar tu reserva de ${reservation.courtName} el día $dateStr de $timeStr.',
+      'Hola ${reservation.customerName}, te escribimos de Mi Cancha para confirmar tu reserva de ${reservation.courtsLabel} el día $dateStr de $timeStr.',
     );
     final fullPhone = phone.startsWith('57') ? phone : '57$phone';
     final url = 'https://wa.me/$fullPhone?text=$message';
@@ -486,7 +494,7 @@ class _ScheduleHeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      r.courtName,
+                      r.courtsLabel,
                       style: AppTypography.headlineSm.copyWith(
                         color: AppColors.onSurface,
                         fontWeight: FontWeight.w800,
@@ -867,7 +875,7 @@ class _FinancialCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = reservation;
     final isPaid = r.isFullyPaid;
-    final progress = r.totalPrice > 0 ? (r.amountPaid / r.totalPrice).clamp(0.0, 1.0) : 1.0;
+    final progress = r.displayTotal > 0 ? (r.displayPaid / r.displayTotal).clamp(0.0, 1.0) : 1.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -944,7 +952,7 @@ class _FinancialCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        AppFormatters.cop(r.totalPrice),
+                        AppFormatters.cop(r.displayTotal),
                         style: AppTypography.headlineSm.copyWith(
                           color: AppColors.onSurface,
                           fontWeight: FontWeight.w800,
@@ -979,7 +987,7 @@ class _FinancialCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        AppFormatters.cop(r.balance),
+                        AppFormatters.cop(r.displayBalance),
                         style: AppTypography.headlineSm.copyWith(
                           color: isPaid ? AppColors.emerald800 : AppColors.statusDue,
                           fontWeight: FontWeight.w800,
@@ -1023,16 +1031,16 @@ class _FinancialCard extends StatelessWidget {
           ],
           ReservationAmountRow(
             label: 'Total',
-            value: AppFormatters.cop(r.totalPrice),
+            value: AppFormatters.cop(r.displayTotal),
             emphasis: true,
           ),
           ReservationAmountRow(
             label: 'Pagado',
-            value: AppFormatters.cop(r.amountPaid),
+            value: AppFormatters.cop(r.displayPaid),
           ),
           ReservationAmountRow(
             label: 'Saldo',
-            value: AppFormatters.cop(r.balance),
+            value: AppFormatters.cop(r.displayBalance),
             valueColor: isPaid ? AppColors.brandTeal : AppColors.statusDue,
           ),
 
@@ -1213,7 +1221,10 @@ class _CancellationCard extends StatelessWidget {
 
 /// Pide el motivo (3 a 200 caracteres) antes de cancelar.
 class _CancelDialog extends StatefulWidget {
-  const _CancelDialog();
+  const _CancelDialog({this.courts});
+
+  /// Canchas de una reserva de varias canchas: se cancelan todas.
+  final String? courts;
 
   @override
   State<_CancelDialog> createState() => _CancelDialogState();
@@ -1223,17 +1234,6 @@ class _CancelDialogState extends State<_CancelDialog> {
   final _reason = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  @override
-  void dispose() {
-    _reason.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
   static const _quickReasons = [
     'El cliente no asistió',
     'El cliente no pagó',
@@ -1250,6 +1250,17 @@ class _CancelDialogState extends State<_CancelDialog> {
     );
   }
 
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
@@ -1272,7 +1283,11 @@ class _CancelDialogState extends State<_CancelDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'El turno quedará libre al instante en la agenda. Los pagos aprobados se registrarán para devolución.',
+              widget.courts == null
+                  ? 'El turno quedará libre al instante en la agenda. Los pagos aprobados se registrarán para devolución.'
+                  : 'Es una reserva de varias canchas: se cancelan todas '
+                        '(${widget.courts}) y quedan libres al instante. Los '
+                        'pagos aprobados se registrarán para devolución.',
               style: AppTypography.bodyMd.copyWith(color: AppColors.slate600),
             ),
             const SizedBox(height: 16),
@@ -1298,21 +1313,6 @@ class _CancelDialogState extends State<_CancelDialog> {
               validator: (value) =>
                   CancelReservation.validateReason(value ?? ''),
             ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Volver'),
-        ),
-        FilledButton(
-          key: const Key('confirm-cancel'),
-          style: FilledButton.styleFrom(backgroundColor: AppColors.statusDue),
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              Navigator.of(context).pop(_reason.text.trim());
-            }
             const SizedBox(height: 4),
             Wrap(
               spacing: 8,
@@ -1330,6 +1330,21 @@ class _CancelDialogState extends State<_CancelDialog> {
                   ),
               ],
             ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Volver'),
+        ),
+        FilledButton(
+          key: const Key('confirm-cancel'),
+          style: FilledButton.styleFrom(backgroundColor: AppColors.statusDue),
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              Navigator.of(context).pop(_reason.text.trim());
+            }
           },
           child: const Text('Cancelar reserva'),
         ),

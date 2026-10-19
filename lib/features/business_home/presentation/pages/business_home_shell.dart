@@ -11,9 +11,9 @@ import '../widgets/read_only_banner.dart';
 
 /// Contenedor del home de negocio: la sección actual + menú lateral.
 ///
-/// - Pantallas angostas (móvil/tablet): menú en `Drawer`, se abre con el
-///   botón ☰ de la barra superior (`AppTopBar`) o deslizando desde el borde.
-/// - Pantallas anchas (≥ [wideBreakpoint]): menú fijo a la izquierda.
+/// El menú está escondido en todos los tamaños (deja todo el ancho a la
+/// sección): es un `Drawer` que se abre con el botón ☰ de la barra superior
+/// (`AppTopBar`) o deslizando desde el borde.
 ///
 /// Las secciones se centran en [maxContentWidth] salvo las marcadas con
 /// [BusinessSection.fullWidth], que ocupan todo el ancho (web/escritorio).
@@ -28,8 +28,9 @@ class BusinessHomeShell extends StatelessWidget {
   });
 
   static const maxContentWidth = 480.0;
+
+  /// Desde este ancho las secciones usan su diseño de escritorio.
   static const wideBreakpoint = 1024.0;
-  static const _sidebarWidth = 280.0;
 
   /// URL actual; determina la sección activa.
   final String location;
@@ -44,7 +45,6 @@ class BusinessHomeShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final current = BusinessSection.fromLocation(location);
-    final isWide = MediaQuery.sizeOf(context).width >= wideBreakpoint;
 
     final menu = BusinessSideMenu(
       current: current,
@@ -83,41 +83,16 @@ class BusinessHomeShell extends StatelessWidget {
       ),
       child: Scaffold(
         backgroundColor: AppColors.surface,
-        drawer: isWide
-            ? null
-            : Drawer(
-                width: 304,
-                backgroundColor: AppColors.surfaceContainerLowest,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.horizontal(
-                    right: Radius.circular(24),
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: menu,
-              ),
-        body: isWide
-            ? Row(
-                children: [
-                  SizedBox(
-                    width: _sidebarWidth,
-                    child: DecoratedBox(
-                      decoration: const BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 16,
-                            offset: Offset(4, 0),
-                          ),
-                        ],
-                      ),
-                      child: menu,
-                    ),
-                  ),
-                  Expanded(child: content),
-                ],
-              )
-            : content,
+        drawer: Drawer(
+          width: 304,
+          backgroundColor: AppColors.surfaceContainerLowest,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: menu,
+        ),
+        body: content,
       ),
     );
   }

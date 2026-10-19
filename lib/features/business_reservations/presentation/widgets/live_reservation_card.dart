@@ -9,9 +9,16 @@ import 'reservation_card_parts.dart';
 
 /// Tarjeta destacada de la reserva que se está jugando ahora.
 class LiveReservationCard extends StatelessWidget {
-  const LiveReservationCard({super.key, required this.reservation});
+  const LiveReservationCard({
+    super.key,
+    required this.reservation,
+    this.isSelected = false,
+    this.onQuickCollect,
+  });
 
   final Reservation reservation;
+  final bool isSelected;
+  final VoidCallback? onQuickCollect;
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +27,33 @@ class LiveReservationCard extends StatelessWidget {
       stripeColor: AppColors.accentLime,
       stripeWidth: 8,
       radius: 16,
-      padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+      isSelected: isSelected,
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       elevated: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (isSelected)
+            Align(
+              alignment: Alignment.topRight,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.brandTeal,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Seleccionada en Taquilla',
+                  style: AppTypography.labelSm.copyWith(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+
           // Wrap: en pantallas angostas el horario pasa a la siguiente línea.
           Wrap(
             alignment: WrapAlignment.spaceBetween,
@@ -152,60 +181,67 @@ class LiveReservationCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: AppColors.surfaceTealSubtle,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Expanded(
-                  child: r.isFullyPaid
-                      ? Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                'Total: ${AppFormatters.cop(r.totalPrice)} COP',
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTypography.labelMd.copyWith(
-                                  color: AppColors.statusPaid,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const PaidTag(),
-                          ],
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Anticipo: ${AppFormatters.cop(r.amountPaid)}',
-                              style: AppTypography.labelSm.copyWith(
-                                color: AppColors.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              'Saldo: ${AppFormatters.cop(r.balance)} COP',
+                r.isFullyPaid
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Total: ${AppFormatters.cop(r.displayTotal)} COP',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: AppTypography.labelMd.copyWith(
-                                color: AppColors.statusDeposit,
+                                color: AppColors.statusPaid,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                          ],
-                        ),
-                ),
-                if (!r.isFullyPaid) ...[
-                  const SizedBox(width: 8),
+                          ),
+                          const SizedBox(width: 6),
+                          const PaidTag(),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Anticipo: ${AppFormatters.cop(r.displayPaid)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.labelSm.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'Saldo: ${AppFormatters.cop(r.displayBalance)} COP',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.labelMd.copyWith(
+                              color: AppColors.statusDeposit,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                if (!r.isFullyPaid)
                   FilledButton.icon(
-                    // TODO: flujo de cobro del saldo.
-                    onPressed: () {},
+                    onPressed: onQuickCollect,
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.accentLime,
                       foregroundColor: AppColors.inverseSurface,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       minimumSize: const Size(0, 36),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -217,7 +253,6 @@ class LiveReservationCard extends StatelessWidget {
                     icon: const Icon(Icons.point_of_sale, size: 16),
                     label: const Text('Cobrar saldo'),
                   ),
-                ],
               ],
             ),
           ),

@@ -19,7 +19,8 @@ import '../../features/business_courts/presentation/bloc/court_form_bloc.dart';
 import '../../features/business_courts/presentation/pages/business_courts_page.dart';
 import '../../features/business_courts/presentation/pages/court_form_page.dart';
 import '../../features/business_home/presentation/pages/business_home_shell.dart';
-import '../../features/business_home/presentation/pages/business_tab_pages.dart';
+import '../../features/business_dashboard/presentation/bloc/dashboard_bloc.dart';
+import '../../features/business_dashboard/presentation/pages/business_dashboard_page.dart';
 import '../../features/business_home/presentation/widgets/read_only_banner.dart';
 import '../../features/business_payments/presentation/bloc/new_payment/new_payment_bloc.dart';
 import '../../features/business_payments/presentation/bloc/payments/payments_bloc.dart';
@@ -220,8 +221,9 @@ GoRouter _buildRouter(
           pageBuilder: (_, state) => NoTransitionPage(
             key: state.pageKey,
             child: BlocProvider(
-              create: (_) => sl<BusinessClientsBloc>()
-                ..add(const BusinessClientsStarted()),
+              create: (_) =>
+                  sl<BusinessClientsBloc>()
+                    ..add(const BusinessClientsStarted()),
               child: const BusinessClientsPage(),
             ),
           ),
@@ -230,7 +232,10 @@ GoRouter _buildRouter(
           path: AppRoutes.businessDashboard,
           pageBuilder: (_, state) => NoTransitionPage(
             key: state.pageKey,
-            child: const BusinessDashboardPage(),
+            child: BlocProvider(
+              create: (_) => sl<DashboardBloc>()..add(const DashboardStarted()),
+              child: const BusinessDashboardPage(),
+            ),
           ),
         ),
         GoRoute(

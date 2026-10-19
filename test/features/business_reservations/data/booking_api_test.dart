@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mi_cancha/core/domain/entities/sport.dart';
 import 'package:mi_cancha/features/business_payments/domain/entities/payment.dart';
 import 'package:mi_cancha/features/business_reservations/data/datasources/reservations_api_data_source.dart';
 import 'package:mi_cancha/features/business_reservations/data/repositories/reservations_repository_impl.dart';
@@ -73,49 +74,186 @@ void main() {
           as Map<String, dynamic>;
 
   test(
-    'disponibilidad: pide la fecha local y conserva el inicio exacto',
+    'disponibilidad por deporte: pide fecha y deporte y lee cada cancha',
     () async {
       adapter.handler = (_) => (
         200,
         {
           'date': '2026-10-15',
-          'courtId': 'c1',
-          'slotDuration': 60,
-          'currency': 'COP',
+          'sport': 'FUTBOL',
           'maxSlots': 5,
-          'slots': [
+          'courts': [
             {
-              'start': '2026-10-15T23:00:00.000Z',
-              'end': '2026-10-16T00:00:00.000Z',
-              'status': 'BOOKED',
-              'price': 144000,
+              'court': {
+                'id': 'c1',
+                'name': 'Sintética 1',
+                'sport': 'FUTBOL',
+                'isCovered': false,
+                'slotDuration': 60,
+                'currency': 'COP',
+                'photoUrl': 'https://mi-cancha-api.vercel.app/api/v1/images/x',
+              },
+              'availableCount': 1,
+              'slots': [
+                {
+                  'start': '2026-10-15T23:00:00.000Z',
+                  'end': '2026-10-16T00:00:00.000Z',
+                  'status': 'BOOKED',
+                  'price': 144000,
+                },
+                {
+                  'start': '2026-10-15T22:00:00.000Z',
+                  'end': '2026-10-15T23:00:00.000Z',
+                  'status': 'AVAILABLE',
+                  'price': 120000,
+                },
+              ],
             },
             {
-              'start': '2026-10-15T22:00:00.000Z',
-              'end': '2026-10-15T23:00:00.000Z',
-              'status': 'AVAILABLE',
-              'price': 120000,
+              'court': {
+                'id': 'c2',
+                'name': 'Sintética 2',
+                'sport': 'FUTBOL',
+                'isCovered': true,
+                'slotDuration': 90,
+                'currency': 'COP',
+                'photoUrl': null,
+              },
+              'availableCount': 0,
+              'slots': <Object>[],
             },
           ],
         },
       );
 
-      final result = await source.getAvailability(
-        'c1',
+      final result = await source.getSportAvailability(
+        Sport.futbol,
         DateTime(2026, 10, 15, 9),
       );
 
       final request = adapter.requests.single;
-      expect(request.path, '/business/courts/c1/availability');
-      expect(request.queryParameters, {'date': '2026-10-15'});
+      expect(request.path, '/business/availability');
+      expect(request.queryParameters, {
+        'date': '2026-10-15',
+        'sport': 'FUTBOL',
+      });
+      expect(result.sport, Sport.futbol);
       expect(result.maxSlots, 5);
-      // Ordenados por hora.
-      expect(result.slots.first.startIso, '2026-10-15T22:00:00.000Z');
-      expect(result.slots.first.status, SlotStatus.available);
-      expect(result.slots.last.status, SlotStatus.booked);
-      expect(result.slots.last.price, 144000);
+      expect(result.courts.map((c) => c.court.id), ['c1', 'c2']);
+      final first = result.courts.first;
+      expect(first.court.name, 'Sintética 1');
+      expect(first.court.photoUrl, isNotNull);
+      expect(first.availableCount, 1);
+      // Ordenados por hora y con el inicio exacto de la API.
+      expect(first.slots.first.startIso, '2026-10-15T22:00:00.000Z');
+      expect(first.slots.first.status, SlotStatus.available);
+      expect(first.slots.last.status, SlotStatus.booked);
+      expect(first.slots.last.price, 144000);
+      final second = result.courts.last;
+      expect(second.court.isCovered, isTrue);
+      expect(second.court.slotDuration, 90);
+      expect(second.court.photoUrl, isNull);
+      expect(second.isClosed, isTrue);
     },
   );
+
+  test('disponibilidad sin canchas reservables', () async {
+    adapter.handler = (_) => (
+      200,
+      {'date': '2026-10-15', 'sport': 'PADEL', 'maxSlots': 5, 'courts': []},
+    );
+    final result = await source.getSportAvailability(
+      Sport.padel,
+      DateTime(2026, 10, 15),
+    );
+    expect(result.isEmpty, isTrue);
+    expect(result.anyCourtSlots, isEmpty);
+  });
+
+  test('cualquier cancha: envía sport en vez de courtId', () async {
+    await source.create(
+      const NewReservation(
+        target: AnyCourtOfSport(Sport.futbol),
+        start: '2026-10-16T01:00:00.000Z',
+        slots: 1,
+        customerId: 'cu1',
+      ),
+    );
+    final json = body(adapter.requests.single);
+    expect(json['sport'], 'FUTBOL');
+    expect(json.containsKey('courtId'), isFalse);
+    expect(json['start'], '2026-10-16T01:00:00.000Z');
+  });
+
+  test('varias canchas: envía courtIds, o sport y courts', () async {
+    await source.create(
+      const NewReservation(
+        target: CourtsByIds(['c1', 'c2']),
+        start: '2026-10-16T01:00:00.000Z',
+        slots: 1,
+        customerId: 'cu1',
+      ),
+    );
+    var json = body(adapter.requests.last);
+    expect(json['courtIds'], ['c1', 'c2']);
+    expect(json.containsKey('courtId'), isFalse);
+
+    await source.create(
+      const NewReservation(
+        target: AnyCourtOfSport(Sport.futbol, courts: 3),
+        start: '2026-10-16T01:00:00.000Z',
+        slots: 1,
+        customerId: 'cu1',
+      ),
+    );
+    json = body(adapter.requests.last);
+    expect(json['sport'], 'FUTBOL');
+    expect(json['courts'], 3);
+  });
+
+  test('lee el grupo: total y saldo del grupo, canchas juntas', () async {
+    adapter.handler = (_) => (
+      201,
+      {
+        ...reservationJson,
+        'totalPrice': 125000,
+        'amountPaid': 100000,
+        'group': {
+          'id': 'g1',
+          'courts': [
+            {
+              'reservationId': '8ad4101a',
+              'courtId': 'c1',
+              'courtName': 'Sintética 1',
+            },
+            {
+              'reservationId': 'r2',
+              'courtId': 'c2',
+              'courtName': 'Sintética 2',
+            },
+          ],
+          'totalPrice': 250000,
+          'amountPaid': 100000,
+          'balance': 150000,
+        },
+      },
+    );
+    final r = await source.create(
+      const NewReservation(
+        target: CourtsByIds(['c1', 'c2']),
+        start: 's',
+        slots: 1,
+        customerId: 'cu1',
+      ),
+    );
+    expect(r.group?.courts.map((c) => c.courtId), ['c1', 'c2']);
+    expect(r.courtsLabel, 'Sintética 1 + Sintética 2');
+    expect(r.displayTotal, 250000);
+    expect(r.displayBalance, 150000);
+    // El saldo propio de la cancha sigue disponible para sumar por cancha.
+    expect(r.balance, 25000);
+    expect(r.isFullyPaid, isFalse);
+  });
 
   test('busca clientes; sin texto no envía search', () async {
     adapter.handler = (_) => (
@@ -143,7 +281,7 @@ void main() {
     () async {
       final r = await source.create(
         const NewReservation(
-          courtId: 'c1',
+          target: CourtById('c1'),
           start: '2026-10-15T22:00:00.000Z',
           slots: 2,
           customer: NewCustomer(
@@ -194,7 +332,7 @@ void main() {
   test('con cliente existente envía solo customerId', () async {
     await source.create(
       const NewReservation(
-        courtId: 'c1',
+        target: CourtById('c1'),
         start: '2026-10-15T22:00:00.000Z',
         slots: 1,
         customerId: 'cu1',
@@ -289,7 +427,7 @@ void main() {
       try {
         await ReservationsRepositoryImpl(source).create(
           const NewReservation(
-            courtId: 'c1',
+            target: CourtById('c1'),
             start: 's',
             slots: 1,
             customerId: 'cu1',
@@ -307,6 +445,21 @@ void main() {
         'message': 'La cancha ya está reservada en ese horario',
       });
       expect(e.failure, ReservationFailure.slotTaken);
+    });
+
+    test('409 cualquier cancha: todas ocupadas a esa hora', () async {
+      final e = await failWith(409, {
+        'message': 'No hay canchas de fútbol libres en ese horario',
+      });
+      expect(e.failure, ReservationFailure.slotTaken);
+    });
+
+    test('404 deporte sin canchas reservables', () async {
+      final e = await failWith(404, {
+        'message': 'No hay canchas de fútbol disponibles para reservar',
+      });
+      expect(e.failure, ReservationFailure.notFound);
+      expect(e.message, 'No hay canchas de fútbol disponibles para reservar');
     });
 
     test('409 cancha no reservable', () async {

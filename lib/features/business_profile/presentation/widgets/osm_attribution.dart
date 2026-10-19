@@ -13,11 +13,21 @@ class OsmAttribution extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomRight,
       child: Container(
-        margin: const EdgeInsets.all(4),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        margin: const EdgeInsets.all(6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(4),
+          color: AppColors.surfaceContainerLowest.withValues(alpha: 0.88),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: Text(
           MapConfig.attribution,
@@ -25,7 +35,8 @@ class OsmAttribution extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: AppTypography.labelSm.copyWith(
             fontSize: 10,
-            color: AppColors.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+            color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
           ),
         ),
       ),

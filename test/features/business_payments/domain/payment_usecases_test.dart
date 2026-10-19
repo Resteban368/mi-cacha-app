@@ -43,8 +43,13 @@ void main() {
       final useCase = CreatePayment(repo);
       expect(() => useCase(draft(name: '  ')), throwsArgumentError);
       expect(() => useCase(draft(amount: 0)), throwsArgumentError);
-      expect(() => useCase(draft(reference: ' ')), throwsArgumentError);
       verifyNever(() => repo.create(any()));
+    });
+
+    test('la referencia es opcional aunque el método la pida', () async {
+      when(() => repo.create(any())).thenAnswer((_) async => payment(id: 'x'));
+      await CreatePayment(repo)(draft(reference: ' '));
+      verify(() => repo.create(any())).called(1);
     });
 
     test('efectivo no requiere referencia', () async {

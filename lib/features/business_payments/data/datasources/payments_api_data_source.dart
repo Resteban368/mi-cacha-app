@@ -60,6 +60,11 @@ class PaymentsApiDataSource implements PaymentsDataSource {
           'amount': payment.amount,
           'method': payment.method.apiCode,
           'concept': payment.concept.name.toUpperCase(),
+          if (payment.customerId != null && payment.customerId!.isNotEmpty)
+            'customerId': payment.customerId,
+          if (payment.reservationId != null &&
+              payment.reservationId!.isNotEmpty)
+            'reservationId': payment.reservationId,
           if (reference != null && reference.isNotEmpty) 'reference': reference,
           if (note != null && note.isNotEmpty) 'note': note,
         },

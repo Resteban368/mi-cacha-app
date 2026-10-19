@@ -1,3 +1,4 @@
+import '../../../../core/domain/entities/sport.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/availability.dart';
 import '../../domain/entities/customer.dart';
@@ -27,8 +28,8 @@ class ReservationsRepositoryImpl implements ReservationsRepository {
   );
 
   @override
-  Future<Availability> getAvailability(String courtId, DateTime day) =>
-      _guard(() => _dataSource.getAvailability(courtId, day));
+  Future<SportAvailability> getSportAvailability(Sport sport, DateTime day) =>
+      _guard(() => _dataSource.getSportAvailability(sport, day));
 
   @override
   Future<List<Customer>> searchCustomers(String query) =>
@@ -65,6 +66,9 @@ class ReservationsRepositoryImpl implements ReservationsRepository {
       ApiErrorKind.forbidden when error.code == 'SUBSCRIPTION_INACTIVE' =>
         ReservationFailure.subscriptionInactive,
       ApiErrorKind.conflict when message.contains('ya está reservada') =>
+        ReservationFailure.slotTaken,
+      // "Cualquier cancha": todas las del deporte se ocuparon a esa hora.
+      ApiErrorKind.conflict when message.startsWith('No hay canchas') =>
         ReservationFailure.slotTaken,
       ApiErrorKind.conflict when message.startsWith('La cancha está') =>
         ReservationFailure.courtNotBookable,

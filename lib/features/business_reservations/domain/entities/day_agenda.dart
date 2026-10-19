@@ -50,9 +50,21 @@ class DayAgenda extends Equatable {
   /// Dinero ya recibido (anticipos y pagos completos).
   int get collected => reservations.fold(0, (sum, r) => sum + r.amountPaid);
 
-  /// Saldos pendientes de reservas que aún se juegan o se jugaron.
-  int get pending =>
-      reservations.where((r) => !r.isVoid).fold(0, (sum, r) => sum + r.balance);
+  /// Saldos pendientes de reservas que aún se juegan o se jugaron. Una
+  /// reserva de varias canchas aporta su saldo una sola vez.
+  int get pending {
+    final groups = <String>{};
+    var sum = 0;
+    for (final r in reservations.where((r) => !r.isVoid)) {
+      final group = r.group;
+      if (group == null) {
+        sum += r.balance;
+      } else if (groups.add(group.id)) {
+        sum += group.balance;
+      }
+    }
+    return sum;
+  }
 
   /// Proporción de reservas ya terminadas (0–1).
   double get finishedRatio => totalCount == 0
