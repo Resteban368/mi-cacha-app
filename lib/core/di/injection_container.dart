@@ -33,6 +33,7 @@ import '../../features/business_clients/presentation/bloc/business_clients_bloc.
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/datasources/business_auth_api_data_source.dart';
 import '../../features/auth/domain/usecases/sign_out.dart';
+import '../usecase/usecase.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/sign_in.dart';
@@ -93,6 +94,12 @@ import '../../features/business_dashboard/data/repositories/business_dashboard_r
 import '../../features/business_dashboard/domain/repositories/business_dashboard_repository.dart';
 import '../../features/business_dashboard/domain/usecases/get_business_dashboard.dart';
 import '../../features/business_dashboard/presentation/bloc/dashboard_bloc.dart';
+import '../../features/business_notifications/data/datasources/browser_push.dart';
+import '../../features/business_notifications/data/datasources/push_api_data_source.dart';
+import '../../features/business_notifications/data/repositories/push_repository_impl.dart';
+import '../../features/business_notifications/domain/repositories/push_repository.dart';
+import '../../features/business_notifications/domain/usecases/push_usecases.dart';
+import '../../features/business_notifications/presentation/bloc/business_notifications_cubit.dart';
 import '../../features/splash/domain/usecases/get_app_version.dart';
 import '../../features/splash/domain/usecases/resolve_start_destination.dart';
 import '../../features/splash/presentation/bloc/splash_bloc.dart';
@@ -121,6 +128,7 @@ Future<void> initDependencies() async {
   _initBusinessPayments();
   _initBusinessProfile();
   _initBusinessAccount();
+  _initBusinessNotifications();
   _initBusinessCourts();
   _initBusinessClients();
   _initBusinessDashboard();
@@ -168,6 +176,7 @@ void _initAuth() {
         playerDataSource: sl(),
         businessApi: sl(),
         session: sl(),
+        beforeSignOut: _disablePushQuietly,
       ),
     )
     ..registerLazySingleton(() => SignIn(sl()))
@@ -278,6 +287,35 @@ void _initBusinessProfile() {
         uploadCover: sl(),
         removeCover: sl(),
         getCatalogs: sl(),
+      ),
+    );
+}
+
+/// Quita el aviso push del navegador antes de cerrar sesión. Si falla (sin
+/// red, por ejemplo) se ignora: cerrar sesión no puede quedar bloqueado.
+Future<void> _disablePushQuietly() async {
+  try {
+    await sl<DisablePush>()(
+      const NoParams(),
+    ).timeout(const Duration(seconds: 5));
+  } catch (_) {}
+}
+
+void _initBusinessNotifications() {
+  sl
+    ..registerLazySingleton<PushApiDataSource>(() => PushApiDataSource(sl()))
+    ..registerLazySingleton<BrowserPush>(createBrowserPush)
+    ..registerLazySingleton<PushRepository>(
+      () => PushRepositoryImpl(api: sl(), browser: sl()),
+    )
+    ..registerLazySingleton(() => GetPushStatus(sl()))
+    ..registerLazySingleton(() => EnablePush(sl()))
+    ..registerLazySingleton(() => DisablePush(sl()))
+    ..registerFactory(
+      () => BusinessNotificationsCubit(
+        getStatus: sl(),
+        enable: sl(),
+        disable: sl(),
       ),
     );
 }

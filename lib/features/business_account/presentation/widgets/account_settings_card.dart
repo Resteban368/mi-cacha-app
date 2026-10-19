@@ -11,11 +11,15 @@ class AccountSettingsCard extends StatelessWidget {
     required this.onChangePassword,
     required this.onSupport,
     required this.onLogout,
+    this.notifications,
   });
 
   final VoidCallback onChangePassword;
   final VoidCallback onSupport;
   final VoidCallback onLogout;
+
+  /// Fila de avisos push (solo web). Se omite si no hay.
+  final Widget? notifications;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +56,7 @@ class AccountSettingsCard extends StatelessWidget {
             subtitle: 'Asistencia directa del equipo técnico',
             onTap: onSupport,
           ),
+          ?notifications,
           _SettingsTile(
             icon: Icons.logout,
             iconBackground: AppColors.errorContainer,

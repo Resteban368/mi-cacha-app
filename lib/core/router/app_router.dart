@@ -8,6 +8,8 @@ import '../../features/auth/presentation/bloc/login_bloc.dart';
 import '../../features/auth/presentation/pages/business_login_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/business_account/domain/usecases/get_business_account.dart';
+import '../../features/business_notifications/domain/repositories/push_repository.dart';
+import '../../features/business_notifications/presentation/bloc/business_notifications_cubit.dart';
 import '../../features/business_account/presentation/bloc/business_account_bloc.dart';
 import '../../features/business_account/presentation/pages/business_account_page.dart';
 import '../../features/business_clients/presentation/bloc/business_clients_bloc.dart';
@@ -167,6 +169,7 @@ GoRouter _buildRouter(
                 ),
               child: BusinessReservationsPage(
                 createDetailCubit: () => sl<ReservationDetailCubit>(),
+                newReservations: sl<PushRepository>().newReservations,
               ),
             ),
           ),
@@ -324,7 +327,11 @@ GoRouter _buildRouter(
               create: (_) =>
                   sl<BusinessAccountBloc>()
                     ..add(const BusinessAccountRequested()),
-              child: const BusinessAccountPage(onSignOut: _signOut),
+              child: BusinessAccountPage(
+                onSignOut: _signOut,
+                createNotificationsCubit: () =>
+                    sl<BusinessNotificationsCubit>(),
+              ),
             ),
           ),
         ),

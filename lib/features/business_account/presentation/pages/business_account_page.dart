@@ -7,6 +7,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_top_bar.dart';
 import '../../../business_home/presentation/widgets/business_logout.dart';
+import '../../../business_notifications/presentation/bloc/business_notifications_cubit.dart';
+import '../../../business_notifications/presentation/widgets/notifications_setting_row.dart';
 import '../../../business_profile/domain/entities/business.dart';
 import '../../domain/entities/business_account.dart';
 import '../bloc/business_account_bloc.dart';
@@ -18,7 +20,14 @@ import '../../../../core/widgets/loading_dialog.dart';
 /// Sección "Mi cuenta" del administrador (diseño "Mi Cuenta / Ajustes"):
 /// perfil y sede, plan actual, configuración y seguridad.
 class BusinessAccountPage extends StatelessWidget {
-  const BusinessAccountPage({super.key, required this.onSignOut});
+  const BusinessAccountPage({
+    super.key,
+    required this.onSignOut,
+    this.createNotificationsCubit,
+  });
+
+  /// Cubit del aviso de nuevas reservas; sin él no se muestra la fila.
+  final BusinessNotificationsCubit Function()? createNotificationsCubit;
 
   /// Cierra la sesión (borra el token) al confirmar "Cerrar sesión".
   final Future<void> Function() onSignOut;
@@ -57,6 +66,7 @@ class BusinessAccountPage extends StatelessWidget {
                 ),
                 BusinessAccountStatus.ready => _AccountContent(
                   onSignOut: onSignOut,
+                  createNotificationsCubit: createNotificationsCubit,
                   account: state.account!,
                   venue: state.venue,
                   version: state.version,
@@ -73,6 +83,7 @@ class BusinessAccountPage extends StatelessWidget {
 class _AccountContent extends StatelessWidget {
   const _AccountContent({
     required this.onSignOut,
+    this.createNotificationsCubit,
     required this.account,
     required this.venue,
     required this.version,
@@ -83,6 +94,7 @@ class _AccountContent extends StatelessWidget {
   static const _maxWideWidth = 1100.0;
 
   final Future<void> Function() onSignOut;
+  final BusinessNotificationsCubit Function()? createNotificationsCubit;
   final BusinessAccount account;
   final Business? venue;
   final String? version;
@@ -113,10 +125,17 @@ class _AccountContent extends StatelessWidget {
             onBillingHistory: () =>
                 _comingSoon(context, 'Historial de facturación'),
           );
+    final create = createNotificationsCubit;
     final settings = AccountSettingsCard(
       onChangePassword: () => _comingSoon(context, 'Cambiar contraseña'),
       onSupport: () => _comingSoon(context, 'Soporte por WhatsApp'),
       onLogout: () => confirmBusinessLogout(context, signOut: onSignOut),
+      notifications: create == null
+          ? null
+          : BlocProvider(
+              create: (_) => create()..load(),
+              child: const NotificationsSettingRow(),
+            ),
     );
     final footer = _Footer(version: version, place: venue?.neighborhood);
 

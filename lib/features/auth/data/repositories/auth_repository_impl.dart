@@ -15,6 +15,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required AuthRemoteDataSource playerDataSource,
     required BusinessAuthApiDataSource businessApi,
     required SessionManager session,
+    this.beforeSignOut,
   }) : _playerDataSource = playerDataSource,
        _businessApi = businessApi,
        _session = session;
@@ -22,6 +23,10 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _playerDataSource;
   final BusinessAuthApiDataSource _businessApi;
   final SessionManager _session;
+
+  /// Se ejecuta antes de borrar la sesión (p. ej. quitar avisos push). Sus
+  /// errores no deben impedir cerrar sesión.
+  final Future<void> Function()? beforeSignOut;
 
   @override
   Future<AuthUser> signIn(AuthMethod method) =>
@@ -64,5 +69,8 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> signOut() => _session.end();
+  Future<void> signOut() async {
+    await beforeSignOut?.call();
+    await _session.end();
+  }
 }

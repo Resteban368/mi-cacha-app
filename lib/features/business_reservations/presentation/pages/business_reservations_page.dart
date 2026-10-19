@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -26,11 +28,19 @@ import '../../../../core/session/write_access.dart';
 
 /// Pestaña "Reservas" del home de negocio (diseño "Reservas de Hoy").
 class BusinessReservationsPage extends StatefulWidget {
-  const BusinessReservationsPage({super.key, this.createDetailCubit});
+  const BusinessReservationsPage({
+    super.key,
+    this.createDetailCubit,
+    this.newReservations,
+  });
 
   /// Crea el cubit del detalle de una reserva; sin él, las reservas no se
   /// abren (p. ej. en tests de la agenda).
   final ReservationDetailCubit Function()? createDetailCubit;
+
+  /// Avisa cuando llega una reserva nueva con la app abierta: recarga la
+  /// agenda y muestra un aviso breve.
+  final Stream<void>? newReservations;
 
   @override
   State<BusinessReservationsPage> createState() =>
@@ -39,6 +49,29 @@ class BusinessReservationsPage extends StatefulWidget {
 
 class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
   String? _selectedReservationId;
+  StreamSubscription<void>? _newReservations;
+
+  @override
+  void initState() {
+    super.initState();
+    _newReservations = widget.newReservations?.listen((_) {
+      if (!mounted) return;
+      context.read<BusinessReservationsBloc>().add(
+        const ReservationsRefreshed(),
+      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Llegó una reserva nueva')),
+        );
+    });
+  }
+
+  @override
+  void dispose() {
+    _newReservations?.cancel();
+    super.dispose();
+  }
 
   /// Vista de la agenda: por hora (línea de tiempo) o agrupada por cancha.
   bool _groupByCourt = false;
