@@ -44,11 +44,13 @@ class PushRepositoryImpl implements PushRepository {
     if (!_browser.isSupported) {
       throw const PushException(PushFailure.unsupported);
     }
-    final key = await _api.fetchPublicKey();
-    if (key == null) throw const PushException(PushFailure.unavailable);
-
+    // El permiso va primero: el navegador solo lo muestra mientras dura el
+    // toque del usuario, y una llamada a la red antes puede hacerlo perder.
     final permission = await _browser.requestPermission();
     if (permission != PushPermission.granted) return permission;
+
+    final key = await _api.fetchPublicKey();
+    if (key == null) throw const PushException(PushFailure.unavailable);
 
     final subscription = await _browser.subscribe(_decodeKey(key));
     try {
