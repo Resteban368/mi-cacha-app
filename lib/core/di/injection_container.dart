@@ -209,7 +209,11 @@ void _initBusinessReservations() {
       () => ReservationsListBloc(listReservations: sl(), getCourts: sl()),
     )
     ..registerFactory(
-      () => BusinessReservationsBloc(getDayReservations: sl(), clock: sl()),
+      () => BusinessReservationsBloc(
+        getDayReservations: sl(),
+        getCourts: sl(),
+        clock: sl(),
+      ),
     )
     ..registerFactory(
       () => ReservationDetailCubit(

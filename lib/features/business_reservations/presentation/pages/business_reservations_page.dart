@@ -7,10 +7,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_top_bar.dart';
 import '../../../../core/widgets/sliver_card_grid.dart';
+import '../../domain/entities/court_occupancy.dart';
 import '../../domain/entities/day_agenda.dart';
 import '../../domain/entities/reservation.dart';
 import '../bloc/business_reservations_bloc.dart';
 import '../widgets/agenda_metric_cards.dart';
+import '../widgets/court_occupancy_header.dart';
 import '../widgets/day_header.dart';
 import '../widgets/live_reservation_card.dart';
 import '../bloc/reservation_detail/reservation_detail_cubit.dart';
@@ -394,15 +396,28 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
       for (final r in agenda.filtered(state.filter)) {
         byCourt.putIfAbsent(r.courtName, () => []).add(r);
       }
-      final courts = byCourt.keys.toList()..sort();
+      // Ocupación solo sin otro filtro: con "En vivo", "Canceladas"… no aplica.
+      final showOccupancy = state.filter == null;
+      final occupancy = {
+        for (final o in CourtOccupancy.forDay(state.courts, agenda)) o.name: o,
+      };
+      // Sin filtro, todas las canchas aparecen aunque no tengan reservas.
+      final names = {
+        ...byCourt.keys,
+        if (showOccupancy) ...occupancy.keys,
+      }.toList()..sort();
       return [
-        for (final court in courts)
+        for (final name in names)
           _Section(
-            header: TimelineSectionLabel('$court · ${byCourt[court]!.length}'),
+            header: CourtOccupancyHeader(
+              name: name,
+              count: byCourt[name]?.length ?? 0,
+              occupancy: showOccupancy ? occupancy[name] : null,
+            ),
             cards: [
-              for (final r
-                  in byCourt[court]!
-                    ..sort((a, b) => a.start.compareTo(b.start)))
+              for (final r in [
+                ...?byCourt[name],
+              ]..sort((a, b) => a.start.compareTo(b.start)))
                 card(r),
             ],
           ),

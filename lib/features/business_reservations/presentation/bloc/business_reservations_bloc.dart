@@ -4,7 +4,10 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/usecase/usecase.dart';
 import '../../../../core/utils/clock.dart';
+import '../../../business_courts/domain/entities/court.dart';
+import '../../../business_courts/domain/usecases/get_courts.dart';
 import '../../domain/entities/day_agenda.dart';
 import '../../domain/entities/reservation.dart';
 import '../../domain/entities/reservation_filter.dart';
@@ -18,8 +21,10 @@ class BusinessReservationsBloc
   BusinessReservationsBloc({
     required GetDayReservations getDayReservations,
     required Clock clock,
+    GetCourts? getCourts,
     Duration? tickInterval = const Duration(minutes: 1),
   }) : _getDayReservations = getDayReservations,
+       _getCourts = getCourts,
        _clock = clock,
        super(
          BusinessReservationsState(
@@ -42,6 +47,7 @@ class BusinessReservationsBloc
   }
 
   final GetDayReservations _getDayReservations;
+  final GetCourts? _getCourts;
   final Clock _clock;
   Timer? _ticker;
 
@@ -63,15 +69,29 @@ class BusinessReservationsBloc
     );
     try {
       final reservations = await _getDayReservations(day);
+      final courts = await _fetchCourts();
       emit(
         state.copyWith(
           status: ReservationsStatus.success,
           reservations: reservations,
+          courts: courts,
           now: _clock.now(),
         ),
       );
     } catch (_) {
       emit(state.copyWith(status: ReservationsStatus.failure));
+    }
+  }
+
+  /// Horarios de las canchas para la ocupación. Si falla, se usan las que
+  /// ya había: la agenda no depende de este dato.
+  Future<List<Court>> _fetchCourts() async {
+    final getCourts = _getCourts;
+    if (getCourts == null) return state.courts;
+    try {
+      return await getCourts(const NoParams());
+    } catch (_) {
+      return state.courts;
     }
   }
 

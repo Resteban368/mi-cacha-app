@@ -86,6 +86,13 @@ class _FilterChip extends StatelessWidget {
         AppColors.errorContainer,
         AppColors.onErrorContainer,
       ),
+      ReservationFilter.cancelled => (
+        'Canceladas',
+        Icons.event_busy_rounded,
+        AppColors.statusDue,
+        AppColors.surfaceContainerHigh,
+        AppColors.onSurfaceVariant,
+      ),
     };
 
     return Semantics(

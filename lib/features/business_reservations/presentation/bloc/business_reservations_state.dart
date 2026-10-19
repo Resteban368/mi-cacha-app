@@ -10,6 +10,7 @@ final class BusinessReservationsState extends Equatable {
     this.reservations = const [],
     this.filter,
     this.isRefreshing = false,
+    this.courts = const [],
   });
 
   final ReservationsStatus status;
@@ -21,6 +22,9 @@ final class BusinessReservationsState extends Equatable {
   final ReservationFilter? filter;
   final bool isRefreshing;
 
+  /// Canchas del negocio con su horario (para la ocupación por cancha).
+  final List<Court> courts;
+
   DayAgenda get agenda =>
       DayAgenda(day: day, now: now, reservations: reservations);
 
@@ -31,6 +35,7 @@ final class BusinessReservationsState extends Equatable {
     List<Reservation>? reservations,
     ReservationFilter? Function()? filter,
     bool? isRefreshing,
+    List<Court>? courts,
   }) => BusinessReservationsState(
     status: status ?? this.status,
     day: day ?? this.day,
@@ -38,6 +43,7 @@ final class BusinessReservationsState extends Equatable {
     reservations: reservations ?? this.reservations,
     filter: filter != null ? filter() : this.filter,
     isRefreshing: isRefreshing ?? this.isRefreshing,
+    courts: courts ?? this.courts,
   );
 
   @override
@@ -48,5 +54,6 @@ final class BusinessReservationsState extends Equatable {
     reservations,
     filter,
     isRefreshing,
+    courts,
   ];
 }

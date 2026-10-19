@@ -102,4 +102,31 @@ void main() {
     expect(grouped.collected, 150000);
     expect(grouped.pending, 50000);
   });
+
+  test('el filtro Canceladas muestra solo las canceladas', () {
+    final withCancelled = DayAgenda(
+      day: day,
+      now: now,
+      reservations: [
+        ...designScenario,
+        reservation(
+          id: 'cx',
+          startHour: 20,
+          status: ReservationStatus.cancelled,
+        ),
+      ],
+    );
+    final cancelledInFixture = designScenario
+        .where((r) => r.status == ReservationStatus.cancelled)
+        .length;
+    expect(
+      withCancelled.countFor(ReservationFilter.cancelled),
+      cancelledInFixture + 1,
+    );
+    expect(
+      withCancelled.filtered(ReservationFilter.cancelled).map((r) => r.id),
+      contains('cx'),
+    );
+    expect(withCancelled.reservations.any((r) => r.id == 'cx'), isFalse);
+  });
 }

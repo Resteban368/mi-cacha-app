@@ -11,6 +11,8 @@ import 'package:mi_cancha/features/business_reservations/presentation/widgets/re
 import 'package:mi_cancha/core/session/write_access.dart';
 import 'package:mi_cancha/features/business_reservations/domain/entities/reservation.dart';
 import 'package:mi_cancha/core/domain/entities/sport.dart';
+import 'package:mi_cancha/features/business_courts/domain/entities/court.dart';
+import 'package:mi_cancha/features/business_courts/domain/entities/court_schedule.dart';
 import 'package:mi_cancha/features/business_reservations/domain/usecases/booking_usecases.dart';
 import 'package:mi_cancha/features/business_reservations/presentation/bloc/reservation_detail/reservation_detail_cubit.dart';
 import 'package:mocktail/mocktail.dart';
@@ -36,14 +38,17 @@ void main() {
   late _MockBloc bloc;
   setUp(() => bloc = _MockBloc());
 
-  BusinessReservationsState loaded({ReservationFilter? filter}) =>
-      BusinessReservationsState(
-        day: day,
-        now: now,
-        status: ReservationsStatus.success,
-        reservations: designScenario,
-        filter: filter,
-      );
+  BusinessReservationsState loaded({
+    ReservationFilter? filter,
+    List<Court> courts = const [],
+  }) => BusinessReservationsState(
+    day: day,
+    now: now,
+    status: ReservationsStatus.success,
+    reservations: designScenario,
+    filter: filter,
+    courts: courts,
+  );
 
   Future<void> pumpPage(
     WidgetTester tester,
@@ -127,6 +132,58 @@ void main() {
     expect(find.byType(ReservationCard), findsNWidgets(2));
   });
 
+  testWidgets('por cancha muestra la ocupación del día con su barra', (
+    tester,
+  ) async {
+    final court = Court(
+      id: 'live',
+      name: 'Cancha live',
+      sport: Sport.futbol,
+      isActive: true,
+      isComplete: true,
+      isBookable: true,
+      schedules: DaySchedule.defaultWeek(),
+    );
+    final empty = Court(
+      id: 'vacia',
+      name: 'Cancha vacía',
+      sport: Sport.futbol,
+      isActive: true,
+      isComplete: true,
+      isBookable: true,
+      schedules: DaySchedule.defaultWeek(),
+    );
+    await pumpPage(tester, loaded(courts: [court, empty]));
+    await tester.tap(find.text('Por cancha'));
+    await tester.pump();
+
+    expect(find.byKey(const Key('occupancy-Cancha live')), findsOneWidget);
+    // Sin reservas también aparece, en 0%.
+    expect(find.text('Cancha vacía'), findsOneWidget);
+    expect(find.byKey(const Key('occupancy-Cancha vacía')), findsOneWidget);
+  });
+
+  testWidgets('con un filtro activo no hay barras de ocupación', (
+    tester,
+  ) async {
+    final court = Court(
+      id: 'live',
+      name: 'Cancha live',
+      sport: Sport.futbol,
+      isActive: true,
+      isComplete: true,
+      isBookable: true,
+      schedules: DaySchedule.defaultWeek(),
+    );
+    await pumpPage(
+      tester,
+      loaded(filter: ReservationFilter.upcoming, courts: [court]),
+    );
+    await tester.tap(find.text('Por cancha'));
+    await tester.pump();
+    expect(find.byKey(const Key('occupancy-Cancha live')), findsNothing);
+  });
+
   testWidgets('vista por cancha agrupa las reservas con su encabezado', (
     tester,
   ) async {
@@ -138,7 +195,11 @@ void main() {
     final courts = {for (final r in listed) r.courtName};
     for (final court in courts) {
       final count = listed.where((r) => r.courtName == court).length;
-      expect(find.text('${court.toUpperCase()} · $count'), findsOneWidget);
+      expect(find.text(court), findsWidgets);
+      expect(
+        find.text(count == 1 ? '1 reserva' : '$count reservas'),
+        findsWidgets,
+      );
     }
     // Sin las secciones de la línea de tiempo.
     expect(find.text('PASADAS'), findsNothing);
@@ -380,7 +441,10 @@ void main() {
             .onPressed,
         isNull,
       );
-      expect(find.byTooltip('Disponible cuando empiece el turno'), findsWidgets);
+      expect(
+        find.byTooltip('Disponible cuando empiece el turno'),
+        findsWidgets,
+      );
     });
 
     testWidgets('en solo lectura: sin "Nueva reserva" ni acciones', (

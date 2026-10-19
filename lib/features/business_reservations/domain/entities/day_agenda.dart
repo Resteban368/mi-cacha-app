@@ -10,16 +10,28 @@ class DayAgenda extends Equatable {
     required this.day,
     required this.now,
     required List<Reservation> reservations,
-  }) : reservations = List.unmodifiable(
-         [...reservations.where((r) => r.status != ReservationStatus.cancelled)]
-           ..sort((a, b) => a.start.compareTo(b.start)),
+  }) : all = List.unmodifiable(
+         [...reservations]..sort((a, b) => a.start.compareTo(b.start)),
+       ),
+       reservations = List.unmodifiable(
+         reservations.where((r) => r.status != ReservationStatus.cancelled),
        );
 
   final DateTime day;
   final DateTime now;
 
-  /// Ordenadas por hora de inicio; las canceladas no se listan.
+  /// Todas las del día, canceladas incluidas, por hora de inicio.
+  final List<Reservation> all;
+
+  /// Reservas activas (sin canceladas), por hora de inicio: la línea de
+  /// tiempo, los conteos y el dinero del día se calculan sobre estas.
   final List<Reservation> reservations;
+
+  /// Canceladas del día (solo para el filtro "Canceladas").
+  List<Reservation> get cancelled => [
+    for (final r in all)
+      if (r.status == ReservationStatus.cancelled) r,
+  ];
 
   bool get isToday =>
       day.year == now.year && day.month == now.month && day.day == now.day;
@@ -34,14 +46,19 @@ class DayAgenda extends Equatable {
           (r.status == ReservationStatus.completed ||
               r.timingAt(now) == ReservationTiming.past),
     ReservationFilter.noShow => r.status == ReservationStatus.noShow,
+    ReservationFilter.cancelled => r.status == ReservationStatus.cancelled,
   };
 
   int countFor(ReservationFilter filter) =>
-      reservations.where((r) => matches(r, filter)).length;
+      filter == ReservationFilter.cancelled
+      ? cancelled.length
+      : reservations.where((r) => matches(r, filter)).length;
 
-  List<Reservation> filtered(ReservationFilter? filter) => filter == null
-      ? reservations
-      : reservations.where((r) => matches(r, filter)).toList();
+  List<Reservation> filtered(ReservationFilter? filter) => switch (filter) {
+    null => reservations,
+    ReservationFilter.cancelled => cancelled,
+    _ => reservations.where((r) => matches(r, filter)).toList(),
+  };
 
   // --- Resumen del día ---
 
@@ -81,5 +98,5 @@ class DayAgenda extends Equatable {
       collected + pending == 0 ? 0 : pending / (collected + pending);
 
   @override
-  List<Object?> get props => [day, now, reservations];
+  List<Object?> get props => [day, now, all];
 }
