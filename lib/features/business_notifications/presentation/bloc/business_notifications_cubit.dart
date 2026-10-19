@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/push_exception.dart';
@@ -48,7 +49,8 @@ class BusinessNotificationsCubit extends Cubit<BusinessNotificationsState> {
     try {
       final snapshot = await _getStatus(const NoParams());
       emit(BusinessNotificationsState(status: _statusFrom(snapshot)));
-    } catch (_) {
+    } catch (error) {
+      debugPrint('Avisos push (carga): $error');
       emit(
         const BusinessNotificationsState(
           status: BusinessNotificationsStatus.error,
@@ -87,10 +89,12 @@ class BusinessNotificationsCubit extends Cubit<BusinessNotificationsState> {
         );
       }
     } on PushException catch (error) {
+      debugPrint('Avisos push: $error');
       emit(
         BusinessNotificationsState(status: _statusFromFailure(error.failure)),
       );
-    } catch (_) {
+    } catch (error) {
+      debugPrint('Avisos push (activar/desactivar): $error');
       emit(
         const BusinessNotificationsState(
           status: BusinessNotificationsStatus.error,
