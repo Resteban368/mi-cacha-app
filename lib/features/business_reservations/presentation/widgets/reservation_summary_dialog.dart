@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/reservation.dart';
+import '../utils/reservation_whatsapp.dart';
 
 enum ReservationSummaryAction { viewAgenda, createAnother }
 
@@ -54,6 +56,7 @@ class _SummaryBody extends StatelessWidget {
     final r = reservation;
     final hours = AppFormatters.duration(r.end.difference(r.start));
     final code = r.id.length > 6 ? r.id.substring(0, 6) : r.id;
+    final uri = reservationWhatsAppUri(r);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
@@ -83,14 +86,11 @@ class _SummaryBody extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(right: 6),
-                child: _Dot(),
-              ),
+              const Padding(padding: EdgeInsets.only(right: 6), child: _Dot()),
               Flexible(
                 child: Text(
                   '${r.courtsLabel} · ${AppFormatters.shortDate(r.start)} · '
-                  '${AppFormatters.timeRange(r.start, r.end)}'
+                          '${AppFormatters.timeRange(r.start, r.end)}'
                       .toUpperCase(),
                   textAlign: TextAlign.center,
                   style: AppTypography.labelSm.copyWith(
@@ -242,9 +242,8 @@ class _SummaryBody extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
-            onPressed: () => Navigator.of(
-              context,
-            ).pop(ReservationSummaryAction.viewAgenda),
+            onPressed: () =>
+                Navigator.of(context).pop(ReservationSummaryAction.viewAgenda),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -253,6 +252,25 @@ class _SummaryBody extends StatelessWidget {
                 Icon(Icons.arrow_forward_rounded, size: 18),
               ],
             ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            key: const Key('summary-whatsapp'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _brand,
+              side: BorderSide(color: _brandDeep.withValues(alpha: 0.5)),
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            icon: const Icon(Icons.chat_rounded, size: 18),
+            label: Text(
+              uri == null
+                  ? 'Sin teléfono para WhatsApp'
+                  : 'Enviar comprobante por WhatsApp',
+            ),
+            onPressed: uri == null ? null : () => _sendWhatsApp(context, uri),
           ),
           const SizedBox(height: 10),
           OutlinedButton(
@@ -317,6 +335,19 @@ class _CheckBadge extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Abre WhatsApp con el comprobante ya escrito para el cliente.
+Future<void> _sendWhatsApp(BuildContext context, Uri uri) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!opened) {
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('No pudimos abrir WhatsApp.')),
+      );
   }
 }
 
@@ -424,10 +455,7 @@ class _TotalRow extends StatelessWidget {
               ),
             ),
             if (hint != null)
-              Text(
-                hint!,
-                style: TextStyle(color: hintColor, fontSize: 12),
-              ),
+              Text(hint!, style: TextStyle(color: hintColor, fontSize: 12)),
           ],
         ),
       ),
