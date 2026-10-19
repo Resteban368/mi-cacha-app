@@ -165,7 +165,13 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
                                 // Vista por hora / por cancha y acceso al listado.
                                 SliverToBoxAdapter(
                                   child: Padding(
-                                    padding: layout.paddingBeyond(4),
+                                    padding: layout
+                                        .paddingBeyond(4)
+                                        .add(
+                                          const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                          ),
+                                        ),
                                     child: Wrap(
                                       alignment: WrapAlignment.spaceBetween,
                                       crossAxisAlignment:
@@ -299,7 +305,9 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
         return [
           SliverToBoxAdapter(
             child: Padding(
-              padding: layout.paddingBeyond(12),
+              padding: layout
+                  .paddingBeyond(12)
+                  .add(const EdgeInsets.only(bottom: 4)),
               child: ReservationFilterChips(
                 agenda: agenda,
                 selected: state.filter,
