@@ -80,12 +80,27 @@ class BrowserPushWeb implements BrowserPush {
     return PushPermission.fromBrowser(result.toDart);
   }
 
-  Future<web.ServiceWorkerRegistration> _register() => web
-      .window
-      .navigator
-      .serviceWorker
-      .register(_scriptUrl.toJS, web.RegistrationOptions(scope: _scope))
-      .toDart;
+  /// Registra el Service Worker y espera a que esté activo: sin un worker
+  /// activo, Safari y Chrome rechazan la suscripción.
+  Future<web.ServiceWorkerRegistration> _register() async {
+    final registration = await web.window.navigator.serviceWorker
+        .register(_scriptUrl.toJS, web.RegistrationOptions(scope: _scope))
+        .toDart;
+    final pending = registration.installing ?? registration.waiting;
+    if (registration.active == null && pending != null) {
+      final activated = Completer<void>();
+      void check() {
+        if (pending.state == 'activated' && !activated.isCompleted) {
+          activated.complete();
+        }
+      }
+
+      pending.addEventListener('statechange', ((web.Event _) => check()).toJS);
+      check();
+      await activated.future.timeout(const Duration(seconds: 10));
+    }
+    return registration;
+  }
 
   Future<web.PushSubscription?> _existing() async {
     final registration = await web.window.navigator.serviceWorker
