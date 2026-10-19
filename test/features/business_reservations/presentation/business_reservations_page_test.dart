@@ -158,9 +158,9 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('occupancy-Cancha live')), findsOneWidget);
-    // Sin reservas también aparece, en 0%.
-    expect(find.text('Cancha vacía'), findsOneWidget);
-    expect(find.byKey(const Key('occupancy-Cancha vacía')), findsOneWidget);
+    // Las canchas sin reservas no se muestran.
+    expect(find.text('Cancha vacía'), findsNothing);
+    expect(find.byKey(const Key('occupancy-Cancha vacía')), findsNothing);
   });
 
   testWidgets('con un filtro activo no hay barras de ocupación', (

@@ -401,11 +401,8 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
       final occupancy = {
         for (final o in CourtOccupancy.forDay(state.courts, agenda)) o.name: o,
       };
-      // Sin filtro, todas las canchas aparecen aunque no tengan reservas.
-      final names = {
-        ...byCourt.keys,
-        if (showOccupancy) ...occupancy.keys,
-      }.toList()..sort();
+      // Solo las canchas con reservas: las vacías ocupan espacio sin aportar.
+      final names = byCourt.keys.toList()..sort();
       return [
         for (final name in names)
           _Section(
