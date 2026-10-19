@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/reservation.dart';
+import 'reservation_contact.dart';
 import 'sport_style.dart';
 
 /// Piezas compartidas por las tarjetas de reserva.
@@ -69,8 +70,7 @@ class ContactActions extends StatelessWidget {
           background: callBackground,
           foreground: AppColors.onSurface,
           tooltip: 'Llamar a $name',
-          // TODO: abrir marcador con tel:${reservation.phone}.
-          onTap: () {},
+          onTap: () => showCallOptions(context, reservation),
         ),
         SizedBox(width: size > 32 ? 6 : 4),
         _RoundAction(
@@ -79,8 +79,7 @@ class ContactActions extends StatelessWidget {
           background: AppColors.whatsapp.withValues(alpha: whatsappAlpha),
           foreground: AppColors.whatsappDark,
           tooltip: 'WhatsApp $name',
-          // TODO: abrir wa.me con el teléfono del cliente.
-          onTap: () {},
+          onTap: () => openReservationChat(context, reservation),
         ),
       ],
     );
@@ -261,4 +260,3 @@ class StripedCard extends StatelessWidget {
     );
   }
 }
-

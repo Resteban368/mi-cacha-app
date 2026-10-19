@@ -17,6 +17,7 @@ import '../../domain/entities/reservation.dart';
 import '../../domain/entities/reservation_failure.dart';
 import '../../domain/usecases/booking_usecases.dart';
 import '../bloc/reservation_detail/reservation_detail_cubit.dart';
+import 'reservation_contact.dart';
 import 'reservation_section_card.dart';
 import 'reservation_status_pill.dart';
 import 'sport_style.dart';
@@ -446,39 +447,11 @@ class _Details extends StatelessWidget {
   final Reservation reservation;
   final ReservationDetailState state;
 
-  void _launchWhatsApp(BuildContext context) {
-    final phone = reservation.phone.replaceAll(RegExp(r'\D'), '');
-    if (phone.isEmpty) return;
+  void _launchWhatsApp(BuildContext context) =>
+      openReservationChat(context, reservation);
 
-    final dateStr = AppFormatters.shortDate(reservation.start);
-    final timeStr = AppFormatters.timeRange(reservation.start, reservation.end);
-    final message = Uri.encodeComponent(
-      'Hola ${reservation.customerName}, te escribimos de Mi Cancha para confirmar tu reserva de ${reservation.courtsLabel} el día $dateStr de $timeStr.',
-    );
-    final fullPhone = phone.startsWith('57') ? phone : '57$phone';
-    final url = 'https://wa.me/$fullPhone?text=$message';
-
-    Clipboard.setData(ClipboardData(text: url));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Enlace de WhatsApp generado para +$fullPhone (copiado).',
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _callPhone(BuildContext context) {
-    if (reservation.phone.isEmpty) return;
-    Clipboard.setData(ClipboardData(text: reservation.phone));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Teléfono ${reservation.phone} copiado.'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
+  void _callPhone(BuildContext context) =>
+      showCallOptions(context, reservation);
 
   @override
   Widget build(BuildContext context) {
@@ -909,7 +882,7 @@ class _CustomerCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 IconButton.outlined(
-                  tooltip: 'Copiar teléfono',
+                  tooltip: 'Llamar',
                   onPressed: onCall,
                   icon: const Icon(
                     Icons.phone_outlined,

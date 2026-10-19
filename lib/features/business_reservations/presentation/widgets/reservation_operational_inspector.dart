@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -7,6 +6,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../business_payments/domain/entities/payment.dart';
 import '../../domain/entities/reservation.dart';
 import '../bloc/reservation_detail/reservation_detail_cubit.dart';
+import 'reservation_contact.dart';
 import 'reservation_status_pill.dart';
 import 'sport_style.dart';
 
@@ -102,15 +102,7 @@ class ReservationOperationalInspector extends StatelessWidget {
                 // Tarjeta de Identidad del Cliente
                 _CustomerIdentityCard(
                   reservation: r,
-                  onCopyPhone: () {
-                    Clipboard.setData(ClipboardData(text: r.phone));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Teléfono copiado: ${r.phone}'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  },
+                  onCall: () => showCallOptions(context, r),
                 ),
                 const SizedBox(height: 14),
 
@@ -347,11 +339,11 @@ class _CourtHighlightBanner extends StatelessWidget {
 class _CustomerIdentityCard extends StatelessWidget {
   const _CustomerIdentityCard({
     required this.reservation,
-    required this.onCopyPhone,
+    required this.onCall,
   });
 
   final Reservation reservation;
-  final VoidCallback onCopyPhone;
+  final VoidCallback onCall;
 
   @override
   Widget build(BuildContext context) {
@@ -463,7 +455,7 @@ class _CustomerIdentityCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: onCopyPhone,
+                  onPressed: onCall,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     shape: RoundedRectangleBorder(
@@ -477,15 +469,7 @@ class _CustomerIdentityCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () {
-                    // Acción whatsapp feedback
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Contactar por WhatsApp a ${r.customerName}'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  },
+                  onPressed: () => openReservationChat(context, r),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.whatsappDark,
                     foregroundColor: Colors.white,
@@ -556,9 +540,16 @@ class _FinancialBreakdownCard extends StatelessWidget {
             ],
           ),
           const Divider(height: 16),
-          _row('Tarifa Turno (${AppFormatters.duration(r.duration)})', AppFormatters.cop(r.displayTotal)),
+          _row(
+            'Tarifa Turno (${AppFormatters.duration(r.duration)})',
+            AppFormatters.cop(r.displayTotal),
+          ),
           const SizedBox(height: 4),
-          _row('Anticipo recibido', AppFormatters.cop(r.displayPaid), color: AppColors.statusPaid),
+          _row(
+            'Anticipo recibido',
+            AppFormatters.cop(r.displayPaid),
+            color: AppColors.statusPaid,
+          ),
           const Divider(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -619,7 +610,8 @@ class _FinancialBreakdownCard extends StatelessWidget {
                     label: 'Transferencia',
                     icon: Icons.credit_card_rounded,
                     color: Colors.blueGrey,
-                    onTap: () => onSelectPaymentMethod(PaymentMethod.transferencia),
+                    onTap: () =>
+                        onSelectPaymentMethod(PaymentMethod.transferencia),
                   ),
                 ),
               ],
