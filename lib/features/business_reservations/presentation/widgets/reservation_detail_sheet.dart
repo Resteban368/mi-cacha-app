@@ -266,7 +266,8 @@ class ReservationDetailView extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                 decoration: const BoxDecoration(color: AppColors.slate50),
                 child: Wrap(
-                  alignment: WrapAlignment.end,
+                  alignment: WrapAlignment.center,
+                  runAlignment: WrapAlignment.center,
                   spacing: 8,
                   runSpacing: 8,
                   children: [
