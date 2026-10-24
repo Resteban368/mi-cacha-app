@@ -6,9 +6,12 @@ abstract interface class BusinessDataSource {
 
   Future<Business> save(BusinessDraft draft);
 
-  Future<Business> uploadCover(ImageUpload image);
+  Future<Business> addPhoto(ImageUpload image);
 
-  Future<Business> removeCover();
+  Future<Business> removePhoto(String photoId);
+
+  /// [ids] trae todas las fotos, sin repetir, en el orden deseado.
+  Future<Business> reorderPhotos(List<String> ids);
 }
 
 /// Negocio en memoria mientras la API está en construcción: arranca vacío
@@ -38,25 +41,45 @@ class FakeBusinessDataSource implements BusinessDataSource {
       description: (description?.isEmpty ?? true) ? null : description,
       amenities: Set.unmodifiable(draft.amenities),
       imageUrl: _business?.imageUrl,
+      photos: _business?.photos ?? const [],
       location: draft.location,
     );
   }
 
   @override
-  Future<Business> uploadCover(ImageUpload image) async {
+  Future<Business> addPhoto(ImageUpload image) async {
     await Future<void>.delayed(latency);
-    return _business = _withImage('https://fotos.test/${image.fileName}');
+    final photos = _requireBusiness().photos;
+    return _business = _withPhotos([
+      ...photos,
+      BusinessPhoto(
+        id: 'p${DateTime.now().microsecondsSinceEpoch}',
+        url: 'https://fotos.test/${image.fileName}',
+      ),
+    ]);
   }
 
   @override
-  Future<Business> removeCover() async {
+  Future<Business> removePhoto(String photoId) async {
     await Future<void>.delayed(latency);
-    return _business = _withImage(null);
+    return _business = _withPhotos([
+      for (final photo in _requireBusiness().photos)
+        if (photo.id != photoId) photo,
+    ]);
   }
 
-  Business _withImage(String? imageUrl) {
-    final business = _business;
-    if (business == null) throw StateError('Aún no hay negocio');
+  @override
+  Future<Business> reorderPhotos(List<String> ids) async {
+    await Future<void>.delayed(latency);
+    final byId = {for (final p in _requireBusiness().photos) p.id: p};
+    return _business = _withPhotos([for (final id in ids) ?byId[id]]);
+  }
+
+  Business _requireBusiness() =>
+      _business ?? (throw StateError('Aún no hay negocio'));
+
+  Business _withPhotos(List<BusinessPhoto> photos) {
+    final business = _requireBusiness();
     return Business(
       id: business.id,
       name: business.name,
@@ -64,7 +87,8 @@ class FakeBusinessDataSource implements BusinessDataSource {
       neighborhood: business.neighborhood,
       description: business.description,
       amenities: business.amenities,
-      imageUrl: imageUrl,
+      imageUrl: photos.firstOrNull?.url,
+      photos: List.unmodifiable(photos),
       location: business.location,
     );
   }

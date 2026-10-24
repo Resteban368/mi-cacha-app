@@ -64,9 +64,8 @@ import '../../features/business_profile/data/datasources/business_data_source.da
 import '../../features/business_profile/data/repositories/business_repository_impl.dart';
 import '../../features/business_profile/domain/repositories/business_repository.dart';
 import '../../features/business_profile/domain/usecases/get_my_business.dart';
-import '../../features/business_profile/domain/usecases/remove_business_cover.dart';
+import '../../features/business_profile/domain/usecases/business_photo_usecases.dart';
 import '../../features/business_profile/domain/usecases/save_business.dart';
-import '../../features/business_profile/domain/usecases/upload_business_cover.dart';
 import '../../features/business_profile/presentation/bloc/business_profile_bloc.dart';
 import '../../features/business_reservations/data/datasources/reservations_api_data_source.dart';
 import '../../features/business_reservations/data/datasources/reservations_data_source.dart';
@@ -280,16 +279,18 @@ void _initBusinessProfile() {
     )
     ..registerLazySingleton(() => GetMyBusiness(sl()))
     ..registerLazySingleton(() => SaveBusiness(sl()))
-    ..registerLazySingleton(() => UploadBusinessCover(sl()))
-    ..registerLazySingleton(() => RemoveBusinessCover(sl()))
+    ..registerLazySingleton(() => AddBusinessPhoto(sl()))
+    ..registerLazySingleton(() => RemoveBusinessPhoto(sl()))
+    ..registerLazySingleton(() => ReorderBusinessPhotos(sl()))
     ..registerLazySingleton<PhotoPicker>(ImagePickerPhotoPicker.new)
     ..registerLazySingleton<DeviceLocation>(GeolocatorDeviceLocation.new)
     ..registerFactory(
       () => BusinessProfileBloc(
         getMyBusiness: sl(),
         saveBusiness: sl(),
-        uploadCover: sl(),
-        removeCover: sl(),
+        addPhoto: sl(),
+        removePhoto: sl(),
+        reorderPhotos: sl(),
         getCatalogs: sl(),
       ),
     );

@@ -123,7 +123,7 @@ void main() {
   Future<void> fillAll(WidgetTester tester) async {
     await tester.enterText(find.byKey(const Key('court-name')), 'Cancha 1');
     await tapVisible(tester, find.text('Pádel'));
-    for (final slot in CourtPhotoSlot.required) {
+    for (final slot in createSlots) {
       await pickPhoto(tester, slot);
     }
     await tester.ensureVisible(find.byKey(const Key('court-base-price')));
@@ -149,7 +149,7 @@ void main() {
 
     expect(saveButton(tester).onPressed, isNull);
     expect(
-      find.text('Falta: nombre, deporte, precio base, 3 fotos obligatorias'),
+      find.text('Falta: nombre, deporte, precio base, foto principal'),
       findsOneWidget,
     );
   });
@@ -174,7 +174,45 @@ void main() {
     expect(event.draft.isCovered, isFalse);
     expect(event.draft.slotDuration, 60);
     expect(event.draft.schedules, hasLength(7));
-    expect(event.uploads.keys, CourtPhotoSlot.required);
+    expect(event.uploads.keys, createSlots);
+  });
+
+  testWidgets('al crear pide 2 fotos: principal y una segunda a elegir', (
+    tester,
+  ) async {
+    await pump(tester, ready);
+
+    expect(find.text('Segunda foto (opcional)'), findsOneWidget);
+    expect(find.text(CourtPhotoSlot.lighting.hint), findsNothing);
+    expect(find.text(CourtPhotoSlot.extra1.hint), findsNothing);
+
+    await fillAll(tester);
+    // La segunda foto pasa a iluminación sin volver a elegirla.
+    await tapVisible(tester, find.byKey(const Key('second-photo-LIGHTING')));
+    await tester.tap(find.byKey(const Key('btn-save-court')));
+    await tester.pump();
+
+    final event =
+        verify(
+              () => bloc.add(captureAny(that: isA<CourtFormSubmitted>())),
+            ).captured.single
+            as CourtFormSubmitted;
+    expect(event.uploads.keys, {CourtPhotoSlot.main, CourtPhotoSlot.lighting});
+  });
+
+  testWidgets('la segunda foto es opcional: basta la principal', (
+    tester,
+  ) async {
+    await pump(tester, ready);
+    await tester.enterText(find.byKey(const Key('court-name')), 'Cancha 1');
+    await tapVisible(tester, find.text('Pádel'));
+    await pickPhoto(tester, CourtPhotoSlot.main);
+    await tester.ensureVisible(find.byKey(const Key('court-base-price')));
+    await tester.enterText(find.byKey(const Key('court-base-price')), '80000');
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('court-missing')), findsNothing);
+    expect(saveButton(tester).onPressed, isNotNull);
   });
 
   group('superficie y medidas', () {
@@ -356,7 +394,7 @@ void main() {
       stream: Stream.value(
         ready.copyWith(
           submitStatus: CourtFormSubmitStatus.success,
-          saved: () => courtWith({...CourtPhotoSlot.required}),
+          saved: () => courtWith({...createSlots}),
         ),
       ),
     );
@@ -502,8 +540,8 @@ void main() {
       expect(find.text('Cancha Central Pádel 1'), findsOneWidget);
       expect(find.text('89.900'), findsOneWidget);
       expect(find.text('2 tarifas'), findsOneWidget);
-      // La foto principal ya subida cuenta; faltan las otras 2 obligatorias.
-      expect(find.text('Falta: 2 fotos obligatorias'), findsOneWidget);
+      // Con la foto principal ya subida no falta ninguna.
+      expect(find.byKey(const Key('court-missing')), findsNothing);
 
       await tester.enterText(find.byKey(const Key('court-name')), 'Pádel 1');
       await pickPhoto(tester, CourtPhotoSlot.surface);
@@ -542,10 +580,7 @@ void main() {
         basePricePerHour: 50000,
         schedules: padelDraft.schedules,
         photos: {
-          for (final slot in [
-            ...CourtPhotoSlot.required,
-            CourtPhotoSlot.extra1,
-          ])
+          for (final slot in [...createSlots, CourtPhotoSlot.extra1])
             slot: 'https://api.test/${slot.apiCode}.jpg',
         },
       );
@@ -558,7 +593,7 @@ void main() {
 
       await tapVisible(tester, find.byTooltip('Quitar Foto 4 · Opcional'));
       await tapVisible(tester, find.byTooltip('Quitar Foto 1 (Principal)'));
-      expect(find.text('Falta: 1 foto obligatoria'), findsOneWidget);
+      expect(find.text('Falta: foto principal'), findsOneWidget);
       await pickPhoto(tester, CourtPhotoSlot.main);
 
       await tester.tap(find.byKey(const Key('btn-save-court')));

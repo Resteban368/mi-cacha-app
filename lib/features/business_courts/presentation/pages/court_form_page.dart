@@ -152,9 +152,7 @@ class CourtFormPage extends StatelessWidget {
           Court(isActive: false) =>
             'Cancha "${court.name}" $action. Queda inactiva hasta que la '
                 'habilites.',
-          _ =>
-            'Cancha "${court.name}" $action. Sube las 3 fotos obligatorias '
-                'para recibir reservas.',
+          _ => 'Cancha "${court.name}" $action. ${_missingPhotosHint(court)}',
         });
         // La lista se recarga y muestra los cambios.
         context.go(AppRoutes.businessCourts);
@@ -179,6 +177,17 @@ class CourtFormPage extends StatelessWidget {
         break;
     }
   }
+
+  /// Qué falta para recibir reservas, según `missingPhotos` de la API.
+  static String _missingPhotosHint(Court court) =>
+      switch (court.missingPhotos) {
+        [] => 'Aún no puede recibir reservas.',
+        [CourtPhotoSlot.main] =>
+          'Sube la foto principal para recibir reservas.',
+        final missing =>
+          'Sube ${missing.map((s) => s.hint.toLowerCase()).join(', ')} para '
+              'recibir reservas.',
+      };
 
   static String _failureMessage(CourtFormState state) {
     final message = state.failureMessage;
@@ -252,6 +261,9 @@ class _CourtFormState extends State<_CourtForm> {
 
   /// Fotos ya subidas que se conservan (al editar).
   late final _remotePhotos = {...?_original?.photos};
+
+  /// Al crear: posición de la segunda foto (opcional).
+  var _secondSlot = CourtPhotoSlot.surface;
 
   bool get _isEditing => _original != null;
 
@@ -328,17 +340,14 @@ class _CourtFormState extends State<_CourtForm> {
 
   /// Lo que falta para poder guardar (vacío = listo).
   List<String> get _missing {
-    final missingPhotos = CourtPhotoSlot.required
-        .where((s) => !_hasPhoto(s))
-        .length;
     return [
       if (_name.text.trim().isEmpty) 'nombre',
       if (_sport == null) 'deporte',
       if (CopInputFormatter.parse(_basePrice.text) <= 0) 'precio base',
       if (!_schedules.any((s) => s.isOpen)) 'al menos un día abierto',
       ..._specsMissing,
-      if (missingPhotos == 1) '1 foto obligatoria',
-      if (missingPhotos > 1) '$missingPhotos fotos obligatorias',
+      // Solo la principal es obligatoria; la API confirma con isComplete.
+      if (!_hasPhoto(CourtPhotoSlot.main)) 'foto principal',
     ];
   }
 
@@ -390,6 +399,15 @@ class _CourtFormState extends State<_CourtForm> {
         },
       ),
     );
+  }
+
+  /// La foto ya elegida para la segunda posición pasa a la nueva.
+  void _changeSecondSlot(CourtPhotoSlot slot) {
+    if (slot == _secondSlot) return;
+    setState(() {
+      if (_photos.remove(_secondSlot) case final image?) _photos[slot] = image;
+      _secondSlot = slot;
+    });
   }
 
   Future<void> _pickPhoto(CourtPhotoSlot slot) async {
@@ -699,6 +717,9 @@ class _CourtFormState extends State<_CourtForm> {
       photos: {
         for (final MapEntry(:key, :value) in _photos.entries) key: value.bytes,
       },
+      // Al crear solo se piden la principal y una segunda opcional.
+      secondSlot: _isEditing ? null : _secondSlot,
+      onSecondSlotChanged: _changeSecondSlot,
       remotePhotos: _remotePhotos,
       failed: state.failedPhotos,
       enabled: !busy,

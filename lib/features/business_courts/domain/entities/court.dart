@@ -4,12 +4,12 @@ import '../../../../core/domain/entities/sport.dart';
 import 'court_rate.dart';
 import 'court_schedule.dart';
 
-/// Posiciones de las fotos de una cancha. Las 3 primeras son obligatorias
-/// para que la cancha reciba reservas.
+/// Posiciones de las fotos de una cancha. Solo la principal es obligatoria
+/// para que la cancha reciba reservas (lo confirma la API con `isComplete`).
 enum CourtPhotoSlot {
   main('MAIN', 'Foto 1 (Principal)', 'Vista general o ángulo principal'),
-  surface('SURFACE', 'Foto 2 · Requerida', 'Superficie / Suelo'),
-  lighting('LIGHTING', 'Foto 3 · Requerida', 'Iluminación / Red'),
+  surface('SURFACE', 'Foto 2 · Opcional', 'Superficie / Grama'),
+  lighting('LIGHTING', 'Foto 3 · Opcional', 'Iluminación / Red'),
   extra1('EXTRA_1', 'Foto 4 · Opcional', 'Bancas / Entorno'),
   extra2('EXTRA_2', 'Foto 5 · Opcional', 'Otro ángulo');
 
@@ -19,10 +19,10 @@ enum CourtPhotoSlot {
   final String label;
   final String hint;
 
-  bool get isRequired => index < 3;
+  bool get isRequired => this == main;
 
-  static Iterable<CourtPhotoSlot> get required =>
-      values.where((slot) => slot.isRequired);
+  /// Posiciones que se ofrecen para la segunda foto al crear la cancha.
+  static const secondOptions = [surface, lighting];
 
   static CourtPhotoSlot? fromApi(String code) {
     for (final slot in values) {
@@ -154,6 +154,7 @@ class Court extends Equatable {
     this.schedules = const [],
     this.rates = const [],
     this.photos = const {},
+    this.missingPhotos = const [],
     this.specs = CourtSpecs.empty,
   });
 
@@ -164,7 +165,7 @@ class Court extends Equatable {
   final Sport? sport;
   final bool isActive;
 
-  /// Tiene las 3 fotos obligatorias.
+  /// Tiene las fotos obligatorias (según la API).
   final bool isComplete;
 
   /// Activa y completa: puede recibir reservas.
@@ -183,9 +184,8 @@ class Court extends Equatable {
   /// Superficie, medidas y formato.
   final CourtSpecs specs;
 
-  /// Fotos obligatorias que aún faltan.
-  List<CourtPhotoSlot> get missingRequiredPhotos =>
-      CourtPhotoSlot.required.where((s) => !photos.containsKey(s)).toList();
+  /// Fotos obligatorias que aún faltan, según la API.
+  final List<CourtPhotoSlot> missingPhotos;
 
   @override
   List<Object?> get props => [
@@ -201,6 +201,7 @@ class Court extends Equatable {
     schedules,
     rates,
     photos,
+    missingPhotos,
     specs,
   ];
 }

@@ -7,10 +7,9 @@ import '../../../../core/catalogs/domain/usecases/get_catalogs.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/business.dart';
 import '../../../../core/media/image_upload.dart';
+import '../../domain/usecases/business_photo_usecases.dart';
 import '../../domain/usecases/get_my_business.dart';
-import '../../domain/usecases/remove_business_cover.dart';
 import '../../domain/usecases/save_business.dart';
-import '../../domain/usecases/upload_business_cover.dart';
 
 part 'business_profile_event.dart';
 part 'business_profile_state.dart';
@@ -20,14 +19,16 @@ class BusinessProfileBloc
   BusinessProfileBloc({
     required GetMyBusiness getMyBusiness,
     required SaveBusiness saveBusiness,
-    required UploadBusinessCover uploadCover,
-    required RemoveBusinessCover removeCover,
+    required AddBusinessPhoto addPhoto,
+    required RemoveBusinessPhoto removePhoto,
+    required ReorderBusinessPhotos reorderPhotos,
     required GetCatalogs getCatalogs,
   }) : _getMyBusiness = getMyBusiness,
        _getCatalogs = getCatalogs,
        _saveBusiness = saveBusiness,
-       _uploadCover = uploadCover,
-       _removeCover = removeCover,
+       _addPhoto = addPhoto,
+       _removePhoto = removePhoto,
+       _reorderPhotos = reorderPhotos,
        super(const BusinessProfileState()) {
     on<BusinessProfileRequested>(_onRequested, transformer: restartable());
     on<BusinessAmenitiesRequested>(
@@ -36,15 +37,16 @@ class BusinessProfileBloc
     );
     // droppable: evita guardar dos veces con un doble toque.
     on<BusinessProfileSaved>(_onSaved, transformer: droppable());
-    // Una sola operación de foto a la vez (subir o quitar).
-    on<BusinessCoverEvent>(_onCover, transformer: droppable());
+    // Una sola operación de la galería a la vez (subir, quitar u ordenar).
+    on<BusinessPhotoEvent>(_onPhoto, transformer: droppable());
   }
 
   final GetMyBusiness _getMyBusiness;
   final GetCatalogs _getCatalogs;
   final SaveBusiness _saveBusiness;
-  final UploadBusinessCover _uploadCover;
-  final RemoveBusinessCover _removeCover;
+  final AddBusinessPhoto _addPhoto;
+  final RemoveBusinessPhoto _removePhoto;
+  final ReorderBusinessPhotos _reorderPhotos;
 
   Future<void> _onRequested(
     BusinessProfileRequested event,
@@ -113,22 +115,22 @@ class BusinessProfileBloc
     emit(state.copyWith(saveStatus: BusinessSaveStatus.saving));
     try {
       var saved = await _saveBusiness(_withActiveAmenities(event.draft));
-      final pending = state.pendingCover;
+      final pending = state.pendingPhoto;
       if (pending != null) {
         // La foto elegida al crear se sube apenas existe el negocio. Si
         // falla, el negocio igual quedó registrado.
-        emit(state.copyWith(coverStatus: BusinessCoverStatus.uploading));
+        emit(state.copyWith(photoStatus: BusinessPhotoStatus.uploading));
         try {
-          saved = await _uploadCover(pending);
-          emit(state.copyWith(coverStatus: BusinessCoverStatus.idle));
+          saved = await _addPhoto(pending);
+          emit(state.copyWith(photoStatus: BusinessPhotoStatus.idle));
         } catch (_) {
-          emit(state.copyWith(coverStatus: BusinessCoverStatus.failure));
+          emit(state.copyWith(photoStatus: BusinessPhotoStatus.failure));
         }
       }
       emit(
         state.copyWith(
           business: saved,
-          pendingCover: () => null,
+          pendingPhoto: () => null,
           saveStatus: isNew
               ? BusinessSaveStatus.created
               : BusinessSaveStatus.updated,
@@ -139,62 +141,87 @@ class BusinessProfileBloc
     }
   }
 
-  Future<void> _onCover(
-    BusinessCoverEvent event,
+  Future<void> _onPhoto(
+    BusinessPhotoEvent event,
     Emitter<BusinessProfileState> emit,
   ) async {
     // Vuelve a idle primero para que el mismo aviso se repita si hace falta.
-    emit(state.copyWith(coverStatus: BusinessCoverStatus.idle));
+    emit(state.copyWith(photoStatus: BusinessPhotoStatus.idle));
     final business = state.business;
     switch (event) {
-      case BusinessCoverPicked(:final image):
+      case BusinessPhotoPicked(:final image):
         final error = image.error;
         if (error != null) {
-          emit(state.copyWith(coverStatus: _statusOf(error)));
+          emit(state.copyWith(photoStatus: _statusOf(error)));
         } else if (business == null) {
-          emit(state.copyWith(pendingCover: () => image));
+          emit(state.copyWith(pendingPhoto: () => image));
+        } else if (!business.canAddPhoto) {
+          // La API respondería 400: no se intenta.
+          emit(state.copyWith(photoStatus: BusinessPhotoStatus.limitReached));
         } else {
           await _run(
             emit,
-            busy: BusinessCoverStatus.uploading,
-            done: BusinessCoverStatus.uploaded,
-            request: () => _uploadCover(image),
+            busy: BusinessPhotoStatus.uploading,
+            done: BusinessPhotoStatus.uploaded,
+            request: () => _addPhoto(image),
           );
         }
-      case BusinessCoverRemoved():
-        if (business?.imageUrl == null) {
-          emit(state.copyWith(pendingCover: () => null));
-        } else {
-          await _run(
-            emit,
-            busy: BusinessCoverStatus.removing,
-            done: BusinessCoverStatus.removed,
-            request: () => _removeCover(const NoParams()),
-          );
-        }
+      case BusinessPhotoRemoved(photoId: null):
+        emit(state.copyWith(pendingPhoto: () => null));
+      case BusinessPhotoRemoved(:final photoId?):
+        await _run(
+          emit,
+          busy: BusinessPhotoStatus.removing,
+          done: BusinessPhotoStatus.removed,
+          request: () => _removePhoto(photoId),
+        );
+      case BusinessPhotosReordered(:final ids):
+        final current = [
+          for (final BusinessPhoto p in business?.photos ?? const []) p.id,
+        ];
+        // La API exige todas las fotos, sin repetir; el mismo orden no se
+        // envía.
+        final valid =
+            ids.length == current.length &&
+            ids.toSet().length == ids.length &&
+            ids.toSet().containsAll(current);
+        if (!valid || _sameOrder(ids, current)) return;
+        await _run(
+          emit,
+          busy: BusinessPhotoStatus.reordering,
+          done: BusinessPhotoStatus.reordered,
+          request: () => _reorderPhotos(ids),
+        );
     }
+  }
+
+  static bool _sameOrder(List<String> a, List<String> b) {
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   Future<void> _run(
     Emitter<BusinessProfileState> emit, {
-    required BusinessCoverStatus busy,
-    required BusinessCoverStatus done,
+    required BusinessPhotoStatus busy,
+    required BusinessPhotoStatus done,
     required Future<Business> Function() request,
   }) async {
-    emit(state.copyWith(coverStatus: busy));
+    emit(state.copyWith(photoStatus: busy));
     try {
       final business = await request();
-      emit(state.copyWith(business: business, coverStatus: done));
+      emit(state.copyWith(business: business, photoStatus: done));
     } on ImageUploadException catch (error) {
-      emit(state.copyWith(coverStatus: _statusOf(error.error)));
+      emit(state.copyWith(photoStatus: _statusOf(error.error)));
     } catch (_) {
-      emit(state.copyWith(coverStatus: BusinessCoverStatus.failure));
+      emit(state.copyWith(photoStatus: BusinessPhotoStatus.failure));
     }
   }
 
-  static BusinessCoverStatus _statusOf(ImageUploadError error) =>
+  static BusinessPhotoStatus _statusOf(ImageUploadError error) =>
       switch (error) {
-        ImageUploadError.tooLarge => BusinessCoverStatus.tooLarge,
-        ImageUploadError.invalidType => BusinessCoverStatus.invalidType,
+        ImageUploadError.tooLarge => BusinessPhotoStatus.tooLarge,
+        ImageUploadError.invalidType => BusinessPhotoStatus.invalidType,
       };
 }

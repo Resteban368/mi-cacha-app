@@ -80,7 +80,7 @@ class BusinessNewReservationPage extends StatelessWidget {
                         icon: Icons.stadium_outlined,
                         title:
                             'No tienes canchas listas para reservar: deben '
-                            'estar activas y con sus 3 fotos.',
+                            'estar activas y con su foto principal.',
                         actionLabel: 'Ir a Canchas',
                         onAction: () => context.go(AppRoutes.businessCourts),
                       ),

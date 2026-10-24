@@ -58,8 +58,8 @@ class BusinessProfilePage extends StatelessWidget {
           listener: _onSaveStatus,
         ),
         BlocListener<BusinessProfileBloc, BusinessProfileState>(
-          listenWhen: (prev, curr) => prev.coverStatus != curr.coverStatus,
-          listener: _onCoverStatus,
+          listenWhen: (prev, curr) => prev.photoStatus != curr.photoStatus,
+          listener: _onPhotoStatus,
         ),
       ],
       child: Column(
@@ -102,7 +102,7 @@ class BusinessProfilePage extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
     switch (state.saveStatus) {
       case BusinessSaveStatus.created:
-        final coverFailed = state.coverStatus == BusinessCoverStatus.failure;
+        final coverFailed = state.photoStatus == BusinessPhotoStatus.failure;
         messenger.showSnackBar(
           SnackBar(
             content: Text(
@@ -131,24 +131,31 @@ class BusinessProfilePage extends StatelessWidget {
     }
   }
 
-  void _onCoverStatus(BuildContext context, BusinessProfileState state) {
+  void _onPhotoStatus(BuildContext context, BusinessProfileState state) {
     // Al registrar el negocio el aviso lo da _onSaveStatus.
     if (state.isSaving) return;
-    final (message, isError) = switch (state.coverStatus) {
-      BusinessCoverStatus.uploaded => ('Foto de portada actualizada', false),
-      BusinessCoverStatus.removed => ('Foto de portada quitada', false),
-      BusinessCoverStatus.tooLarge => (
+    final (message, isError) = switch (state.photoStatus) {
+      BusinessPhotoStatus.uploaded => ('Foto agregada', false),
+      BusinessPhotoStatus.removed => ('Foto eliminada', false),
+      BusinessPhotoStatus.reordered => ('Orden de fotos actualizado', false),
+      BusinessPhotoStatus.tooLarge => (
         'La foto supera los 4 MB. Elige una más liviana.',
         true,
       ),
-      BusinessCoverStatus.invalidType => ('La foto debe ser JPG o PNG.', true),
-      BusinessCoverStatus.failure => (
-        'No pudimos actualizar la foto. Intenta de nuevo.',
+      BusinessPhotoStatus.invalidType => ('La foto debe ser JPG o PNG.', true),
+      BusinessPhotoStatus.limitReached => (
+        'Ya tienes ${Business.maxPhotos} fotos. Elimina una para agregar '
+            'otra.',
         true,
       ),
-      BusinessCoverStatus.idle ||
-      BusinessCoverStatus.uploading ||
-      BusinessCoverStatus.removing => (null, false),
+      BusinessPhotoStatus.failure => (
+        'No pudimos actualizar las fotos. Intenta de nuevo.',
+        true,
+      ),
+      BusinessPhotoStatus.idle ||
+      BusinessPhotoStatus.uploading ||
+      BusinessPhotoStatus.removing ||
+      BusinessPhotoStatus.reordering => (null, false),
     };
     if (message == null) return;
     ScaffoldMessenger.of(context)
@@ -231,41 +238,48 @@ class _BusinessFormState extends State<_BusinessForm> {
     context.read<BusinessProfileBloc>().add(BusinessProfileSaved(_draft));
   }
 
-  Future<void> _pickCover() async {
+  Future<void> _addPhoto() async {
     if (!ensureCanWrite(context)) return;
     final image = await pickImageUpload(context, widget.photoPicker);
     if (image == null || !mounted) return;
-    context.read<BusinessProfileBloc>().add(BusinessCoverPicked(image));
+    context.read<BusinessProfileBloc>().add(BusinessPhotoPicked(image));
   }
 
-  Future<void> _removeCover() async {
+  Future<void> _removePhoto(BusinessPhoto photo) async {
     if (!ensureCanWrite(context)) return;
     final bloc = context.read<BusinessProfileBloc>();
-    // La foto pendiente (aún no subida) se descarta sin preguntar.
-    if (bloc.state.business?.imageUrl != null) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('¿Quitar la foto de portada?'),
-          content: const Text(
-            'Tu sede quedará sin foto hasta que subas una nueva.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: AppColors.statusDue),
-              child: const Text('Quitar'),
-            ),
-          ],
+    final isCover = bloc.state.business?.photos.firstOrNull?.id == photo.id;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Eliminar esta foto?'),
+        content: Text(
+          isCover
+              ? 'Es la portada: la siguiente foto pasará a ser la portada.'
+              : 'La foto se quitará de la galería de tu sede.',
         ),
-      );
-      if (confirmed != true) return;
-    }
-    bloc.add(const BusinessCoverRemoved());
+        actions: [
+          TextButton(
+            key: const Key('photo-remove-cancel'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            key: const Key('photo-remove-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.statusDue),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    bloc.add(BusinessPhotoRemoved(photo.id));
+  }
+
+  void _reorderPhotos(List<String> ids) {
+    if (!ensureCanWrite(context)) return;
+    context.read<BusinessProfileBloc>().add(BusinessPhotosReordered(ids));
   }
 
   /// Abre el mapa a pantalla completa (por encima del menú lateral). La
@@ -305,15 +319,19 @@ class _BusinessFormState extends State<_BusinessForm> {
         final gutter = isWide ? 24.0 : 16.0;
         final cover = BlocBuilder<BusinessProfileBloc, BusinessProfileState>(
           buildWhen: (prev, curr) =>
-              prev.business?.imageUrl != curr.business?.imageUrl ||
-              prev.pendingCover != curr.pendingCover ||
-              prev.coverStatus != curr.coverStatus,
-          builder: (context, state) => CoverPhotoField(
-            imageUrl: state.business?.imageUrl,
-            pendingBytes: state.pendingCover?.bytes,
-            status: state.coverStatus,
-            onPick: _pickCover,
-            onRemove: _removeCover,
+              prev.business?.photos != curr.business?.photos ||
+              prev.pendingPhoto != curr.pendingPhoto ||
+              prev.photoStatus != curr.photoStatus,
+          builder: (context, state) => BusinessPhotoGallery(
+            photos: state.business?.photos ?? const [],
+            pendingBytes: state.pendingPhoto?.bytes,
+            status: state.photoStatus,
+            onAdd: _addPhoto,
+            onRemove: _removePhoto,
+            onRemovePending: () => context.read<BusinessProfileBloc>().add(
+              const BusinessPhotoRemoved(),
+            ),
+            onReorder: _reorderPhotos,
           ),
         );
         final location = ValueListenableBuilder(

@@ -65,18 +65,26 @@ ImageUpload jpeg(String name) => ImageUpload(
   fileName: name,
 );
 
+/// Las 2 fotos que se piden al crear: la principal (obligatoria) y la
+/// segunda (por defecto, superficie).
+const createSlots = [CourtPhotoSlot.main, CourtPhotoSlot.surface];
+
 final requiredPhotos = {
-  for (final slot in CourtPhotoSlot.required) slot: jpeg('${slot.apiCode}.jpg'),
+  for (final slot in createSlots) slot: jpeg('${slot.apiCode}.jpg'),
 };
 
+/// Como la API: solo la foto principal es obligatoria.
 Court courtWith(Set<CourtPhotoSlot> photos) => Court(
   id: 'c1',
   name: 'Cancha Central Pádel 1',
   sport: Sport.padel,
   isActive: true,
-  isComplete: CourtPhotoSlot.required.every(photos.contains),
-  isBookable: CourtPhotoSlot.required.every(photos.contains),
+  isComplete: photos.contains(CourtPhotoSlot.main),
+  isBookable: photos.contains(CourtPhotoSlot.main),
   photos: {for (final slot in photos) slot: 'https://api.test/${slot.apiCode}'},
+  missingPhotos: [
+    if (!photos.contains(CourtPhotoSlot.main)) CourtPhotoSlot.main,
+  ],
 );
 
 /// Cancha ya creada con el horario, precio y tarifas del ejemplo de la API.

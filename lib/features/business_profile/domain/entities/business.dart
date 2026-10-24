@@ -50,6 +50,19 @@ class BusinessDraft extends Equatable {
   ];
 }
 
+/// Foto de la galería del negocio.
+class BusinessPhoto extends Equatable {
+  const BusinessPhoto({required this.id, required this.url});
+
+  final String id;
+
+  /// URL pública (HTTPS).
+  final String url;
+
+  @override
+  List<Object?> get props => [id, url];
+}
+
 /// Negocio (sede deportiva) registrado por el administrador.
 class Business extends Equatable {
   const Business({
@@ -60,8 +73,12 @@ class Business extends Equatable {
     this.description,
     this.amenities = const {},
     this.imageUrl,
+    this.photos = const [],
     this.location,
   });
+
+  /// Límite de fotos de la galería que acepta la API.
+  static const maxPhotos = 5;
 
   final String id;
   final String name;
@@ -75,6 +92,11 @@ class Business extends Equatable {
   /// URL pública (HTTPS) de la foto de portada; `null` si no tiene.
   final String? imageUrl;
 
+  /// Galería en orden; la primera es la portada del directorio web.
+  final List<BusinessPhoto> photos;
+
+  bool get canAddPhoto => photos.length < maxPhotos;
+
   /// Punto de llegada; `null` si aún no se fijó en el mapa.
   final GeoPoint? location;
 
@@ -87,6 +109,7 @@ class Business extends Equatable {
     description,
     amenities,
     imageUrl,
+    photos,
     location,
   ];
 }

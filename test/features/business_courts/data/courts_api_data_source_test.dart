@@ -158,6 +158,32 @@ void main() {
     });
   });
 
+  test('isComplete y missingPhotos salen de la API', () async {
+    adapter.handler = (_) => (
+      200,
+      {
+        ...courtJson,
+        'isComplete': false,
+        'missingPhotos': ['MAIN', 'OTRA_POSICION'],
+        'photos': <Object>[],
+      },
+    );
+    final incomplete = await source.create(padelDraft);
+    expect(incomplete.isComplete, isFalse);
+    expect(incomplete.missingPhotos, [CourtPhotoSlot.main]);
+
+    // Solo la principal es obligatoria: con ella ya está completa.
+    adapter.handler = (_) =>
+        (200, {...courtJson, 'isComplete': true, 'missingPhotos': <Object>[]});
+    final complete = await source.create(padelDraft);
+    expect(complete.isComplete, isTrue);
+    expect(complete.missingPhotos, isEmpty);
+
+    // Sin el campo: lista vacía.
+    adapter.handler = (_) => (200, {...courtJson}..remove('missingPhotos'));
+    expect((await source.create(padelDraft)).missingPhotos, isEmpty);
+  });
+
   test('sube cada foto como multipart en su posición', () async {
     await source.uploadPhoto('c1', CourtPhotoSlot.surface, jpeg('suelo.jpg'));
 

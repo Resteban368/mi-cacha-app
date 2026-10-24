@@ -18,21 +18,27 @@ enum BusinessSaveStatus {
 /// negocio: si falla, el resto del formulario sigue disponible.
 enum AmenityCatalogStatus { loading, ready, failure }
 
-enum BusinessCoverStatus {
+enum BusinessPhotoStatus {
   idle,
   uploading,
   removing,
+  reordering,
   uploaded,
   removed,
+  reordered,
 
   /// La foto supera los 4 MB.
   tooLarge,
 
   /// La foto no es JPG ni PNG.
   invalidType,
+
+  /// Ya hay [Business.maxPhotos] fotos.
+  limitReached,
   failure;
 
-  bool get isBusy => this == uploading || this == removing;
+  bool get isBusy =>
+      this == uploading || this == removing || this == reordering;
 }
 
 final class BusinessProfileState extends Equatable {
@@ -40,8 +46,8 @@ final class BusinessProfileState extends Equatable {
     this.status = BusinessProfileStatus.initial,
     this.business,
     this.saveStatus = BusinessSaveStatus.idle,
-    this.coverStatus = BusinessCoverStatus.idle,
-    this.pendingCover,
+    this.photoStatus = BusinessPhotoStatus.idle,
+    this.pendingPhoto,
     this.amenityOptions = const [],
     this.amenityStatus = AmenityCatalogStatus.loading,
   });
@@ -51,10 +57,10 @@ final class BusinessProfileState extends Equatable {
   /// `null` mientras el administrador no haya creado su negocio.
   final Business? business;
   final BusinessSaveStatus saveStatus;
-  final BusinessCoverStatus coverStatus;
+  final BusinessPhotoStatus photoStatus;
 
   /// Foto elegida antes de registrar el negocio; se sube al guardarlo.
-  final ImageUpload? pendingCover;
+  final ImageUpload? pendingPhoto;
 
   /// Servicios activos del catálogo, en el orden del panel administrativo.
   final List<CatalogAmenity> amenityOptions;
@@ -66,16 +72,16 @@ final class BusinessProfileState extends Equatable {
     BusinessProfileStatus? status,
     Business? business,
     BusinessSaveStatus? saveStatus,
-    BusinessCoverStatus? coverStatus,
-    ImageUpload? Function()? pendingCover,
+    BusinessPhotoStatus? photoStatus,
+    ImageUpload? Function()? pendingPhoto,
     List<CatalogAmenity>? amenityOptions,
     AmenityCatalogStatus? amenityStatus,
   }) => BusinessProfileState(
     status: status ?? this.status,
     business: business ?? this.business,
     saveStatus: saveStatus ?? this.saveStatus,
-    coverStatus: coverStatus ?? this.coverStatus,
-    pendingCover: pendingCover != null ? pendingCover() : this.pendingCover,
+    photoStatus: photoStatus ?? this.photoStatus,
+    pendingPhoto: pendingPhoto != null ? pendingPhoto() : this.pendingPhoto,
     amenityOptions: amenityOptions ?? this.amenityOptions,
     amenityStatus: amenityStatus ?? this.amenityStatus,
   );
@@ -85,8 +91,8 @@ final class BusinessProfileState extends Equatable {
     status,
     business,
     saveStatus,
-    coverStatus,
-    pendingCover,
+    photoStatus,
+    pendingPhoto,
     amenityOptions,
     amenityStatus,
   ];

@@ -148,6 +148,10 @@ class CourtsApiDataSource implements CourtsDataSource {
         if (photo case {'slot': final String code, 'url': final String url})
           ?CourtPhotoSlot.fromApi(code): ApiConfig.secureUrl(url),
     },
+    missingPhotos: [
+      for (final code in (json['missingPhotos'] as List<dynamic>? ?? const []))
+        ?CourtPhotoSlot.fromApi('$code'),
+    ],
     specs: CourtSpecs(
       surface: switch (json['surface']) {
         {'code': final String code, 'name': final String name} =>

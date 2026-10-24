@@ -25,15 +25,15 @@ final class BusinessAmenitiesRequested extends BusinessProfileEvent {
   const BusinessAmenitiesRequested();
 }
 
-/// Cambios de la foto de portada (se procesan de a uno).
-sealed class BusinessCoverEvent extends BusinessProfileEvent {
-  const BusinessCoverEvent();
+/// Cambios de la galería de fotos (se procesan de a uno).
+sealed class BusinessPhotoEvent extends BusinessProfileEvent {
+  const BusinessPhotoEvent();
 }
 
-/// Se eligió una foto: con negocio se sube al instante; sin negocio queda
-/// pendiente y se sube al registrarlo.
-final class BusinessCoverPicked extends BusinessCoverEvent {
-  const BusinessCoverPicked(this.image);
+/// Se eligió una foto: con negocio se agrega al final de la galería; sin
+/// negocio queda pendiente y se sube al registrarlo.
+final class BusinessPhotoPicked extends BusinessPhotoEvent {
+  const BusinessPhotoPicked(this.image);
 
   final ImageUpload image;
 
@@ -41,6 +41,22 @@ final class BusinessCoverPicked extends BusinessCoverEvent {
   List<Object?> get props => [image];
 }
 
-final class BusinessCoverRemoved extends BusinessCoverEvent {
-  const BusinessCoverRemoved();
+/// Quita una foto de la galería; `null` descarta la foto pendiente.
+final class BusinessPhotoRemoved extends BusinessPhotoEvent {
+  const BusinessPhotoRemoved([this.photoId]);
+
+  final String? photoId;
+
+  @override
+  List<Object?> get props => [photoId];
+}
+
+/// Nuevo orden de la galería (todas las fotos); la primera es la portada.
+final class BusinessPhotosReordered extends BusinessPhotoEvent {
+  const BusinessPhotosReordered(this.ids);
+
+  final List<String> ids;
+
+  @override
+  List<Object?> get props => [ids];
 }

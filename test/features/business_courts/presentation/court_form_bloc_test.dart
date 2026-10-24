@@ -211,7 +211,7 @@ void main() {
   });
 
   blocTest<CourtFormBloc, CourtFormState>(
-    'crea la cancha y sube las 3 fotos en orden',
+    'crea la cancha y sube sus 2 fotos en orden',
     setUp: () {
       when(() => createCourt(any())).thenAnswer((_) async => courtWith({}));
       uploadsOk();
@@ -227,16 +227,12 @@ void main() {
       final slots = verify(
         () => uploadPhoto(captureAny()),
       ).captured.map((p) => (p as UploadCourtPhotoParams).slot);
-      expect(slots, [
-        CourtPhotoSlot.main,
-        CourtPhotoSlot.surface,
-        CourtPhotoSlot.lighting,
-      ]);
+      expect(slots, [CourtPhotoSlot.main, CourtPhotoSlot.surface]);
     },
   );
 
   blocTest<CourtFormBloc, CourtFormState>(
-    'avanza la subida de fotos 1/3, 2/3, 3/3',
+    'avanza la subida de fotos 1/2, 2/2',
     setUp: () {
       when(() => createCourt(any())).thenAnswer((_) async => courtWith({}));
       uploadsOk();
@@ -252,8 +248,8 @@ void main() {
         'estado',
         CourtFormSubmitStatus.saving,
       ),
-      for (var i = 1; i <= 3; i++)
-        isA<CourtFormState>().having((s) => s.photoProgress, 'avance', (i, 3)),
+      for (var i = 1; i <= 2; i++)
+        isA<CourtFormState>().having((s) => s.photoProgress, 'avance', (i, 2)),
       isA<CourtFormState>().having(
         (s) => s.submitStatus,
         'estado',
@@ -298,11 +294,7 @@ void main() {
         }
         return switch (params.slot) {
           CourtPhotoSlot.main => courtWith({CourtPhotoSlot.main}),
-          CourtPhotoSlot.lighting =>
-            surfaceAttempts > 1
-                ? courtWith({...CourtPhotoSlot.required})
-                : courtWith({CourtPhotoSlot.main, CourtPhotoSlot.lighting}),
-          _ => courtWith({...CourtPhotoSlot.required}),
+          _ => courtWith({...createSlots}),
         };
       });
     },
@@ -318,14 +310,13 @@ void main() {
     verify: (bloc) {
       expect(bloc.state.submitStatus, CourtFormSubmitStatus.success);
       verify(() => createCourt(any())).called(1);
-      // main, surface (falla), lighting y luego solo surface.
+      // main, surface (falla) y luego solo surface.
       final slots = verify(
         () => uploadPhoto(captureAny()),
       ).captured.map((p) => (p as UploadCourtPhotoParams).slot);
       expect(slots, [
         CourtPhotoSlot.main,
         CourtPhotoSlot.surface,
-        CourtPhotoSlot.lighting,
         CourtPhotoSlot.surface,
       ]);
     },
@@ -393,7 +384,7 @@ void main() {
         when(() => removePhoto(any())).thenAnswer((_) async => padelCourt);
         when(
           () => uploadPhoto(any()),
-        ).thenAnswer((_) async => courtWith({...CourtPhotoSlot.required}));
+        ).thenAnswer((_) async => courtWith({...createSlots}));
       },
       build: build,
       seed: () => CourtFormState(

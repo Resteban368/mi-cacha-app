@@ -7,9 +7,8 @@ import 'package:mi_cancha/core/usecase/usecase.dart';
 import 'package:mi_cancha/features/business_profile/domain/usecases/get_my_business.dart';
 import 'package:mi_cancha/features/business_profile/domain/entities/business.dart';
 import 'package:mi_cancha/core/media/image_upload.dart';
-import 'package:mi_cancha/features/business_profile/domain/usecases/remove_business_cover.dart';
+import 'package:mi_cancha/features/business_profile/domain/usecases/business_photo_usecases.dart';
 import 'package:mi_cancha/features/business_profile/domain/usecases/save_business.dart';
-import 'package:mi_cancha/features/business_profile/domain/usecases/upload_business_cover.dart';
 import 'package:mi_cancha/features/business_profile/presentation/bloc/business_profile_bloc.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -19,30 +18,42 @@ class _MockGetMyBusiness extends Mock implements GetMyBusiness {}
 
 class _MockSaveBusiness extends Mock implements SaveBusiness {}
 
-class _MockUpload extends Mock implements UploadBusinessCover {}
+class _MockAdd extends Mock implements AddBusinessPhoto {}
 
-class _MockRemove extends Mock implements RemoveBusinessCover {}
+class _MockRemove extends Mock implements RemoveBusinessPhoto {}
+
+class _MockReorder extends Mock implements ReorderBusinessPhotos {}
 
 class _MockGetCatalogs extends Mock implements GetCatalogs {}
 
 void main() {
   late _MockGetMyBusiness getMyBusiness;
   late _MockSaveBusiness saveBusiness;
-  late _MockUpload uploadCover;
-  late _MockRemove removeCover;
+  late _MockAdd addPhoto;
+  late _MockRemove removePhoto;
+  late _MockReorder reorderPhotos;
   late _MockGetCatalogs getCatalogs;
 
   final photo = ImageUpload(
     bytes: Uint8List.fromList([0xff, 0xd8, 0xff, 0xe0]),
     fileName: 'portada.jpg',
   );
-  const withPhoto = Business(
-    id: 'b1',
-    name: 'Complejo Deportivo El Campín',
-    address: 'Carrera 11 # 18-45',
-    neighborhood: 'Centro',
-    imageUrl: 'https://api.test/foto.jpg',
-  );
+
+  /// El negocio del fixture con [count] fotos (p1, p2, …).
+  Business withPhotos(int count) {
+    final photos = [
+      for (var i = 1; i <= count; i++)
+        BusinessPhoto(id: 'p$i', url: 'https://api.test/p$i.jpg'),
+    ];
+    return Business(
+      id: business.id,
+      name: business.name,
+      address: business.address,
+      neighborhood: business.neighborhood,
+      imageUrl: photos.firstOrNull?.url,
+      photos: photos,
+    );
+  }
 
   setUpAll(() {
     registerFallbackValue(const NoParams());
@@ -50,13 +61,15 @@ void main() {
     registerFallbackValue(
       ImageUpload(bytes: Uint8List(0), fileName: 'fallback.jpg'),
     );
+    registerFallbackValue(<String>[]);
   });
 
   setUp(() {
     getMyBusiness = _MockGetMyBusiness();
     saveBusiness = _MockSaveBusiness();
-    uploadCover = _MockUpload();
-    removeCover = _MockRemove();
+    addPhoto = _MockAdd();
+    removePhoto = _MockRemove();
+    reorderPhotos = _MockReorder();
     getCatalogs = _MockGetCatalogs();
     when(() => getCatalogs(any())).thenAnswer((_) async => catalogs);
   });
@@ -64,8 +77,9 @@ void main() {
   BusinessProfileBloc build() => BusinessProfileBloc(
     getMyBusiness: getMyBusiness,
     saveBusiness: saveBusiness,
-    uploadCover: uploadCover,
-    removeCover: removeCover,
+    addPhoto: addPhoto,
+    removePhoto: removePhoto,
+    reorderPhotos: reorderPhotos,
     getCatalogs: getCatalogs,
   );
 
@@ -218,27 +232,41 @@ void main() {
     ],
   );
 
-  group('foto de portada', () {
-    const existing = BusinessProfileState(
+  group('galería de fotos', () {
+    final existing = BusinessProfileState(
       status: BusinessProfileStatus.ready,
-      business: business,
+      business: withPhotos(2),
     );
 
     blocTest<BusinessProfileBloc, BusinessProfileState>(
-      'con negocio la sube al instante',
+      'agregar: la sube y toma el negocio que devuelve la API',
       setUp: () =>
-          when(() => uploadCover(any())).thenAnswer((_) async => withPhoto),
+          when(() => addPhoto(any())).thenAnswer((_) async => withPhotos(3)),
       build: build,
       seed: () => existing,
-      act: (bloc) => bloc.add(BusinessCoverPicked(photo)),
+      act: (bloc) => bloc.add(BusinessPhotoPicked(photo)),
       expect: () => [
-        existing.copyWith(coverStatus: BusinessCoverStatus.uploading),
+        existing.copyWith(photoStatus: BusinessPhotoStatus.uploading),
         existing.copyWith(
-          business: withPhoto,
-          coverStatus: BusinessCoverStatus.uploaded,
+          business: withPhotos(3),
+          photoStatus: BusinessPhotoStatus.uploaded,
         ),
       ],
-      verify: (_) => verify(() => uploadCover(photo)).called(1),
+      verify: (_) => verify(() => addPhoto(photo)).called(1),
+    );
+
+    blocTest<BusinessProfileBloc, BusinessProfileState>(
+      'límite de 5: no llama a la API y avisa',
+      build: build,
+      seed: () => existing.copyWith(business: withPhotos(5)),
+      act: (bloc) => bloc.add(BusinessPhotoPicked(photo)),
+      expect: () => [
+        existing.copyWith(
+          business: withPhotos(5),
+          photoStatus: BusinessPhotoStatus.limitReached,
+        ),
+      ],
+      verify: (_) => verifyNever(() => addPhoto(any())),
     );
 
     blocTest<BusinessProfileBloc, BusinessProfileState>(
@@ -246,7 +274,7 @@ void main() {
       build: build,
       seed: () => existing,
       act: (bloc) => bloc.add(
-        BusinessCoverPicked(
+        BusinessPhotoPicked(
           ImageUpload(
             bytes: Uint8List(ImageUpload.maxBytes + 1)
               ..setAll(0, [0xff, 0xd8, 0xff]),
@@ -255,9 +283,9 @@ void main() {
         ),
       ),
       expect: () => [
-        existing.copyWith(coverStatus: BusinessCoverStatus.tooLarge),
+        existing.copyWith(photoStatus: BusinessPhotoStatus.tooLarge),
       ],
-      verify: (_) => verifyNever(() => uploadCover(any())),
+      verify: (_) => verifyNever(() => addPhoto(any())),
     );
 
     blocTest<BusinessProfileBloc, BusinessProfileState>(
@@ -265,7 +293,7 @@ void main() {
       build: build,
       seed: () => existing,
       act: (bloc) => bloc.add(
-        BusinessCoverPicked(
+        BusinessPhotoPicked(
           ImageUpload(
             bytes: Uint8List.fromList('GIF89a'.codeUnits),
             fileName: 'a.gif',
@@ -273,19 +301,19 @@ void main() {
         ),
       ),
       expect: () => [
-        existing.copyWith(coverStatus: BusinessCoverStatus.invalidType),
+        existing.copyWith(photoStatus: BusinessPhotoStatus.invalidType),
       ],
     );
 
     blocTest<BusinessProfileBloc, BusinessProfileState>(
       'error de la API al subir',
-      setUp: () => when(() => uploadCover(any())).thenThrow(Exception()),
+      setUp: () => when(() => addPhoto(any())).thenThrow(Exception()),
       build: build,
       seed: () => existing,
-      act: (bloc) => bloc.add(BusinessCoverPicked(photo)),
+      act: (bloc) => bloc.add(BusinessPhotoPicked(photo)),
       skip: 1,
       expect: () => [
-        existing.copyWith(coverStatus: BusinessCoverStatus.failure),
+        existing.copyWith(photoStatus: BusinessPhotoStatus.failure),
       ],
     );
 
@@ -293,20 +321,20 @@ void main() {
       'sin negocio queda pendiente y se sube al registrarlo',
       setUp: () {
         when(() => saveBusiness(any())).thenAnswer((_) async => business);
-        when(() => uploadCover(any())).thenAnswer((_) async => withPhoto);
+        when(() => addPhoto(any())).thenAnswer((_) async => withPhotos(1));
       },
       build: build,
       seed: () => ready,
       act: (bloc) => bloc
-        ..add(BusinessCoverPicked(photo))
+        ..add(BusinessPhotoPicked(photo))
         ..add(const BusinessProfileSaved(draft)),
       wait: const Duration(milliseconds: 10),
       verify: (bloc) {
-        verify(() => uploadCover(photo)).called(1);
-        expect(bloc.state.business, withPhoto);
-        expect(bloc.state.pendingCover, isNull);
+        verify(() => addPhoto(photo)).called(1);
+        expect(bloc.state.business, withPhotos(1));
+        expect(bloc.state.pendingPhoto, isNull);
         expect(bloc.state.saveStatus, BusinessSaveStatus.created);
-        expect(bloc.state.coverStatus, BusinessCoverStatus.idle);
+        expect(bloc.state.photoStatus, BusinessPhotoStatus.idle);
       },
     );
 
@@ -314,42 +342,74 @@ void main() {
       'si la foto falla al registrar, el negocio igual queda creado',
       setUp: () {
         when(() => saveBusiness(any())).thenAnswer((_) async => business);
-        when(() => uploadCover(any())).thenThrow(Exception());
+        when(() => addPhoto(any())).thenThrow(Exception());
       },
       build: build,
-      seed: () => ready.copyWith(pendingCover: () => photo),
+      seed: () => ready.copyWith(pendingPhoto: () => photo),
       act: (bloc) => bloc.add(const BusinessProfileSaved(draft)),
       verify: (bloc) {
         expect(bloc.state.business, business);
         expect(bloc.state.saveStatus, BusinessSaveStatus.created);
-        expect(bloc.state.coverStatus, BusinessCoverStatus.failure);
-        expect(bloc.state.pendingCover, isNull);
+        expect(bloc.state.photoStatus, BusinessPhotoStatus.failure);
+        expect(bloc.state.pendingPhoto, isNull);
       },
     );
 
     blocTest<BusinessProfileBloc, BusinessProfileState>(
-      'quitar la foto subida',
+      'quitar: envía el id de la foto',
       setUp: () =>
-          when(() => removeCover(any())).thenAnswer((_) async => business),
+          when(() => removePhoto(any())).thenAnswer((_) async => withPhotos(1)),
       build: build,
-      seed: () => existing.copyWith(business: withPhoto),
-      act: (bloc) => bloc.add(const BusinessCoverRemoved()),
+      seed: () => existing,
+      act: (bloc) => bloc.add(const BusinessPhotoRemoved('p2')),
       expect: () => [
+        existing.copyWith(photoStatus: BusinessPhotoStatus.removing),
         existing.copyWith(
-          business: withPhoto,
-          coverStatus: BusinessCoverStatus.removing,
+          business: withPhotos(1),
+          photoStatus: BusinessPhotoStatus.removed,
         ),
-        existing.copyWith(coverStatus: BusinessCoverStatus.removed),
       ],
+      verify: (_) => verify(() => removePhoto('p2')).called(1),
     );
 
     blocTest<BusinessProfileBloc, BusinessProfileState>(
       'quitar una foto pendiente no llama a la API',
       build: build,
-      seed: () => ready.copyWith(pendingCover: () => photo),
-      act: (bloc) => bloc.add(const BusinessCoverRemoved()),
+      seed: () => ready.copyWith(pendingPhoto: () => photo),
+      act: (bloc) => bloc.add(const BusinessPhotoRemoved()),
       expect: () => [ready],
-      verify: (_) => verifyNever(() => removeCover(any())),
+      verify: (_) => verifyNever(() => removePhoto(any())),
     );
+
+    blocTest<BusinessProfileBloc, BusinessProfileState>(
+      'reordenar (hacer portada): envía todos los ids en el nuevo orden',
+      setUp: () => when(
+        () => reorderPhotos(any()),
+      ).thenAnswer((_) async => withPhotos(2)),
+      build: build,
+      seed: () => existing,
+      act: (bloc) => bloc.add(const BusinessPhotosReordered(['p2', 'p1'])),
+      expect: () => [
+        existing.copyWith(photoStatus: BusinessPhotoStatus.reordering),
+        existing.copyWith(photoStatus: BusinessPhotoStatus.reordered),
+      ],
+      verify: (_) => verify(() => reorderPhotos(['p2', 'p1'])).called(1),
+    );
+
+    for (final (name, ids) in [
+      ('falta una foto', ['p2']),
+      ('ids repetidos', ['p1', 'p1']),
+      ('id que no es del negocio', ['p1', 'p9']),
+      ('el mismo orden', ['p1', 'p2']),
+    ]) {
+      blocTest<BusinessProfileBloc, BusinessProfileState>(
+        'reordenar con $name no llama a la API',
+        build: build,
+        seed: () => existing,
+        act: (bloc) => bloc.add(BusinessPhotosReordered(ids)),
+        expect: () => const <BusinessProfileState>[],
+        verify: (_) => verifyNever(() => reorderPhotos(any())),
+      );
+    }
   });
 }

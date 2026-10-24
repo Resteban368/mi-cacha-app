@@ -38,7 +38,7 @@ class CourtListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final photo = court.photos[CourtPhotoSlot.main];
-    final missing = court.missingRequiredPhotos.length;
+    final missing = court.missingPhotos.length;
     final (statusLabel, statusColor, statusBackground) = switch (court) {
       Court(isActive: false) => (
         'Inactiva',
@@ -51,7 +51,11 @@ class CourtListCard extends StatelessWidget {
         AppColors.brandTealLight,
       ),
       _ => (
-        missing == 1 ? 'Falta 1 foto' : 'Faltan $missing fotos',
+        switch (missing) {
+          0 => 'Incompleta',
+          1 => 'Falta 1 foto',
+          _ => 'Faltan $missing fotos',
+        },
         AppColors.onErrorContainer,
         AppColors.errorContainer,
       ),

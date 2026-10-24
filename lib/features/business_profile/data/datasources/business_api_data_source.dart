@@ -14,7 +14,7 @@ class BusinessApiDataSource implements BusinessDataSource {
   final Dio _dio;
 
   static const _path = '/business/profile';
-  static const _imagePath = '$_path/image';
+  static const _photosPath = '$_path/photos';
 
   @override
   Future<Business?> getMyBusiness() async {
@@ -59,7 +59,7 @@ class BusinessApiDataSource implements BusinessDataSource {
   /// Multipart en el campo `image`. Se sube desde bytes (no `fromFile`)
   /// para que funcione también en web.
   @override
-  Future<Business> uploadCover(ImageUpload image) async {
+  Future<Business> addPhoto(ImageUpload image) async {
     final form = FormData.fromMap({
       'image': MultipartFile.fromBytes(
         image.bytes,
@@ -68,19 +68,31 @@ class BusinessApiDataSource implements BusinessDataSource {
       ),
     });
     final response = await apiCall(
-      () => _dio.put<Map<String, dynamic>>(_imagePath, data: form),
+      () => _dio.post<Map<String, dynamic>>(_photosPath, data: form),
     );
     return _fromJson(response.data!);
   }
 
   @override
-  Future<Business> removeCover() async {
+  Future<Business> removePhoto(String photoId) async {
     final response = await apiCall(
-      () => _dio.delete<Map<String, dynamic>>(_imagePath),
+      () => _dio.delete<Map<String, dynamic>>('$_photosPath/$photoId'),
     );
     return _fromJson(response.data!);
   }
 
+  @override
+  Future<Business> reorderPhotos(List<String> ids) async {
+    final response = await apiCall(
+      () => _dio.put<Map<String, dynamic>>(
+        '$_photosPath/order',
+        data: {'ids': ids},
+      ),
+    );
+    return _fromJson(response.data!);
+  }
+
+  /// `photos` puede no venir (API anterior): queda la lista vacía.
   static Business _fromJson(Map<String, dynamic> json) => Business(
     id: json['id'] as String,
     name: json['name'] as String,
@@ -102,5 +114,10 @@ class BusinessApiDataSource implements BusinessDataSource {
       final String url => ApiConfig.secureUrl(url),
       _ => null,
     },
+    photos: [
+      for (final photo in (json['photos'] as List<dynamic>? ?? const []))
+        if (photo case {'id': final String id, 'url': final String url})
+          BusinessPhoto(id: id, url: ApiConfig.secureUrl(url)),
+    ],
   );
 }

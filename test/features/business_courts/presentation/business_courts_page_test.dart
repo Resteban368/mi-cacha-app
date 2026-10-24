@@ -31,7 +31,8 @@ void main() {
     isActive: true,
     isComplete: false,
     isBookable: false,
-    photos: {CourtPhotoSlot.main: 'https://api.test/x.jpg'},
+    // Lo que falta lo dice la API.
+    missingPhotos: [CourtPhotoSlot.main],
   );
   const inactive = Court(
     id: 'c3',
@@ -96,7 +97,7 @@ void main() {
     expect(find.text('Cancha Central Pádel 1'), findsOneWidget);
     expect(find.text('Pádel · Cubierta'), findsOneWidget);
     expect(find.text('Lista para reservas'), findsOneWidget);
-    expect(find.text('Faltan 2 fotos'), findsOneWidget);
+    expect(find.text('Falta 1 foto'), findsOneWidget);
     expect(find.text('Inactiva'), findsOneWidget);
     expect(find.text('Lun a Sáb · horarios variados'), findsOneWidget);
     expect(find.text(r'$89.900/h · turnos de 1 h 30'), findsOneWidget);

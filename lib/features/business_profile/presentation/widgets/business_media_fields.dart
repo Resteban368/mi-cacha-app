@@ -9,46 +9,92 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/dashed_border_box.dart';
 import '../../../../core/config/map_config.dart';
 import '../../../../core/location/geo_point.dart';
+import '../../domain/entities/business.dart';
 import '../bloc/business_profile_bloc.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import 'business_form_label.dart';
 import 'osm_attribution.dart';
 import 'osm_tile_layer.dart';
 
-/// Foto de portada de la sede: zona para subirla o la foto actual con
-/// acciones para cambiarla o quitarla.
-class CoverPhotoField extends StatelessWidget {
-  const CoverPhotoField({
+/// Galería de la sede (hasta [Business.maxPhotos]): foto grande con la
+/// elegida, miniaturas y acciones para ordenarla o quitarla. La primera es
+/// la portada del directorio web.
+///
+/// Antes de registrar el negocio solo se puede elegir una foto, que se sube
+/// al guardarlo ([pendingBytes]).
+class BusinessPhotoGallery extends StatefulWidget {
+  const BusinessPhotoGallery({
     super.key,
-    required this.onPick,
+    required this.photos,
+    required this.onAdd,
     required this.onRemove,
-    this.imageUrl,
+    required this.onRemovePending,
+    required this.onReorder,
     this.pendingBytes,
-    this.status = BusinessCoverStatus.idle,
+    this.status = BusinessPhotoStatus.idle,
   });
 
   static const _height = 176.0;
+  static const _thumbSize = 60.0;
 
-  final VoidCallback onPick;
-  final VoidCallback onRemove;
+  final List<BusinessPhoto> photos;
+  final VoidCallback onAdd;
+  final ValueChanged<BusinessPhoto> onRemove;
+  final VoidCallback onRemovePending;
 
-  /// Foto ya subida (HTTPS, pública).
-  final String? imageUrl;
+  /// Nuevo orden con todas las fotos; la primera queda de portada.
+  final ValueChanged<List<String>> onReorder;
 
   /// Foto elegida antes de registrar el negocio (aún no subida).
   final Uint8List? pendingBytes;
-  final BusinessCoverStatus status;
+  final BusinessPhotoStatus status;
+
+  @override
+  State<BusinessPhotoGallery> createState() => _BusinessPhotoGalleryState();
+}
+
+class _BusinessPhotoGalleryState extends State<BusinessPhotoGallery> {
+  String? _selectedId;
+
+  int get _selectedIndex {
+    final index = widget.photos.indexWhere((p) => p.id == _selectedId);
+    return index < 0 ? 0 : index;
+  }
+
+  @override
+  void didUpdateWidget(BusinessPhotoGallery oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final photos = widget.photos;
+    if (photos.length > oldWidget.photos.length) {
+      // Recién agregada: queda elegida.
+      _selectedId = photos.last.id;
+    } else if (!photos.any((p) => p.id == _selectedId)) {
+      // Se quitó la elegida: pasa a la que quedó en su lugar.
+      final old = oldWidget.photos.indexWhere((p) => p.id == _selectedId);
+      _selectedId = photos.isEmpty
+          ? null
+          : photos[old.clamp(0, photos.length - 1)].id;
+    }
+  }
+
+  /// Mueve la foto elegida a [to] y envía el orden completo.
+  void _move(int to) {
+    final ids = [for (final p in widget.photos) p.id];
+    final id = ids.removeAt(_selectedIndex);
+    ids.insert(to, id);
+    widget.onReorder(ids);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pending = pendingBytes;
-    final url = imageUrl;
-    final hasPhoto = pending != null || url != null;
+    final pending = widget.pendingBytes;
+    final photos = widget.photos;
+    final busy = widget.status.isBusy;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         BusinessFormLabel(
-          'Foto o portada de la sede',
+          'Fotos de la sede',
           trailing: pending != null
               ? Text(
                   'Se subirá al guardar',
@@ -59,62 +105,324 @@ class CoverPhotoField extends StatelessWidget {
               : null,
         ),
         const SizedBox(height: 6),
-        if (!hasPhoto)
-          _EmptyCover(onTap: status.isBusy ? null : onPick)
+        if (pending != null)
+          _PendingPhoto(
+            bytes: pending,
+            onChange: widget.onAdd,
+            onRemove: widget.onRemovePending,
+          )
+        else if (photos.isEmpty)
+          _EmptyCover(onTap: busy ? null : widget.onAdd)
         else
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: SizedBox(
-              height: _height,
-              child: Stack(
-                fit: StackFit.expand,
+          ..._gallery(photos, busy),
+      ],
+    );
+  }
+
+  List<Widget> _gallery(List<BusinessPhoto> photos, bool busy) {
+    final index = _selectedIndex;
+    final selected = photos[index];
+    final isCover = index == 0;
+    final canAdd = photos.length < Business.maxPhotos;
+    return [
+      ClipRRect(
+        key: const Key('gallery-main'),
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          height: BusinessPhotoGallery._height,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ColoredBox(
+                color: AppColors.surfaceContainerLow,
+                child: AppNetworkImage(
+                  selected.url,
+                  key: ValueKey(selected.id),
+                  semanticLabel: isCover
+                      ? 'Foto de portada de la sede'
+                      : 'Foto ${index + 1} de la sede',
+                  error: const _BrokenImage(),
+                ),
+              ),
+              if (isCover)
+                const Positioned(left: 10, top: 10, child: _CoverBadge()),
+              if (busy)
+                _BusyOverlay(
+                  label: switch (widget.status) {
+                    BusinessPhotoStatus.removing => 'Quitando foto…',
+                    BusinessPhotoStatus.reordering => 'Ordenando fotos…',
+                    _ => 'Subiendo foto…',
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 8),
+      // Se reparte en dos filas si no cabe (celulares angostos).
+      Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 2,
+        runSpacing: 2,
+        children: [
+          IconButton(
+            key: const Key('gallery-move-left'),
+            tooltip: 'Mover a la izquierda',
+            onPressed: busy || index == 0 ? null : () => _move(index - 1),
+            icon: const Icon(Icons.chevron_left_rounded),
+          ),
+          IconButton(
+            key: const Key('gallery-move-right'),
+            tooltip: 'Mover a la derecha',
+            onPressed: busy || index == photos.length - 1
+                ? null
+                : () => _move(index + 1),
+            icon: const Icon(Icons.chevron_right_rounded),
+          ),
+          TextButton.icon(
+            key: const Key('gallery-make-cover'),
+            onPressed: busy || isCover ? null : () => _move(0),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.brandTeal,
+              visualDensity: VisualDensity.compact,
+            ),
+            icon: const Icon(Icons.star_outline_rounded, size: 18),
+            label: const Text('Hacer portada'),
+          ),
+          TextButton.icon(
+            key: const Key('gallery-delete'),
+            onPressed: busy ? null : () => widget.onRemove(selected),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.statusDue,
+              visualDensity: VisualDensity.compact,
+            ),
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: const Text('Eliminar'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 4),
+      SizedBox(
+        height: BusinessPhotoGallery._thumbSize,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: photos.length + 1,
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
+          itemBuilder: (context, i) {
+            if (i == photos.length) {
+              return _AddThumb(
+                size: BusinessPhotoGallery._thumbSize,
+                onTap: busy || !canAdd ? null : widget.onAdd,
+                full: !canAdd,
+              );
+            }
+            final photo = photos[i];
+            return _Thumb(
+              key: Key('gallery-thumb-${photo.id}'),
+              url: photo.url,
+              size: BusinessPhotoGallery._thumbSize,
+              selected: i == index,
+              isCover: i == 0,
+              onTap: () => setState(() => _selectedId = photo.id),
+            );
+          },
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        '${photos.length} de ${Business.maxPhotos} fotos · '
+        'la primera es la portada',
+        style: AppTypography.bodySm.copyWith(color: AppColors.onSurfaceVariant),
+      ),
+    ];
+  }
+}
+
+/// Foto elegida al crear el negocio, antes de subirla.
+class _PendingPhoto extends StatelessWidget {
+  const _PendingPhoto({
+    required this.bytes,
+    required this.onChange,
+    required this.onRemove,
+  });
+
+  final Uint8List bytes;
+  final VoidCallback onChange;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        height: BusinessPhotoGallery._height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(
+              color: AppColors.surfaceContainerLow,
+              child: Image.memory(
+                bytes,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                errorBuilder: (_, _, _) => const _BrokenImage(),
+              ),
+            ),
+            const Positioned(left: 10, top: 10, child: _CoverBadge()),
+            Positioned(
+              right: 10,
+              bottom: 10,
+              child: Row(
                 children: [
-                  ColoredBox(
-                    color: AppColors.surfaceContainerLow,
-                    child: pending != null
-                        ? Image.memory(
-                            pending,
-                            fit: BoxFit.cover,
-                            gaplessPlayback: true,
-                            errorBuilder: (_, _, _) => const _BrokenImage(),
-                          )
-                        : AppNetworkImage(
-                            url!,
-                            semanticLabel: 'Foto de portada de la sede',
-                            error: const _BrokenImage(),
-                          ),
+                  _CoverAction(
+                    icon: Icons.delete_outline,
+                    label: 'Quitar',
+                    onPressed: onRemove,
                   ),
-                  if (status.isBusy)
-                    _BusyOverlay(
-                      label: status == BusinessCoverStatus.removing
-                          ? 'Quitando foto…'
-                          : 'Subiendo foto…',
-                    )
-                  else
-                    Positioned(
-                      right: 10,
-                      bottom: 10,
-                      child: Row(
-                        children: [
-                          _CoverAction(
-                            icon: Icons.delete_outline,
-                            label: 'Quitar',
-                            onPressed: onRemove,
-                          ),
-                          const SizedBox(width: 8),
-                          _CoverAction(
-                            icon: Icons.photo_camera_outlined,
-                            label: 'Cambiar',
-                            onPressed: onPick,
-                          ),
-                        ],
-                      ),
-                    ),
+                  const SizedBox(width: 8),
+                  _CoverAction(
+                    icon: Icons.photo_camera_outlined,
+                    label: 'Cambiar',
+                    onPressed: onChange,
+                  ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CoverBadge extends StatelessWidget {
+  const _CoverBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.onSurface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.star_rounded, size: 14, color: AppColors.onPrimary),
+          const SizedBox(width: 4),
+          Text(
+            'Portada',
+            style: AppTypography.labelSm.copyWith(
+              color: AppColors.onPrimary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Thumb extends StatelessWidget {
+  const _Thumb({
+    super.key,
+    required this.url,
+    required this.size,
+    required this.selected,
+    required this.isCover,
+    required this.onTap,
+  });
+
+  final String url;
+  final double size;
+  final bool selected;
+  final bool isCover;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: isCover ? 'Portada' : 'Foto',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: size,
+          height: size,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? AppColors.brandTeal : AppColors.outlineVariant,
+              width: selected ? 2.5 : 1,
+            ),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              AppNetworkImage(
+                url,
+                cacheWidth: 180,
+                error: const _BrokenImage(),
+              ),
+              if (isCover)
+                const Positioned(
+                  left: 3,
+                  top: 3,
+                  child: Icon(
+                    Icons.star_rounded,
+                    size: 16,
+                    color: AppColors.onPrimary,
+                    shadows: [Shadow(color: Color(0x99000000), blurRadius: 4)],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddThumb extends StatelessWidget {
+  const _AddThumb({
+    required this.size,
+    required this.onTap,
+    required this.full,
+  });
+
+  final double size;
+  final VoidCallback? onTap;
+
+  /// Ya hay el máximo de fotos.
+  final bool full;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: full ? 'Máximo ${Business.maxPhotos} fotos' : 'Agregar foto',
+      child: DashedBorderBox(
+        backgroundColor: AppColors.surfaceContainerLow,
+        radius: 10,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            key: const Key('gallery-add'),
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox.square(
+              dimension: size - 2,
+              child: Icon(
+                Icons.add_a_photo_outlined,
+                size: 22,
+                color: onTap == null ? AppColors.outline : AppColors.primary,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -128,7 +436,7 @@ class _EmptyCover extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Subir foto de portada o logo',
+      label: 'Subir fotos de la sede',
       excludeSemantics: true,
       child: DashedBorderBox(
         backgroundColor: AppColors.surfaceContainerLow,
@@ -138,7 +446,7 @@ class _EmptyCover extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(16),
             child: SizedBox(
-              height: CoverPhotoField._height,
+              height: BusinessPhotoGallery._height,
               child: onTap == null
                   ? const Center(
                       child: CircularProgressIndicator(
@@ -154,7 +462,7 @@ class _EmptyCover extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Subir foto de portada o logo',
+                          'Subir fotos de la sede',
                           textAlign: TextAlign.center,
                           style: AppTypography.labelLg.copyWith(
                             color: AppColors.onSurface,
@@ -162,7 +470,7 @@ class _EmptyCover extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Formatos JPG o PNG hasta 4 MB',
+                          'Hasta ${Business.maxPhotos} fotos JPG o PNG de 4 MB',
                           textAlign: TextAlign.center,
                           style: AppTypography.bodySm.copyWith(
                             color: AppColors.onSurfaceVariant,
@@ -394,9 +702,13 @@ class _LocationPreview extends StatelessWidget {
                                   height: 44,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: AppColors.primary.withValues(alpha: 0.2),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.2,
+                                    ),
                                     border: Border.all(
-                                      color: AppColors.primary.withValues(alpha: 0.6),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.6,
+                                      ),
                                       width: 1.5,
                                     ),
                                   ),
@@ -535,10 +847,7 @@ class _LocationPreview extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  icon: const Icon(
-                    Icons.edit_location_alt_rounded,
-                    size: 16,
-                  ),
+                  icon: const Icon(Icons.edit_location_alt_rounded, size: 16),
                   label: const Text('Cambiar ubicación'),
                 ),
               ],

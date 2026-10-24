@@ -133,7 +133,7 @@ void main() {
     await pump(tester, empty);
 
     expect(find.text('Registra tu sede deportiva'), findsOneWidget);
-    expect(find.text('Subir foto de portada o logo'), findsOneWidget);
+    expect(find.text('Subir fotos de la sede'), findsOneWidget);
     expect(find.text('Sin ubicación fijada'), findsOneWidget);
     expect(find.text('Fijar en el mapa'), findsOneWidget);
     expect(find.text('Sin fijar'), findsOneWidget);
@@ -211,7 +211,7 @@ void main() {
     tester,
   ) async {
     await pump(tester, empty);
-    await tester.tap(find.text('Subir foto de portada o logo'));
+    await tester.tap(find.text('Subir fotos de la sede'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Tomar una foto'));
     await tester.pumpAndSettle();
@@ -220,7 +220,7 @@ void main() {
     verify(
       () => bloc.add(
         any(
-          that: isA<BusinessCoverPicked>().having(
+          that: isA<BusinessPhotoPicked>().having(
             (e) => e.image.fileName,
             'archivo',
             'a.jpg',
@@ -235,7 +235,7 @@ void main() {
   ) async {
     picker.error = MissingPluginException('sin plugin');
     await pump(tester, empty);
-    await tester.tap(find.text('Subir foto de portada o logo'));
+    await tester.tap(find.text('Subir fotos de la sede'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Elegir de la galería'));
     await tester.pumpAndSettle();
@@ -244,13 +244,11 @@ void main() {
       find.text('No pudimos abrir tus fotos. Revisa los permisos.'),
       findsOneWidget,
     );
-    verifyNever(() => bloc.add(any(that: isA<BusinessCoverPicked>())));
+    verifyNever(() => bloc.add(any(that: isA<BusinessPhotoPicked>())));
   });
 
-  testWidgets('con foto: la muestra y pide confirmar antes de quitarla', (
-    tester,
-  ) async {
-    const withPhoto = BusinessProfileState(
+  group('galería', () {
+    BusinessProfileState withPhotos(int count) => BusinessProfileState(
       status: BusinessProfileStatus.ready,
       amenityOptions: amenityCatalog,
       amenityStatus: AmenityCatalogStatus.ready,
@@ -259,22 +257,142 @@ void main() {
         name: 'El Campín',
         address: 'Carrera 11',
         neighborhood: 'Centro',
-        imageUrl: 'https://api.test/foto.jpg',
+        imageUrl: 'https://api.test/p1.jpg',
+        photos: [
+          for (var i = 1; i <= count; i++)
+            BusinessPhoto(id: 'p$i', url: 'https://api.test/p$i.jpg'),
+        ],
       ),
     );
-    await pump(tester, withPhoto);
 
-    final image = tester.widget<Image>(find.byType(Image).first);
-    expect((image.image as NetworkImage).url, 'https://api.test/foto.jpg');
-    expect(find.text('Cambiar'), findsOneWidget);
+    String mainUrl(WidgetTester tester) {
+      final image = tester.widget<Image>(
+        find.descendant(
+          of: find.byKey(const Key('gallery-main')),
+          matching: find.byType(Image),
+        ),
+      );
+      return (image.image as NetworkImage).url;
+    }
 
-    await tester.tap(find.text('Quitar'));
-    await tester.pumpAndSettle();
-    expect(find.text('¿Quitar la foto de portada?'), findsOneWidget);
-    await tester.tap(find.widgetWithText(TextButton, 'Quitar'));
-    await tester.pumpAndSettle();
+    VoidCallback? onPressed(WidgetTester tester, String key) =>
+        tester.widget<ButtonStyleButton>(find.byKey(Key(key))).onPressed;
 
-    verify(() => bloc.add(const BusinessCoverRemoved())).called(1);
+    testWidgets('muestra la portada, miniaturas y el contador', (tester) async {
+      await pump(tester, withPhotos(2));
+
+      expect(mainUrl(tester), 'https://api.test/p1.jpg');
+      expect(find.text('Portada'), findsOneWidget);
+      expect(find.byKey(const Key('gallery-thumb-p1')), findsOneWidget);
+      expect(find.byKey(const Key('gallery-thumb-p2')), findsOneWidget);
+      expect(
+        find.text('2 de 5 fotos · la primera es la portada'),
+        findsOneWidget,
+      );
+      // La portada no se puede volver a hacer portada ni mover a la izquierda.
+      expect(onPressed(tester, 'gallery-make-cover'), isNull);
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const Key('gallery-move-left')))
+            .onPressed,
+        isNull,
+      );
+    });
+
+    testWidgets('elegir otra y hacerla portada envía el nuevo orden', (
+      tester,
+    ) async {
+      await pump(tester, withPhotos(3));
+
+      await tester.tap(find.byKey(const Key('gallery-thumb-p3')));
+      await tester.pump();
+      expect(mainUrl(tester), 'https://api.test/p3.jpg');
+      expect(find.text('Portada'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('gallery-make-cover')));
+      verify(
+        () => bloc.add(const BusinessPhotosReordered(['p3', 'p1', 'p2'])),
+      ).called(1);
+
+      await tester.tap(find.byKey(const Key('gallery-move-left')));
+      verify(
+        () => bloc.add(const BusinessPhotosReordered(['p1', 'p3', 'p2'])),
+      ).called(1);
+    });
+
+    testWidgets('mover a la derecha', (tester) async {
+      await pump(tester, withPhotos(2));
+      await tester.tap(find.byKey(const Key('gallery-move-right')));
+      verify(
+        () => bloc.add(const BusinessPhotosReordered(['p2', 'p1'])),
+      ).called(1);
+    });
+
+    testWidgets('eliminar pide confirmación', (tester) async {
+      await pump(tester, withPhotos(2));
+      await tester.tap(find.byKey(const Key('gallery-thumb-p2')));
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('gallery-delete')));
+      await tester.pumpAndSettle();
+      expect(find.text('¿Eliminar esta foto?'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('photo-remove-cancel')));
+      await tester.pumpAndSettle();
+      verifyNever(() => bloc.add(any(that: isA<BusinessPhotoRemoved>())));
+
+      await tester.tap(find.byKey(const Key('gallery-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('photo-remove-confirm')));
+      await tester.pumpAndSettle();
+      verify(() => bloc.add(const BusinessPhotoRemoved('p2'))).called(1);
+    });
+
+    testWidgets('con 5 fotos no deja agregar otra', (tester) async {
+      await pump(tester, withPhotos(5));
+
+      expect(
+        find.text('5 de 5 fotos · la primera es la portada'),
+        findsOneWidget,
+      );
+      expect(
+        tester.widget<InkWell>(find.byKey(const Key('gallery-add'))).onTap,
+        isNull,
+      );
+      expect(find.byTooltip('Máximo 5 fotos'), findsOneWidget);
+    });
+
+    testWidgets('con menos de 5 agrega desde la miniatura "+"', (tester) async {
+      await pump(tester, withPhotos(2));
+      await tester.tap(find.byKey(const Key('gallery-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Elegir de la galería'));
+      await tester.pumpAndSettle();
+
+      verify(() => bloc.add(any(that: isA<BusinessPhotoPicked>()))).called(1);
+    });
+
+    testWidgets('sin overflow en 320 de ancho con 5 fotos', (tester) async {
+      await pump(tester, withPhotos(5), size: const Size(320, 1800));
+      await tester.tap(find.byKey(const Key('gallery-thumb-p3')));
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('al llegar al límite avisa', (tester) async {
+      final full = withPhotos(5);
+      await pump(
+        tester,
+        full,
+        stream: Stream.value(
+          full.copyWith(photoStatus: BusinessPhotoStatus.limitReached),
+        ),
+      );
+      await tester.pump();
+      expect(
+        find.text('Ya tienes 5 fotos. Elimina una para agregar otra.'),
+        findsOneWidget,
+      );
+    });
   });
 
   testWidgets('foto pendiente al crear: avisa que se subirá al guardar', (
@@ -286,7 +404,7 @@ void main() {
         status: BusinessProfileStatus.ready,
         amenityOptions: amenityCatalog,
         amenityStatus: AmenityCatalogStatus.ready,
-        pendingCover: ImageUpload(
+        pendingPhoto: ImageUpload(
           bytes: Uint8List.fromList([0xff, 0xd8, 0xff]),
           fileName: 'a.jpg',
         ),
@@ -300,7 +418,7 @@ void main() {
       tester,
       empty,
       stream: Stream.value(
-        empty.copyWith(coverStatus: BusinessCoverStatus.tooLarge),
+        empty.copyWith(photoStatus: BusinessPhotoStatus.tooLarge),
       ),
     );
     await tester.pump();
@@ -316,7 +434,7 @@ void main() {
     await pump(tester, empty, size: const Size(1280, 1000));
 
     final nombre = tester.getTopLeft(find.byType(TextFormField).first);
-    final portada = tester.getTopLeft(find.byType(CoverPhotoField));
+    final portada = tester.getTopLeft(find.byType(BusinessPhotoGallery));
     expect(portada.dx, greaterThan(nombre.dx + 300));
     // El botón no se estira a todo el ancho.
     expect(

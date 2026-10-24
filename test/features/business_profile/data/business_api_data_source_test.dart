@@ -93,44 +93,89 @@ void main() {
     },
   );
 
-  test('sube la portada como multipart en el campo image', () async {
-    const url =
-        'https://mi-cancha-api.vercel.app/api/v1/images/business-profile/i1';
-    adapter.handler = (_) => (200, {...profileJson, 'imageUrl': url});
+  group('galería de fotos', () {
+    const url1 = 'http://mi-cancha-api.vercel.app/api/v1/images/business/p1';
+    const url2 = 'https://mi-cancha-api.vercel.app/api/v1/images/business/p2';
+    final withPhotos = {
+      ...profileJson,
+      'imageUrl': url1,
+      'photos': [
+        {'id': 'p1', 'url': url1},
+        {'id': 'p2', 'url': url2},
+        {'id': 'sin-url'},
+      ],
+    };
 
-    final business = await source.uploadCover(
-      ImageUpload(
-        bytes: Uint8List.fromList([
-          0x89,
-          0x50,
-          0x4e,
-          0x47,
-          0x0d,
-          0x0a,
-          0x1a,
-          0x0a,
-        ]),
-        fileName: 'portada.png',
-      ),
-    );
+    test('lee las fotos en orden y por HTTPS', () async {
+      adapter.handler = (_) => (200, withPhotos);
+      final business = await source.getMyBusiness();
 
-    expect(business.imageUrl, url);
-    final request = adapter.requests.single;
-    expect(request.method, 'PUT');
-    expect(request.path, '/business/profile/image');
-    final form = request.data as FormData;
-    final (field, file) = (form.files.single.key, form.files.single.value);
-    expect(field, 'image');
-    expect(file.filename, 'portada.png');
-    expect(file.contentType.toString(), 'image/png');
-  });
+      expect(business!.photos, const [
+        BusinessPhoto(
+          id: 'p1',
+          url: 'https://mi-cancha-api.vercel.app/api/v1/images/business/p1',
+        ),
+        BusinessPhoto(id: 'p2', url: url2),
+      ]);
+      // La portada es la primera.
+      expect(business.imageUrl, business.photos.first.url);
+      expect(business.canAddPhoto, isTrue);
+    });
 
-  test('quita la portada con DELETE', () async {
-    adapter.handler = (_) => (200, {...profileJson, 'imageUrl': null});
-    final business = await source.removeCover();
-    expect(business.imageUrl, isNull);
-    expect(adapter.requests.single.method, 'DELETE');
-    expect(adapter.requests.single.path, '/business/profile/image');
+    test('sin "photos" (API anterior) la galería queda vacía', () async {
+      final business = await source.getMyBusiness();
+      expect(business!.photos, isEmpty);
+      expect(business.imageUrl, isNull);
+    });
+
+    test('agrega con POST multipart en el campo image', () async {
+      adapter.handler = (_) => (200, withPhotos);
+      final business = await source.addPhoto(
+        ImageUpload(
+          bytes: Uint8List.fromList([
+            0x89,
+            0x50,
+            0x4e,
+            0x47,
+            0x0d,
+            0x0a,
+            0x1a,
+            0x0a,
+          ]),
+          fileName: 'sede.png',
+        ),
+      );
+
+      expect(business.photos, hasLength(2));
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/business/profile/photos');
+      final form = request.data as FormData;
+      final (field, file) = (form.files.single.key, form.files.single.value);
+      expect(field, 'image');
+      expect(file.filename, 'sede.png');
+      expect(file.contentType.toString(), 'image/png');
+    });
+
+    test('quita con DELETE /photos/:id', () async {
+      await source.removePhoto('p2');
+      expect(adapter.requests.single.method, 'DELETE');
+      expect(adapter.requests.single.path, '/business/profile/photos/p2');
+    });
+
+    test('ordena con PUT /photos/order y todos los ids', () async {
+      await source.reorderPhotos(['p2', 'p1']);
+
+      final request = adapter.requests.single;
+      expect(request.method, 'PUT');
+      expect(request.path, '/business/profile/photos/order');
+      final body = request.data is String
+          ? jsonDecode(request.data as String)
+          : request.data;
+      expect(body, {
+        'ids': ['p2', 'p1'],
+      });
+    });
   });
 
   test('envía y lee el punto de llegada', () async {

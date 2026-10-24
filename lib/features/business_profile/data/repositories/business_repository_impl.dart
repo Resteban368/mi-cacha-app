@@ -15,9 +15,13 @@ class BusinessRepositoryImpl implements BusinessRepository {
   Future<Business> save(BusinessDraft draft) => _dataSource.save(draft);
 
   @override
-  Future<Business> uploadCover(ImageUpload image) =>
-      _dataSource.uploadCover(image);
+  Future<Business> addPhoto(ImageUpload image) => _dataSource.addPhoto(image);
 
   @override
-  Future<Business> removeCover() => _dataSource.removeCover();
+  Future<Business> removePhoto(String photoId) =>
+      _dataSource.removePhoto(photoId);
+
+  @override
+  Future<Business> reorderPhotos(List<String> ids) =>
+      _dataSource.reorderPhotos(ids);
 }

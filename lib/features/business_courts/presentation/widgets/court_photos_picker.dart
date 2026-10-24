@@ -8,9 +8,12 @@ import '../../../../core/widgets/dashed_border_box.dart';
 import '../../domain/entities/court.dart';
 import '../../../../core/widgets/app_network_image.dart';
 
-/// Fotos de la cancha: la principal grande y las otras 4 en cuadrícula
-/// (2×2 en el celular, una fila de 4 en web). Las 3 primeras son
-/// obligatorias para que la cancha reciba reservas.
+/// Fotos de la cancha: la principal grande y debajo las demás. Solo la
+/// principal es obligatoria para que la cancha reciba reservas.
+///
+/// Al crear se piden 2: la principal y una segunda opcional ([secondSlot],
+/// superficie o iluminación). Al editar se muestran las 5 en cuadrícula
+/// (2×2 en el celular, una fila de 4 en web).
 class CourtPhotosPicker extends StatelessWidget {
   const CourtPhotosPicker({
     super.key,
@@ -20,7 +23,13 @@ class CourtPhotosPicker extends StatelessWidget {
     required this.onRemove,
     this.failed = const {},
     this.enabled = true,
+    this.secondSlot,
+    this.onSecondSlotChanged,
   });
+
+  /// Al crear: posición de la segunda foto. `null` = todas las posiciones.
+  final CourtPhotoSlot? secondSlot;
+  final ValueChanged<CourtPhotoSlot>? onSecondSlotChanged;
 
   /// Foto elegida (aún sin subir) por posición.
   final Map<CourtPhotoSlot, Uint8List> photos;
@@ -38,18 +47,20 @@ class CourtPhotosPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     bool has(CourtPhotoSlot slot) =>
         photos.containsKey(slot) || remotePhotos.containsKey(slot);
-    final requiredCount = CourtPhotoSlot.required.where(has).length;
-    final complete = requiredCount == CourtPhotoSlot.required.length;
+    final complete = has(CourtPhotoSlot.main);
+    final second = secondSlot;
 
-    Widget slot(CourtPhotoSlot slot, {required double height}) => _PhotoSlot(
-      slot: slot,
-      bytes: photos[slot],
-      url: photos.containsKey(slot) ? null : remotePhotos[slot],
-      failed: failed.contains(slot),
-      height: height,
-      onPick: enabled ? () => onPick(slot) : null,
-      onRemove: enabled ? () => onRemove(slot) : null,
-    );
+    Widget slot(CourtPhotoSlot slot, {required double height, String? label}) =>
+        _PhotoSlot(
+          slot: slot,
+          label: label ?? slot.label,
+          bytes: photos[slot],
+          url: photos.containsKey(slot) ? null : remotePhotos[slot],
+          failed: failed.contains(slot),
+          height: height,
+          onPick: enabled ? () => onPick(slot) : null,
+          onRemove: enabled ? () => onRemove(slot) : null,
+        );
 
     return Container(
       decoration: BoxDecoration(
@@ -96,7 +107,7 @@ class CourtPhotosPicker extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '$requiredCount/3 obligatorias',
+                      complete ? 'Principal lista' : 'Falta la principal',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.labelSm.copyWith(
@@ -113,8 +124,12 @@ class CourtPhotosPicker extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'JPG o PNG de hasta 4 MB. Sin las 3 obligatorias (principal, '
-            'superficie e iluminación) la cancha no recibe reservas.',
+            second != null
+                ? 'JPG o PNG de hasta 4 MB. Solo la principal es obligatoria '
+                      'para recibir reservas; las demás las puedes agregar '
+                      'después al editar la cancha.'
+                : 'JPG o PNG de hasta 4 MB. Solo la principal es obligatoria '
+                      'para recibir reservas.',
             style: AppTypography.bodySm.copyWith(
               color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
               fontSize: 12,
@@ -123,20 +138,50 @@ class CourtPhotosPicker extends StatelessWidget {
           const SizedBox(height: 14),
           slot(CourtPhotoSlot.main, height: 160),
           const SizedBox(height: 10),
-          LayoutBuilder(
-            builder: (context, constraints) => GridView.count(
-              crossAxisCount: constraints.maxWidth >= 520 ? 4 : 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.4,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+          if (second != null) ...[
+            Text(
+              'Segunda foto (opcional)',
+              style: AppTypography.labelMd.copyWith(
+                color: AppColors.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                for (final s in CourtPhotoSlot.values.skip(1))
-                  slot(s, height: double.infinity),
+                for (final option in CourtPhotoSlot.secondOptions)
+                  ChoiceChip(
+                    key: Key('second-photo-${option.apiCode}'),
+                    label: Text(switch (option) {
+                      CourtPhotoSlot.lighting => 'Iluminación',
+                      _ => 'Superficie o grama',
+                    }),
+                    selected: option == second,
+                    onSelected: enabled && onSecondSlotChanged != null
+                        ? (_) => onSecondSlotChanged!(option)
+                        : null,
+                  ),
               ],
             ),
-          ),
+            const SizedBox(height: 8),
+            slot(second, height: 120, label: 'Segunda foto · Opcional'),
+          ] else
+            LayoutBuilder(
+              builder: (context, constraints) => GridView.count(
+                crossAxisCount: constraints.maxWidth >= 520 ? 4 : 2,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 1.4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  for (final s in CourtPhotoSlot.values.skip(1))
+                    slot(s, height: double.infinity),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -146,6 +191,7 @@ class CourtPhotosPicker extends StatelessWidget {
 class _PhotoSlot extends StatelessWidget {
   const _PhotoSlot({
     required this.slot,
+    required this.label,
     required this.bytes,
     required this.url,
     required this.failed,
@@ -155,6 +201,9 @@ class _PhotoSlot extends StatelessWidget {
   });
 
   final CourtPhotoSlot slot;
+
+  /// Nombre de la posición (al crear, la segunda foto tiene el suyo).
+  final String label;
   final Uint8List? bytes;
   final String? url;
   final bool failed;
@@ -170,7 +219,7 @@ class _PhotoSlot extends StatelessWidget {
     final remote = url;
     if (image != null || remote != null) {
       return Semantics(
-        label: '${slot.label}: cargada',
+        label: '$label: cargada',
         child: SizedBox(
           height: height,
           child: ClipRRect(
@@ -211,14 +260,14 @@ class _PhotoSlot extends StatelessWidget {
                   top: 8,
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: _Badge(text: _isMain ? slot.label : slot.hint),
+                    child: _Badge(text: _isMain ? label : slot.hint),
                   ),
                 ),
                 Positioned(
                   right: 4,
                   top: 4,
                   child: IconButton.filled(
-                    tooltip: 'Quitar ${slot.label}',
+                    tooltip: 'Quitar $label',
                     onPressed: onRemove,
                     iconSize: 16,
                     visualDensity: VisualDensity.compact,
@@ -238,7 +287,7 @@ class _PhotoSlot extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: 'Subir ${slot.label}: ${slot.hint}',
+      label: 'Subir $label: ${slot.hint}',
       excludeSemantics: true,
       child: DashedBorderBox(
         backgroundColor: AppColors.surfaceContainerLow.withValues(
@@ -276,7 +325,7 @@ class _PhotoSlot extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        slot.label,
+                        label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTypography.labelSm.copyWith(

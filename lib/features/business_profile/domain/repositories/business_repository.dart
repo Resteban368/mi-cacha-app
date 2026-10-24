@@ -8,9 +8,14 @@ abstract interface class BusinessRepository {
   /// Crea el negocio o, si ya existe, actualiza sus datos.
   Future<Business> save(BusinessDraft draft);
 
-  /// Sube o reemplaza la foto de portada; devuelve el negocio actualizado.
-  Future<Business> uploadCover(ImageUpload image);
+  /// Agrega una foto al final de la galería (máximo
+  /// [Business.maxPhotos]); devuelve el negocio actualizado.
+  Future<Business> addPhoto(ImageUpload image);
 
-  /// Quita la foto de portada; devuelve el negocio actualizado.
-  Future<Business> removeCover();
+  /// Quita una foto de la galería; devuelve el negocio actualizado.
+  Future<Business> removePhoto(String photoId);
+
+  /// Reordena la galería: [ids] trae todas las fotos, sin repetir; la
+  /// primera queda de portada. Devuelve el negocio actualizado.
+  Future<Business> reorderPhotos(List<String> ids);
 }
