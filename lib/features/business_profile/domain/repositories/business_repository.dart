@@ -1,4 +1,5 @@
 import '../entities/business.dart';
+import '../entities/online_booking_link.dart';
 import '../../../../core/media/image_upload.dart';
 
 abstract interface class BusinessRepository {
@@ -18,4 +19,7 @@ abstract interface class BusinessRepository {
   /// Reordena la galería: [ids] trae todas las fotos, sin repetir; la
   /// primera queda de portada. Devuelve el negocio actualizado.
   Future<Business> reorderPhotos(List<String> ids);
+
+  /// Link público de reservas en línea del negocio.
+  Future<OnlineBookingLink> getOnlineBookingLink();
 }

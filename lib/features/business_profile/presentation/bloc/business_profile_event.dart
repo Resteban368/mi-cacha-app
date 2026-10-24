@@ -20,6 +20,11 @@ final class BusinessProfileSaved extends BusinessProfileEvent {
   List<Object?> get props => [draft];
 }
 
+/// Carga (o reintenta) el link de reservas en línea.
+final class BusinessOnlineBookingRequested extends BusinessProfileEvent {
+  const BusinessOnlineBookingRequested();
+}
+
 /// Reintenta cargar el catálogo de servicios.
 final class BusinessAmenitiesRequested extends BusinessProfileEvent {
   const BusinessAmenitiesRequested();

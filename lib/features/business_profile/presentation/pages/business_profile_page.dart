@@ -20,6 +20,7 @@ import '../widgets/amenity_chips.dart';
 import 'location_picker_page.dart';
 import '../widgets/business_form_label.dart';
 import '../widgets/business_media_fields.dart';
+import '../widgets/online_booking_card.dart';
 import '../../../../core/widgets/loading_dialog.dart';
 
 /// Sección "Mi negocio". Sin negocio creado muestra el formulario
@@ -351,6 +352,23 @@ class _BusinessFormState extends State<_BusinessForm> {
                 children: [
                   _Heading(isEditing: _isEditing),
                   const SizedBox(height: 24),
+                  // El link existe solo con el negocio registrado.
+                  if (_isEditing) ...[
+                    BlocBuilder<BusinessProfileBloc, BusinessProfileState>(
+                      buildWhen: (prev, curr) =>
+                          prev.bookingLink != curr.bookingLink ||
+                          prev.bookingLinkStatus != curr.bookingLinkStatus,
+                      builder: (context, state) => OnlineBookingCard(
+                        status: state.bookingLinkStatus,
+                        link: state.bookingLink,
+                        businessName: state.business?.name,
+                        onRetry: () => context.read<BusinessProfileBloc>().add(
+                          const BusinessOnlineBookingRequested(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                   if (isWide)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,

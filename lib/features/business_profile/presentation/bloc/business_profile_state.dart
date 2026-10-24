@@ -18,6 +18,9 @@ enum BusinessSaveStatus {
 /// negocio: si falla, el resto del formulario sigue disponible.
 enum AmenityCatalogStatus { loading, ready, failure }
 
+/// Carga del link de reservas en línea, independiente del formulario.
+enum OnlineBookingStatus { idle, loading, ready, failure }
+
 enum BusinessPhotoStatus {
   idle,
   uploading,
@@ -50,6 +53,8 @@ final class BusinessProfileState extends Equatable {
     this.pendingPhoto,
     this.amenityOptions = const [],
     this.amenityStatus = AmenityCatalogStatus.loading,
+    this.bookingLink,
+    this.bookingLinkStatus = OnlineBookingStatus.idle,
   });
 
   final BusinessProfileStatus status;
@@ -66,6 +71,10 @@ final class BusinessProfileState extends Equatable {
   final List<CatalogAmenity> amenityOptions;
   final AmenityCatalogStatus amenityStatus;
 
+  /// Link para compartir; solo existe con el negocio registrado.
+  final OnlineBookingLink? bookingLink;
+  final OnlineBookingStatus bookingLinkStatus;
+
   bool get isSaving => saveStatus == BusinessSaveStatus.saving;
 
   BusinessProfileState copyWith({
@@ -76,6 +85,8 @@ final class BusinessProfileState extends Equatable {
     ImageUpload? Function()? pendingPhoto,
     List<CatalogAmenity>? amenityOptions,
     AmenityCatalogStatus? amenityStatus,
+    OnlineBookingLink? bookingLink,
+    OnlineBookingStatus? bookingLinkStatus,
   }) => BusinessProfileState(
     status: status ?? this.status,
     business: business ?? this.business,
@@ -84,6 +95,8 @@ final class BusinessProfileState extends Equatable {
     pendingPhoto: pendingPhoto != null ? pendingPhoto() : this.pendingPhoto,
     amenityOptions: amenityOptions ?? this.amenityOptions,
     amenityStatus: amenityStatus ?? this.amenityStatus,
+    bookingLink: bookingLink ?? this.bookingLink,
+    bookingLinkStatus: bookingLinkStatus ?? this.bookingLinkStatus,
   );
 
   @override
@@ -95,5 +108,7 @@ final class BusinessProfileState extends Equatable {
     pendingPhoto,
     amenityOptions,
     amenityStatus,
+    bookingLink,
+    bookingLinkStatus,
   ];
 }

@@ -4,7 +4,9 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mi_cancha/core/catalogs/domain/usecases/get_catalogs.dart';
 import 'package:mi_cancha/core/usecase/usecase.dart';
+import 'package:mi_cancha/features/business_profile/domain/entities/online_booking_link.dart';
 import 'package:mi_cancha/features/business_profile/domain/usecases/get_my_business.dart';
+import 'package:mi_cancha/features/business_profile/domain/usecases/get_online_booking_link.dart';
 import 'package:mi_cancha/features/business_profile/domain/entities/business.dart';
 import 'package:mi_cancha/core/media/image_upload.dart';
 import 'package:mi_cancha/features/business_profile/domain/usecases/business_photo_usecases.dart';
@@ -26,6 +28,8 @@ class _MockReorder extends Mock implements ReorderBusinessPhotos {}
 
 class _MockGetCatalogs extends Mock implements GetCatalogs {}
 
+class _MockGetBookingLink extends Mock implements GetOnlineBookingLink {}
+
 void main() {
   late _MockGetMyBusiness getMyBusiness;
   late _MockSaveBusiness saveBusiness;
@@ -33,6 +37,14 @@ void main() {
   late _MockRemove removePhoto;
   late _MockReorder reorderPhotos;
   late _MockGetCatalogs getCatalogs;
+  late _MockGetBookingLink getBookingLink;
+
+  const link = OnlineBookingLink(
+    url: 'https://mi-cancha-api.vercel.app/reservar/el-campin',
+    slug: 'el-campin',
+    enabled: true,
+    bookingAvailable: true,
+  );
 
   final photo = ImageUpload(
     bytes: Uint8List.fromList([0xff, 0xd8, 0xff, 0xe0]),
@@ -71,7 +83,9 @@ void main() {
     removePhoto = _MockRemove();
     reorderPhotos = _MockReorder();
     getCatalogs = _MockGetCatalogs();
+    getBookingLink = _MockGetBookingLink();
     when(() => getCatalogs(any())).thenAnswer((_) async => catalogs);
+    when(() => getBookingLink(any())).thenAnswer((_) async => link);
   });
 
   BusinessProfileBloc build() => BusinessProfileBloc(
@@ -81,6 +95,7 @@ void main() {
     removePhoto: removePhoto,
     reorderPhotos: reorderPhotos,
     getCatalogs: getCatalogs,
+    getBookingLink: getBookingLink,
   );
 
   const ready = BusinessProfileState(status: BusinessProfileStatus.ready);
@@ -114,6 +129,20 @@ void main() {
         status: BusinessProfileStatus.ready,
         business: business,
         amenityStatus: AmenityCatalogStatus.failure,
+      ),
+      // Después carga el link de reservas.
+      BusinessProfileState(
+        status: BusinessProfileStatus.ready,
+        business: business,
+        amenityStatus: AmenityCatalogStatus.failure,
+        bookingLinkStatus: OnlineBookingStatus.loading,
+      ),
+      BusinessProfileState(
+        status: BusinessProfileStatus.ready,
+        business: business,
+        amenityStatus: AmenityCatalogStatus.failure,
+        bookingLink: link,
+        bookingLinkStatus: OnlineBookingStatus.ready,
       ),
     ],
   );
@@ -179,6 +208,20 @@ void main() {
         business: business,
         saveStatus: BusinessSaveStatus.created,
       ),
+      // Recién creado ya tiene link de reservas.
+      BusinessProfileState(
+        status: BusinessProfileStatus.ready,
+        business: business,
+        saveStatus: BusinessSaveStatus.created,
+        bookingLinkStatus: OnlineBookingStatus.loading,
+      ),
+      BusinessProfileState(
+        status: BusinessProfileStatus.ready,
+        business: business,
+        saveStatus: BusinessSaveStatus.created,
+        bookingLink: link,
+        bookingLinkStatus: OnlineBookingStatus.ready,
+      ),
     ],
   );
 
@@ -231,6 +274,55 @@ void main() {
       ),
     ],
   );
+
+  group('link de reservas en línea', () {
+    blocTest<BusinessProfileBloc, BusinessProfileState>(
+      'sin negocio no se pide',
+      setUp: () =>
+          when(() => getMyBusiness(any())).thenAnswer((_) async => null),
+      build: build,
+      act: (bloc) => bloc.add(const BusinessProfileRequested()),
+      verify: (bloc) {
+        verifyNever(() => getBookingLink(any()));
+        expect(bloc.state.bookingLinkStatus, OnlineBookingStatus.idle);
+      },
+    );
+
+    blocTest<BusinessProfileBloc, BusinessProfileState>(
+      'con negocio lo carga después del formulario',
+      setUp: () =>
+          when(() => getMyBusiness(any())).thenAnswer((_) async => business),
+      build: build,
+      act: (bloc) => bloc.add(const BusinessProfileRequested()),
+      verify: (bloc) {
+        expect(bloc.state.status, BusinessProfileStatus.ready);
+        expect(bloc.state.bookingLink, link);
+        expect(bloc.state.bookingLinkStatus, OnlineBookingStatus.ready);
+      },
+    );
+
+    blocTest<BusinessProfileBloc, BusinessProfileState>(
+      'si falla, el formulario sigue listo y se puede reintentar',
+      setUp: () {
+        when(() => getMyBusiness(any())).thenAnswer((_) async => business);
+        when(() => getBookingLink(any())).thenThrow(Exception());
+      },
+      build: build,
+      act: (bloc) async {
+        bloc.add(const BusinessProfileRequested());
+        await Future<void>.delayed(Duration.zero);
+        expect(bloc.state.status, BusinessProfileStatus.ready);
+        expect(bloc.state.bookingLinkStatus, OnlineBookingStatus.failure);
+
+        when(() => getBookingLink(any())).thenAnswer((_) async => link);
+        bloc.add(const BusinessOnlineBookingRequested());
+      },
+      verify: (bloc) {
+        expect(bloc.state.bookingLink, link);
+        expect(bloc.state.bookingLinkStatus, OnlineBookingStatus.ready);
+      },
+    );
+  });
 
   group('galería de fotos', () {
     final existing = BusinessProfileState(

@@ -11,6 +11,7 @@ import 'package:mi_cancha/core/location/geo_point.dart';
 import 'package:mi_cancha/core/media/photo_picker.dart';
 import 'package:mi_cancha/core/router/app_routes.dart';
 import 'package:mi_cancha/features/business_profile/domain/entities/business.dart';
+import 'package:mi_cancha/features/business_profile/domain/entities/online_booking_link.dart';
 import 'package:mi_cancha/core/media/image_upload.dart';
 import 'package:mi_cancha/features/business_profile/presentation/bloc/business_profile_bloc.dart';
 import 'package:mi_cancha/features/business_profile/presentation/pages/business_profile_page.dart';
@@ -65,6 +66,13 @@ void main() {
     picker = _FakePicker();
     location = _FakeLocation();
   });
+
+  const bookingLink = OnlineBookingLink(
+    url: 'https://mi-cancha-api.vercel.app/reservar/el-campin',
+    slug: 'el-campin',
+    enabled: true,
+    bookingAvailable: true,
+  );
 
   const empty = BusinessProfileState(
     status: BusinessProfileStatus.ready,
@@ -247,11 +255,51 @@ void main() {
     verifyNever(() => bloc.add(any(that: isA<BusinessPhotoPicked>())));
   });
 
+  group('link de reservas', () {
+    testWidgets('al crear el negocio aún no aparece', (tester) async {
+      await pump(tester, empty);
+      expect(find.byKey(const Key('online-booking-card')), findsNothing);
+    });
+
+    testWidgets('con negocio va arriba del formulario', (tester) async {
+      await pump(
+        tester,
+        empty.copyWith(
+          business: business,
+          bookingLink: bookingLink,
+          bookingLinkStatus: OnlineBookingStatus.ready,
+        ),
+      );
+
+      expect(find.text(bookingLink.url), findsOneWidget);
+      final card = tester.getTopLeft(
+        find.byKey(const Key('online-booking-card')),
+      );
+      final name = tester.getTopLeft(find.byType(TextFormField).first);
+      expect(card.dy, lessThan(name.dy));
+    });
+
+    testWidgets('si falla, reintentar lo pide al bloc', (tester) async {
+      await pump(
+        tester,
+        empty.copyWith(
+          business: business,
+          bookingLinkStatus: OnlineBookingStatus.failure,
+        ),
+      );
+      await tester.tap(find.byKey(const Key('online-booking-retry')));
+      verify(() => bloc.add(const BusinessOnlineBookingRequested())).called(1);
+    });
+  });
+
   group('galería', () {
     BusinessProfileState withPhotos(int count) => BusinessProfileState(
       status: BusinessProfileStatus.ready,
       amenityOptions: amenityCatalog,
       amenityStatus: AmenityCatalogStatus.ready,
+      // Link ya cargado: el shimmer no deja que pumpAndSettle termine.
+      bookingLink: bookingLink,
+      bookingLinkStatus: OnlineBookingStatus.ready,
       business: Business(
         id: 'b1',
         name: 'El Campín',

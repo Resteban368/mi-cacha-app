@@ -1,4 +1,5 @@
 import '../../domain/entities/business.dart';
+import '../../domain/entities/online_booking_link.dart';
 import '../../../../core/media/image_upload.dart';
 import '../../domain/repositories/business_repository.dart';
 import '../datasources/business_data_source.dart';
@@ -24,4 +25,8 @@ class BusinessRepositoryImpl implements BusinessRepository {
   @override
   Future<Business> reorderPhotos(List<String> ids) =>
       _dataSource.reorderPhotos(ids);
+
+  @override
+  Future<OnlineBookingLink> getOnlineBookingLink() =>
+      _dataSource.getOnlineBookingLink();
 }

@@ -6,9 +6,11 @@ import '../../../../core/catalogs/domain/entities/catalog_amenity.dart';
 import '../../../../core/catalogs/domain/usecases/get_catalogs.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/business.dart';
+import '../../domain/entities/online_booking_link.dart';
 import '../../../../core/media/image_upload.dart';
 import '../../domain/usecases/business_photo_usecases.dart';
 import '../../domain/usecases/get_my_business.dart';
+import '../../domain/usecases/get_online_booking_link.dart';
 import '../../domain/usecases/save_business.dart';
 
 part 'business_profile_event.dart';
@@ -23,7 +25,9 @@ class BusinessProfileBloc
     required RemoveBusinessPhoto removePhoto,
     required ReorderBusinessPhotos reorderPhotos,
     required GetCatalogs getCatalogs,
+    required GetOnlineBookingLink getBookingLink,
   }) : _getMyBusiness = getMyBusiness,
+       _getBookingLink = getBookingLink,
        _getCatalogs = getCatalogs,
        _saveBusiness = saveBusiness,
        _addPhoto = addPhoto,
@@ -31,6 +35,10 @@ class BusinessProfileBloc
        _reorderPhotos = reorderPhotos,
        super(const BusinessProfileState()) {
     on<BusinessProfileRequested>(_onRequested, transformer: restartable());
+    on<BusinessOnlineBookingRequested>(
+      _onBookingLinkRequested,
+      transformer: restartable(),
+    );
     on<BusinessAmenitiesRequested>(
       _onAmenitiesRequested,
       transformer: restartable(),
@@ -42,6 +50,7 @@ class BusinessProfileBloc
   }
 
   final GetMyBusiness _getMyBusiness;
+  final GetOnlineBookingLink _getBookingLink;
   final GetCatalogs _getCatalogs;
   final SaveBusiness _saveBusiness;
   final AddBusinessPhoto _addPhoto;
@@ -73,6 +82,29 @@ class BusinessProfileBloc
       );
     } catch (_) {
       emit(state.copyWith(status: BusinessProfileStatus.failure));
+      return;
+    }
+    // El link existe solo con el negocio registrado; se carga después para
+    // no demorar el formulario.
+    if (state.business != null) add(const BusinessOnlineBookingRequested());
+  }
+
+  Future<void> _onBookingLinkRequested(
+    BusinessOnlineBookingRequested event,
+    Emitter<BusinessProfileState> emit,
+  ) async {
+    if (state.business == null) return;
+    emit(state.copyWith(bookingLinkStatus: OnlineBookingStatus.loading));
+    try {
+      final link = await _getBookingLink(const NoParams());
+      emit(
+        state.copyWith(
+          bookingLink: link,
+          bookingLinkStatus: OnlineBookingStatus.ready,
+        ),
+      );
+    } catch (_) {
+      emit(state.copyWith(bookingLinkStatus: OnlineBookingStatus.failure));
     }
   }
 
@@ -136,6 +168,8 @@ class BusinessProfileBloc
               : BusinessSaveStatus.updated,
         ),
       );
+      // Recién creado: ya tiene link de reservas.
+      if (isNew) add(const BusinessOnlineBookingRequested());
     } catch (_) {
       emit(state.copyWith(saveStatus: BusinessSaveStatus.failure));
     }

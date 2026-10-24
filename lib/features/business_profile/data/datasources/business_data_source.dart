@@ -1,4 +1,5 @@
 import '../../domain/entities/business.dart';
+import '../../domain/entities/online_booking_link.dart';
 import '../../../../core/media/image_upload.dart';
 
 abstract interface class BusinessDataSource {
@@ -12,6 +13,8 @@ abstract interface class BusinessDataSource {
 
   /// [ids] trae todas las fotos, sin repetir, en el orden deseado.
   Future<Business> reorderPhotos(List<String> ids);
+
+  Future<OnlineBookingLink> getOnlineBookingLink();
 }
 
 /// Negocio en memoria mientras la API está en construcción: arranca vacío
@@ -73,6 +76,18 @@ class FakeBusinessDataSource implements BusinessDataSource {
     await Future<void>.delayed(latency);
     final byId = {for (final p in _requireBusiness().photos) p.id: p};
     return _business = _withPhotos([for (final id in ids) ?byId[id]]);
+  }
+
+  @override
+  Future<OnlineBookingLink> getOnlineBookingLink() async {
+    await Future<void>.delayed(latency);
+    final business = _requireBusiness();
+    return OnlineBookingLink(
+      url: 'https://mi-cancha.test/reservar/${business.id}',
+      slug: business.id,
+      enabled: true,
+      bookingAvailable: true,
+    );
   }
 
   Business _requireBusiness() =>

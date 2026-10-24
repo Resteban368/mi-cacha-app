@@ -4,6 +4,7 @@ import '../../../../core/location/geo_point.dart';
 import '../../../../core/network/api_config.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/business.dart';
+import '../../domain/entities/online_booking_link.dart';
 import '../../../../core/media/image_upload.dart';
 import 'business_data_source.dart';
 
@@ -90,6 +91,24 @@ class BusinessApiDataSource implements BusinessDataSource {
       ),
     );
     return _fromJson(response.data!);
+  }
+
+  @override
+  Future<OnlineBookingLink> getOnlineBookingLink() async {
+    final response = await apiCall(
+      () => _dio.get<Map<String, dynamic>>('/business/online-booking'),
+    );
+    final json = response.data!;
+    return OnlineBookingLink(
+      url: ApiConfig.secureUrl(json['url'] as String),
+      slug: json['slug'] as String? ?? '',
+      enabled: json['enabled'] as bool? ?? false,
+      bookingAvailable: json['bookingAvailable'] as bool? ?? false,
+      unavailableReason: switch (json['unavailableReason']) {
+        final String reason when reason.trim().isNotEmpty => reason,
+        _ => null,
+      },
+    );
   }
 
   /// `photos` puede no venir (API anterior): queda la lista vacía.

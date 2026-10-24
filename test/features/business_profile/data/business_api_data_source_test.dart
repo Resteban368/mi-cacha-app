@@ -8,6 +8,7 @@ import 'package:mi_cancha/core/location/geo_point.dart';
 import 'package:mi_cancha/core/network/api_exception.dart';
 import 'package:mi_cancha/features/business_profile/data/datasources/business_api_data_source.dart';
 import 'package:mi_cancha/features/business_profile/domain/entities/business.dart';
+import 'package:mi_cancha/features/business_profile/domain/entities/online_booking_link.dart';
 import 'package:mi_cancha/core/media/image_upload.dart';
 
 import '../../../helpers/api_dio.dart';
@@ -175,6 +176,54 @@ void main() {
       expect(body, {
         'ids': ['p2', 'p1'],
       });
+    });
+  });
+
+  group('link de reservas en línea', () {
+    test('GET /business/online-booking por HTTPS', () async {
+      adapter.handler = (_) => (
+        200,
+        {
+          'enabled': true,
+          'slug': 'cancha-dev',
+          'url': 'http://mi-cancha-api.vercel.app/reservar/cancha-dev',
+          'bookingAvailable': true,
+          'unavailableReason': null,
+        },
+      );
+      final link = await source.getOnlineBookingLink();
+
+      expect(adapter.requests.single.method, 'GET');
+      expect(adapter.requests.single.path, '/business/online-booking');
+      expect(
+        link,
+        const OnlineBookingLink(
+          url: 'https://mi-cancha-api.vercel.app/reservar/cancha-dev',
+          slug: 'cancha-dev',
+          enabled: true,
+          bookingAvailable: true,
+        ),
+      );
+      expect(link.isLive, isTrue);
+    });
+
+    test('sin reservas trae el motivo de la API', () async {
+      adapter.handler = (_) => (
+        200,
+        {
+          'enabled': true,
+          'slug': 'cancha-dev',
+          'url': 'https://x/reservar/cancha-dev',
+          'bookingAvailable': false,
+          'unavailableReason': 'Aún no tienes canchas listas para reservar',
+        },
+      );
+      final link = await source.getOnlineBookingLink();
+      expect(link.isLive, isFalse);
+      expect(
+        link.unavailableReason,
+        'Aún no tienes canchas listas para reservar',
+      );
     });
   });
 
