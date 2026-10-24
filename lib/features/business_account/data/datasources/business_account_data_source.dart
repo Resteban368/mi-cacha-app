@@ -1,7 +1,10 @@
 import '../../domain/entities/business_account.dart';
+import '../../domain/entities/password_change.dart';
 
 abstract interface class BusinessAccountDataSource {
   Future<BusinessAccount> getAccount();
+
+  Future<void> changePassword(PasswordChange change);
 }
 
 /// Datos de ejemplo del diseño "Mi Cuenta / Ajustes" mientras no exista la
@@ -63,4 +66,8 @@ class FakeBusinessAccountDataSource implements BusinessAccountDataSource {
     await Future<void>.delayed(latency);
     return account;
   }
+
+  @override
+  Future<void> changePassword(PasswordChange change) =>
+      Future<void>.delayed(latency);
 }

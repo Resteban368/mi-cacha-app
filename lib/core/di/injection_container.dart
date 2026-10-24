@@ -20,8 +20,10 @@ import '../../features/business_account/data/datasources/business_account_api_da
 import '../../features/business_account/data/datasources/business_account_data_source.dart';
 import '../../features/business_account/data/repositories/business_account_repository_impl.dart';
 import '../../features/business_account/domain/repositories/business_account_repository.dart';
+import '../../features/business_account/domain/usecases/change_password.dart';
 import '../../features/business_account/domain/usecases/get_business_account.dart';
 import '../../features/business_account/presentation/bloc/business_account_bloc.dart';
+import '../../features/business_account/presentation/bloc/change_password_cubit.dart';
 import '../../features/business_clients/data/datasources/business_customers_api_data_source.dart';
 import '../../features/business_clients/data/datasources/business_customers_data_source.dart';
 import '../../features/business_clients/data/repositories/business_customers_repository_impl.dart';
@@ -350,13 +352,15 @@ void _initBusinessAccount() {
       () => BusinessAccountRepositoryImpl(sl()),
     )
     ..registerLazySingleton(() => GetBusinessAccount(sl()))
+    ..registerLazySingleton(() => ChangePassword(sl()))
     ..registerFactory(
       () => BusinessAccountBloc(
         getAccount: sl(),
         getMyBusiness: sl(),
         getAppVersion: sl(),
       ),
-    );
+    )
+    ..registerFactory(() => ChangePasswordCubit(changePassword: sl()));
 }
 
 void _initBusinessCourts() {

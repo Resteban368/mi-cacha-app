@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:convert';
+
 import 'package:mi_cancha/features/business_account/data/datasources/business_account_api_data_source.dart';
+import 'package:mi_cancha/features/business_account/domain/entities/password_change.dart';
 
 import '../../../helpers/api_dio.dart';
 import '../../../helpers/fake_http_adapter.dart';
@@ -72,5 +75,83 @@ void main() {
 
     expect(account.subscription, isNull);
     expect(account.admin.email, '');
+  });
+
+  group('cambiar contraseña', () {
+    const change = PasswordChange(
+      currentPassword: 'actual123',
+      newPassword: 'nueva12345',
+    );
+
+    test('PUT /auth/password con las dos contraseñas; 204 es éxito', () async {
+      final adapter = FakeHttpAdapter((_) => (204, null));
+      await BusinessAccountApiDataSource(
+        apiDio(adapter),
+      ).changePassword(change);
+
+      final request = adapter.requests.single;
+      expect(request.method, 'PUT');
+      expect(request.path, '/auth/password');
+      final body = request.data is String
+          ? jsonDecode(request.data as String)
+          : request.data;
+      expect(body, {
+        'currentPassword': 'actual123',
+        'newPassword': 'nueva12345',
+      });
+    });
+
+    test('400 trae el mensaje de la API para el formulario', () async {
+      final adapter = FakeHttpAdapter(
+        (_) => (
+          400,
+          {
+            'message': 'La contraseña actual no es correcta',
+            'error': 'Bad Request',
+            'statusCode': 400,
+          },
+        ),
+      );
+      await expectLater(
+        BusinessAccountApiDataSource(apiDio(adapter)).changePassword(change),
+        throwsA(
+          isA<PasswordChangeException>()
+              .having((e) => e.failure, 'falla', PasswordChangeFailure.rejected)
+              .having(
+                (e) => e.message,
+                'mensaje',
+                'La contraseña actual no es correcta',
+              ),
+        ),
+      );
+    });
+
+    test('sin conexión', () async {
+      final adapter = FakeHttpAdapter(offline);
+      await expectLater(
+        BusinessAccountApiDataSource(apiDio(adapter)).changePassword(change),
+        throwsA(
+          isA<PasswordChangeException>().having(
+            (e) => e.failure,
+            'falla',
+            PasswordChangeFailure.network,
+          ),
+        ),
+      );
+    });
+
+    test('500 es error del servidor', () async {
+      final adapter = FakeHttpAdapter((_) => (500, {'statusCode': 500}));
+      await expectLater(
+        BusinessAccountApiDataSource(apiDio(adapter)).changePassword(change),
+        throwsA(
+          isA<PasswordChangeException>().having(
+            (e) => e.failure,
+            'falla',
+            PasswordChangeFailure.server,
+          ),
+        ),
+      );
+    });
   });
 }

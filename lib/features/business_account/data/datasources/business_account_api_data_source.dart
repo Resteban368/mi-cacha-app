@@ -2,9 +2,11 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/business_account.dart';
+import '../../domain/entities/password_change.dart';
 import 'business_account_data_source.dart';
 
-/// Cuenta del administrador en la API (`GET /business/account`).
+/// Cuenta del administrador en la API (`GET /business/account`) y cambio de
+/// contraseña (`PUT /auth/password`).
 class BusinessAccountApiDataSource implements BusinessAccountDataSource {
   const BusinessAccountApiDataSource(this._dio);
 
@@ -16,6 +18,29 @@ class BusinessAccountApiDataSource implements BusinessAccountDataSource {
       () => _dio.get<Map<String, dynamic>>('/business/account'),
     );
     return fromJson(response.data!);
+  }
+
+  /// Responde 204 sin cuerpo. La contraseña actual incorrecta llega como
+  /// 400 (no 401) para que la sesión no se cierre.
+  @override
+  Future<void> changePassword(PasswordChange change) async {
+    try {
+      await apiCall(
+        () => _dio.put<void>(
+          '/auth/password',
+          data: {
+            'currentPassword': change.currentPassword,
+            'newPassword': change.newPassword,
+          },
+        ),
+      );
+    } on ApiException catch (error) {
+      throw PasswordChangeException(switch (error.kind) {
+        ApiErrorKind.badRequest => PasswordChangeFailure.rejected,
+        ApiErrorKind.network => PasswordChangeFailure.network,
+        _ => PasswordChangeFailure.server,
+      }, message: error.message);
+    }
   }
 
   static BusinessAccount fromJson(Map<String, dynamic> json) {

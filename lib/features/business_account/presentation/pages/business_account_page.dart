@@ -12,8 +12,10 @@ import '../../../business_notifications/presentation/widgets/notifications_setti
 import '../../../business_profile/domain/entities/business.dart';
 import '../../domain/entities/business_account.dart';
 import '../bloc/business_account_bloc.dart';
+import '../bloc/change_password_cubit.dart';
 import '../widgets/account_profile_card.dart';
 import '../widgets/account_settings_card.dart';
+import '../widgets/change_password_dialog.dart';
 import '../widgets/subscription_card.dart';
 import '../../../../core/widgets/loading_dialog.dart';
 
@@ -24,7 +26,11 @@ class BusinessAccountPage extends StatelessWidget {
     super.key,
     required this.onSignOut,
     this.createNotificationsCubit,
+    this.createChangePasswordCubit,
   });
+
+  /// Cubit del cambio de contraseña; sin él la opción queda "próximamente".
+  final ChangePasswordCubit Function()? createChangePasswordCubit;
 
   /// Cubit del aviso de nuevas reservas; sin él no se muestra la fila.
   final BusinessNotificationsCubit Function()? createNotificationsCubit;
@@ -67,6 +73,7 @@ class BusinessAccountPage extends StatelessWidget {
                 BusinessAccountStatus.ready => _AccountContent(
                   onSignOut: onSignOut,
                   createNotificationsCubit: createNotificationsCubit,
+                  createChangePasswordCubit: createChangePasswordCubit,
                   account: state.account!,
                   venue: state.venue,
                   version: state.version,
@@ -84,6 +91,7 @@ class _AccountContent extends StatelessWidget {
   const _AccountContent({
     required this.onSignOut,
     this.createNotificationsCubit,
+    this.createChangePasswordCubit,
     required this.account,
     required this.venue,
     required this.version,
@@ -95,12 +103,13 @@ class _AccountContent extends StatelessWidget {
 
   final Future<void> Function() onSignOut;
   final BusinessNotificationsCubit Function()? createNotificationsCubit;
+  final ChangePasswordCubit Function()? createChangePasswordCubit;
   final BusinessAccount account;
   final Business? venue;
   final String? version;
 
-  // TODO: implementar cada flujo (edición de perfil, planes, facturación,
-  // contraseña y WhatsApp con url_launcher).
+  // TODO: implementar cada flujo (edición de perfil, planes, facturación y
+  // WhatsApp con url_launcher).
   void _comingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -127,7 +136,13 @@ class _AccountContent extends StatelessWidget {
           );
     final create = createNotificationsCubit;
     final settings = AccountSettingsCard(
-      onChangePassword: () => _comingSoon(context, 'Cambiar contraseña'),
+      onChangePassword: switch (createChangePasswordCubit) {
+        final create? => () => showChangePasswordDialog(
+          context,
+          createCubit: create,
+        ),
+        null => () => _comingSoon(context, 'Cambiar contraseña'),
+      },
       onSupport: () => _comingSoon(context, 'Soporte por WhatsApp'),
       onLogout: () => confirmBusinessLogout(context, signOut: onSignOut),
       notifications: create == null

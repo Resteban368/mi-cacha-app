@@ -13,6 +13,7 @@ import '../../features/business_notifications/presentation/bloc/business_notific
 import '../../features/business_notifications/presentation/bloc/notifications_inbox_cubit.dart';
 import '../../features/business_notifications/presentation/widgets/notifications_inbox_host.dart';
 import '../../features/business_account/presentation/bloc/business_account_bloc.dart';
+import '../../features/business_account/presentation/bloc/change_password_cubit.dart';
 import '../../features/business_account/presentation/pages/business_account_page.dart';
 import '../../features/business_clients/presentation/bloc/business_clients_bloc.dart';
 import '../../features/business_clients/presentation/bloc/business_clients_event.dart';
@@ -340,6 +341,7 @@ GoRouter _buildRouter(
                 onSignOut: _signOut,
                 createNotificationsCubit: () =>
                     sl<BusinessNotificationsCubit>(),
+                createChangePasswordCubit: () => sl<ChangePasswordCubit>(),
               ),
             ),
           ),

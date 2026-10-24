@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mi_cancha/core/router/app_routes.dart';
 import 'package:mi_cancha/features/business_account/domain/entities/business_account.dart';
+import 'package:mi_cancha/features/business_account/domain/usecases/change_password.dart';
 import 'package:mi_cancha/features/business_account/presentation/bloc/business_account_bloc.dart';
+import 'package:mi_cancha/features/business_account/presentation/bloc/change_password_cubit.dart';
 import 'package:mi_cancha/features/business_account/presentation/pages/business_account_page.dart';
 import 'package:mi_cancha/features/business_account/presentation/widgets/account_profile_card.dart';
 import 'package:mi_cancha/features/business_account/presentation/widgets/account_settings_card.dart';
@@ -18,6 +20,8 @@ import '../account_fixtures.dart';
 
 class _MockBloc extends MockBloc<BusinessAccountEvent, BusinessAccountState>
     implements BusinessAccountBloc {}
+
+class _MockChangePassword extends Mock implements ChangePassword {}
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -36,6 +40,7 @@ void main() {
     WidgetTester tester, {
     BusinessAccountState? state,
     Size size = const Size(412, 915),
+    ChangePasswordCubit Function()? createChangePasswordCubit,
   }) async {
     tester.view
       ..physicalSize = size
@@ -53,7 +58,10 @@ void main() {
               builder: (_, _) => Scaffold(
                 body: BlocProvider<BusinessAccountBloc>.value(
                   value: bloc,
-                  child: BusinessAccountPage(onSignOut: () async {}),
+                  child: BusinessAccountPage(
+                    onSignOut: () async {},
+                    createChangePasswordCubit: createChangePasswordCubit,
+                  ),
                 ),
               ),
             ),
@@ -175,6 +183,18 @@ void main() {
     expect(find.text('Cambio de plan: próximamente'), findsOneWidget);
     await tapText(tester, 'Cambiar contraseña');
     expect(find.text('Cambiar contraseña: próximamente'), findsOneWidget);
+  });
+
+  testWidgets('"Cambiar contraseña" abre el formulario', (tester) async {
+    await pumpPage(
+      tester,
+      createChangePasswordCubit: () =>
+          ChangePasswordCubit(changePassword: _MockChangePassword()),
+    );
+
+    await tapText(tester, 'Cambiar contraseña');
+    expect(find.text('Guardar contraseña'), findsOneWidget);
+    expect(find.text('Cambiar contraseña: próximamente'), findsNothing);
   });
 
   testWidgets('muestra el error y reintenta', (tester) async {
