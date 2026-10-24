@@ -119,6 +119,23 @@ void main() {
     });
   });
 
+  test('crear no envía customerId (la API lo rechaza con 400)', () async {
+    await source.create(
+      const NewPayment(
+        customerName: 'Valderrama',
+        customerId: 'cust-1',
+        reservationId: 'res-1',
+        amount: 70000,
+        method: PaymentMethod.efectivo,
+        concept: PaymentConcept.anticipo,
+      ),
+    );
+
+    final body = _body(adapter.requests.single.data) as Map<String, dynamic>;
+    expect(body.containsKey('customerId'), isFalse);
+    expect(body['reservationId'], 'res-1');
+  });
+
   test('"Otro medio" no se ofrece al registrar un pago', () {
     expect(PaymentMethod.selectable, isNot(contains(PaymentMethod.otro)));
     expect(PaymentMethod.selectable, contains(PaymentMethod.breB));

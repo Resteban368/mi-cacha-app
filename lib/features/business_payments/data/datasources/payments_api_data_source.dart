@@ -55,13 +55,13 @@ class PaymentsApiDataSource implements PaymentsDataSource {
     final response = await apiCall(
       () => _dio.post<Map<String, dynamic>>(
         _path,
+        // La API rechaza campos que no conoce (p. ej. customerId): el
+        // cliente queda ligado por la reserva.
         data: {
           'customerName': payment.customerName.trim(),
           'amount': payment.amount,
           'method': payment.method.apiCode,
           'concept': payment.concept.name.toUpperCase(),
-          if (payment.customerId != null && payment.customerId!.isNotEmpty)
-            'customerId': payment.customerId,
           if (payment.reservationId != null &&
               payment.reservationId!.isNotEmpty)
             'reservationId': payment.reservationId,
