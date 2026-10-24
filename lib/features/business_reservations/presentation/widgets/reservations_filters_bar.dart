@@ -45,6 +45,7 @@ class ReservationsFiltersBar extends StatelessWidget {
       initialDateRange: from != null && to != null
           ? DateTimeRange(start: from, end: to)
           : null,
+      locale: const Locale('es', 'CO'),
       helpText: 'Rango de fechas',
       saveText: 'Aplicar',
     );

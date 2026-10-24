@@ -101,6 +101,7 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
       initialDate: currentDay,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
+      locale: const Locale('es', 'CO'),
       helpText: 'Seleccionar día de agenda',
       confirmText: 'Ver agenda',
       cancelText: 'Cancelar',

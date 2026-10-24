@@ -64,38 +64,6 @@ class AccountProfileCard extends StatelessWidget {
                 onTap: onVenueTap,
               ),
               const SizedBox(height: 8),
-              Material(
-                color: AppColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: onEditProfile,
-                  child: SizedBox(
-                    height: 44,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.edit,
-                          size: 17,
-                          color: AppColors.brandTeal,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            'Editar perfil y preferencias',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.labelMd.copyWith(
-                              color: AppColors.brandTeal,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ],

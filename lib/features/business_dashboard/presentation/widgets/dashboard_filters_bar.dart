@@ -40,6 +40,7 @@ class DashboardFiltersBar extends StatelessWidget {
               start: today.subtract(const Duration(days: 6)),
               end: today,
             ),
+      locale: const Locale('es', 'CO'),
       helpText: 'Período del dashboard',
     );
     if (range == null) return;

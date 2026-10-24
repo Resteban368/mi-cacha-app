@@ -30,6 +30,7 @@ class PaymentsFilters extends StatelessWidget {
       initialDate: filter.day ?? now,
       firstDate: DateTime(now.year - 2),
       lastDate: now,
+      locale: const Locale('es', 'CO'),
       helpText: 'Día del pago',
     );
     if (picked != null) {

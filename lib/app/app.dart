@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/di/injection_container.dart';
@@ -32,6 +33,16 @@ class _MiCanchaAppState extends State<MiCanchaApp> {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         routerConfig: _router,
+        locale: const Locale('es', 'CO'),
+        supportedLocales: const [
+          Locale('es', 'CO'),
+          Locale('es'),
+        ],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
       ),
     );
   }

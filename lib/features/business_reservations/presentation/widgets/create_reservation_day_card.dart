@@ -39,6 +39,7 @@ class CreateReservationDayCard extends StatelessWidget {
       initialDate: day,
       firstDate: minDay,
       lastDate: minDay.add(const Duration(days: 365)),
+      locale: const Locale('es', 'CO'),
       helpText: 'Día de la reserva',
     );
     if (picked != null) onDayChanged(picked);
