@@ -135,6 +135,21 @@ class ReservationDetailView extends StatelessWidget {
     _setStatus(context, status);
   }
 
+  /// Abre "Nuevo pago" con esta reserva y su cliente ya elegidos. Al volver
+  /// con el pago registrado, el detalle muestra el saldo al día.
+  Future<void> _registerPayment(BuildContext context, Reservation r) async {
+    if (!ensureCanWrite(context)) return;
+    final cubit = context.read<ReservationDetailCubit>();
+    final paid = await GoRouter.of(
+      context,
+    ).push<bool>(AppRoutes.businessNewPayment, extra: r);
+    if (paid != true || !context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('Pago registrado.')));
+    await cubit.paymentRegistered();
+  }
+
   void _setStatus(BuildContext context, ReservationStatus status) {
     if (!ensureCanWrite(context)) return;
     context.read<ReservationDetailCubit>().setStatus(status);
@@ -207,7 +222,10 @@ class ReservationDetailView extends StatelessWidget {
             WriteAccessScope.canWrite(context) &&
             r.status != ReservationStatus.cancelled;
         // "No asistió" y "Jugada" solo tienen sentido con el turno iniciado.
-        final started = !DateTime.now().isBefore(r.start);
+        final now = DateTime.now();
+        final started = !now.isBefore(r.start);
+        // Con el turno ya terminado no se cancela: solo se marca o se cobra.
+        final ended = !now.isBefore(r.end);
         const notStartedHint = 'Disponible cuando empiece el turno';
 
         return PopScope(
@@ -289,18 +307,28 @@ class ReservationDetailView extends StatelessWidget {
                           ),
                         ),
                       ),
-                      TextButton.icon(
-                        key: const Key('cancel-reservation'),
+                      if (!ended)
+                        TextButton.icon(
+                          key: const Key('cancel-reservation'),
+                          onPressed: working
+                              ? null
+                              : () => _confirmCancel(context),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.statusDue,
+                          ),
+                          icon: const Icon(Icons.event_busy_outlined, size: 18),
+                          label: const Text('Cancelar reserva'),
+                        ),
+                    ],
+                    if (canAct && r.displayBalance > 0)
+                      FilledButton.tonalIcon(
+                        key: const Key('register-payment'),
                         onPressed: working
                             ? null
-                            : () => _confirmCancel(context),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.statusDue,
-                        ),
-                        icon: const Icon(Icons.event_busy_outlined, size: 18),
-                        label: const Text('Cancelar reserva'),
+                            : () => _registerPayment(context, r),
+                        icon: const Icon(Icons.add_card_rounded, size: 18),
+                        label: const Text('Realizar pago'),
                       ),
-                    ],
                     if (canAct && r.status != ReservationStatus.confirmed)
                       OutlinedButton.icon(
                         key: const Key('mark-confirmed'),

@@ -88,6 +88,19 @@ class ReservationDetailCubit extends Cubit<ReservationDetailState> {
     }
   }
 
+  /// Se registró un pago desde el detalle: trae de nuevo la reserva para
+  /// mostrar el saldo al día y avisa a la agenda que debe recargarse.
+  Future<void> paymentRegistered() async {
+    emit(state.copyWith(changed: true));
+    try {
+      final reservation = await _getReservation(state.reservation!.id);
+      if (isClosed) return;
+      emit(state.copyWith(reservation: reservation));
+    } catch (_) {
+      // Se queda con los datos que ya mostraba.
+    }
+  }
+
   Future<void> cancel(String reason) =>
       _run(() => _cancel((id: state.reservation!.id, reason: reason)));
 

@@ -19,7 +19,11 @@ import '../widgets/payment_styles.dart';
 /// Registrar un pago recibido en el negocio (efectivo, Nequi, etc.),
 /// asociándolo a un cliente o reserva específica si aplica.
 class NewPaymentPage extends StatefulWidget {
-  const NewPaymentPage({super.key});
+  const NewPaymentPage({super.key, this.initialReservation});
+
+  /// Reserva ya elegida (p. ej. desde su detalle): el pago queda ligado a
+  /// ella y a su cliente, con el saldo pendiente como monto.
+  final Reservation? initialReservation;
 
   static const quickAmounts = [20000, 50000, 100000];
 
@@ -51,7 +55,14 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
   @override
   void initState() {
     super.initState();
-    context.read<NewPaymentBloc>().add(const NewPaymentStarted());
+    final bloc = context.read<NewPaymentBloc>()..add(const NewPaymentStarted());
+    if (widget.initialReservation case final reservation?) {
+      bloc
+        ..add(const NewPaymentTargetModeChanged(PaymentTargetMode.reservation))
+        ..add(NewPaymentReservationSelected(reservation));
+      _customer.text = reservation.customerName;
+      _onFillReservationBalance(reservation);
+    }
     // Redibuja el total de la barra inferior al escribir el monto.
     _amount.addListener(() => setState(() {}));
   }

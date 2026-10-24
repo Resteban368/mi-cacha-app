@@ -12,7 +12,9 @@ import 'package:mi_cancha/features/business_payments/presentation/bloc/new_payme
 import 'package:mi_cancha/features/business_payments/presentation/bloc/payments/payments_bloc.dart';
 import 'package:mi_cancha/features/business_payments/presentation/pages/new_payment_page.dart';
 import 'package:mi_cancha/features/business_payments/presentation/pages/payments_page.dart';
+import 'package:mi_cancha/core/domain/entities/sport.dart';
 import 'package:mi_cancha/features/business_reservations/domain/entities/customer.dart';
+import 'package:mi_cancha/features/business_reservations/domain/entities/reservation.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:mi_cancha/features/business_payments/presentation/widgets/payment_card.dart';
@@ -161,9 +163,7 @@ void main() {
         expect(cardWidth(tester), (900 - 2 * 24 - 12) / 2);
       });
 
-      testWidgets('escritorio: 3 columnas', (
-        tester,
-      ) async {
+      testWidgets('escritorio: 3 columnas', (tester) async {
         await pump(tester, loaded(), size: const Size(1400, 1200));
         expect(cardWidth(tester), (1400 - 2 * 24 - 2 * 12) / 3);
       });
@@ -179,6 +179,7 @@ void main() {
       WidgetTester tester, {
       NewPaymentState state = const NewPaymentState(),
       Size size = const Size(390, 1400),
+      Reservation? reservation,
     }) async {
       setSize(tester, size);
       when(() => bloc.state).thenReturn(state);
@@ -191,9 +192,11 @@ void main() {
             routes: [
               GoRoute(
                 path: 'nuevo',
-                builder: (_, _) => BlocProvider<NewPaymentBloc>.value(
+                builder: (_, routeState) => BlocProvider<NewPaymentBloc>.value(
                   value: bloc,
-                  child: const NewPaymentPage(),
+                  child: NewPaymentPage(
+                    initialReservation: routeState.extra as Reservation?,
+                  ),
                 ),
               ),
             ],
@@ -201,10 +204,38 @@ void main() {
         ],
       );
       await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-      router.push(AppRoutes.businessNewPayment);
+      router.push(AppRoutes.businessNewPayment, extra: reservation);
       await tester.pumpAndSettle();
-      clearInteractions(bloc);
+      if (reservation == null) clearInteractions(bloc);
     }
+
+    testWidgets('desde el detalle llega con la reserva y su saldo', (
+      tester,
+    ) async {
+      final reservation = Reservation(
+        id: 'r1',
+        courtName: 'Cancha 1',
+        sport: Sport.futbol,
+        start: DateTime(2026, 10, 24, 16),
+        end: DateTime(2026, 10, 24, 17),
+        customerName: 'Valderrama',
+        phone: '+57 320 922 0378',
+        totalPrice: 70000,
+        amountPaid: 20000,
+        status: ReservationStatus.confirmed,
+      );
+      await pump(tester, reservation: reservation);
+
+      verify(
+        () => bloc.add(
+          const NewPaymentTargetModeChanged(PaymentTargetMode.reservation),
+        ),
+      ).called(1);
+      verify(
+        () => bloc.add(NewPaymentReservationSelected(reservation)),
+      ).called(1);
+      expect(find.text('50.000'), findsOneWidget);
+    });
 
     testWidgets('clientes: lista compacta que pide más al llegar al final', (
       tester,

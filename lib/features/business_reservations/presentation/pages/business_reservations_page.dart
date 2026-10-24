@@ -160,7 +160,9 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
                               slivers: [
                                 SliverToBoxAdapter(
                                   child: Padding(
-                                    padding: layout.paddingBeyond(0),
+                                    padding: layout
+                                        .paddingBeyond(0)
+                                        .copyWith(top: 12),
                                     child: DayHeader(
                                       day: state.day,
                                       isToday: state.agenda.isToday,

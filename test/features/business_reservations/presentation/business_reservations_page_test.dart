@@ -324,7 +324,21 @@ void main() {
     testWidgets('tocar una reserva abre el detalle y permite cancelarla', (
       tester,
     ) async {
-      final live = designScenario.firstWhere((r) => r.id == 'live');
+      // Con el turno ya terminado no se ofrece cancelar: va en el futuro real.
+      final fixture = designScenario.firstWhere((r) => r.id == 'live');
+      final start = DateTime.now().add(const Duration(days: 1));
+      final live = Reservation(
+        id: fixture.id,
+        courtName: fixture.courtName,
+        sport: fixture.sport,
+        start: start,
+        end: start.add(const Duration(minutes: 90)),
+        customerName: fixture.customerName,
+        phone: fixture.phone,
+        totalPrice: fixture.totalPrice,
+        amountPaid: fixture.amountPaid,
+        status: ReservationStatus.confirmed,
+      );
       when(() => cancel(any())).thenAnswer(
         (_) async => Reservation(
           id: live.id,
@@ -339,7 +353,16 @@ void main() {
           status: ReservationStatus.cancelled,
         ),
       );
-      await pumpPage(tester, loaded(), createDetailCubit: cubit);
+      await pumpPage(
+        tester,
+        BusinessReservationsState(
+          day: day,
+          now: now,
+          status: ReservationsStatus.success,
+          reservations: [live],
+        ),
+        createDetailCubit: cubit,
+      );
 
       await tester.tap(find.text('Valentina Dussán'));
       await settle(tester);
