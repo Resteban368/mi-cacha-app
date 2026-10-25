@@ -1035,53 +1035,101 @@ class _SummaryPanel extends StatelessWidget {
                   ),
                 ],
                 const _TicketPerforationDivider(),
-                Text(
-                  'TOTAL A COBRAR AHORA',
-                  style: AppTypography.labelSm.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.slate500,
-                    letterSpacing: 0.5,
-                    fontSize: 10,
-                  ),
-                ),
-                Text(
-                  '${AppFormatters.cop(amount)} COP',
-                  style: AppTypography.headlineLg.copyWith(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.brandDark,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                if (hasReservation && totalTurno > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Row(
-                      children: [
-                        Icon(
-                          pendingAfter == 0
-                              ? Icons.check_circle_rounded
-                              : Icons.info_outline_rounded,
-                          size: 13,
-                          color: pendingAfter == 0
-                              ? AppColors.emerald600
-                              : AppColors.amber500,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            pendingAfter == 0
-                                ? 'El saldo de esta reserva quedará en \$0 COP'
-                                : 'Saldo restante: ${AppFormatters.cop(pendingAfter)} COP',
-                            style: AppTypography.bodySm.copyWith(
-                              fontSize: 10,
-                              color: AppColors.slate600,
-                            ),
-                          ),
-                        ),
-                      ],
+                // Total destacado: panel verde suave con el monto grande en
+                // tinta de superficie (legible en claro y en oscuro).
+                Container(
+                  key: const Key('payment-total'),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.brandTealLight,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.brandTeal.withValues(alpha: 0.35),
                     ),
                   ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.payments_outlined,
+                            size: 14,
+                            color: AppColors.brandTeal,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Total a cobrar ahora',
+                            style: AppTypography.labelSm.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.brandTeal,
+                              letterSpacing: 0.2,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text.rich(
+                          TextSpan(
+                            text: AppFormatters.cop(amount),
+                            children: [
+                              TextSpan(
+                                text: ' COP',
+                                style: AppTypography.labelLg.copyWith(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.onSurfaceVariant,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          maxLines: 1,
+                          style: AppTypography.headlineLg.copyWith(
+                            fontSize: 30,
+                            height: 1.15,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.onSurface,
+                            letterSpacing: -0.6,
+                          ),
+                        ),
+                      ),
+                      if (hasReservation && totalTurno > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            children: [
+                              Icon(
+                                pendingAfter == 0
+                                    ? Icons.check_circle_rounded
+                                    : Icons.info_outline_rounded,
+                                size: 13,
+                                color: pendingAfter == 0
+                                    ? AppColors.emerald600
+                                    : AppColors.amber500,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  pendingAfter == 0
+                                      ? 'El saldo de esta reserva quedará en \$0 COP'
+                                      : 'Saldo restante: ${AppFormatters.cop(pendingAfter)} COP',
+                                  style: AppTypography.bodySm.copyWith(
+                                    fontSize: 10,
+                                    color: AppColors.slate600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _SubmitButton(onSubmit: onSubmit),
                 const SizedBox(height: 12),
