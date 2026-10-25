@@ -21,12 +21,17 @@ enum BusinessNotificationsStatus {
 final class BusinessNotificationsState extends Equatable {
   const BusinessNotificationsState({
     this.status = BusinessNotificationsStatus.loading,
+    this.canPrompt = false,
   });
 
   final BusinessNotificationsStatus status;
 
+  /// El navegador todavía no ha preguntado por el permiso: se puede pedir
+  /// desde la campana.
+  final bool canPrompt;
+
   @override
-  List<Object?> get props => [status];
+  List<Object?> get props => [status, canPrompt];
 }
 
 /// Aviso de nuevas reservas: activar o desactivar en este navegador.
@@ -48,7 +53,15 @@ class BusinessNotificationsCubit extends Cubit<BusinessNotificationsState> {
     emit(const BusinessNotificationsState());
     try {
       final snapshot = await _getStatus(const NoParams());
-      emit(BusinessNotificationsState(status: _statusFrom(snapshot)));
+      final status = _statusFrom(snapshot);
+      emit(
+        BusinessNotificationsState(
+          status: status,
+          canPrompt:
+              status == BusinessNotificationsStatus.disabled &&
+              snapshot.permission == PushPermission.defaultState,
+        ),
+      );
     } catch (error) {
       debugPrint('Avisos push (carga): $error');
       emit(
@@ -57,6 +70,14 @@ class BusinessNotificationsCubit extends Cubit<BusinessNotificationsState> {
         ),
       );
     }
+  }
+
+  /// Desde la campana: activa los avisos solo si el navegador nunca ha
+  /// preguntado (no reactiva si el usuario los apagó ni insiste si los
+  /// bloqueó). Debe llamarse en el toque para que se muestre el permiso.
+  Future<void> promptIfNeeded() async {
+    if (!state.canPrompt) return;
+    await toggle(on: true);
   }
 
   /// Activa o desactiva. El permiso del navegador solo se pide al activar,

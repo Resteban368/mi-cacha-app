@@ -156,6 +156,7 @@ GoRouter _buildRouter(
         loadCanWrite: _loadCanWrite,
         child: NotificationsInboxHost(
           createCubit: () => sl<NotificationsInboxCubit>(),
+          createPushCubit: () => sl<BusinessNotificationsCubit>(),
           notificationsChanged: sl<PushRepository>().notificationsChanged,
           child: BusinessHomeShell(
             location: state.uri.path,

@@ -249,4 +249,68 @@ void main() {
       ],
     );
   });
+
+  group('desde la campana', () {
+    PushSnapshot snapshot(PushPermission permission) => PushSnapshot(
+      supported: true,
+      available: true,
+      permission: permission,
+      enabled: false,
+    );
+
+    blocTest<BusinessNotificationsCubit, BusinessNotificationsState>(
+      'si nunca se pidió el permiso, lo pide y activa los avisos',
+      setUp: () {
+        when(
+          () => getStatus(any()),
+        ).thenAnswer((_) async => snapshot(PushPermission.defaultState));
+        when(
+          () => enable(any()),
+        ).thenAnswer((_) async => PushPermission.granted);
+      },
+      build: build,
+      act: (cubit) async {
+        await cubit.load();
+        await cubit.promptIfNeeded();
+      },
+      skip: 1,
+      expect: () => [
+        const BusinessNotificationsState(
+          status: BusinessNotificationsStatus.disabled,
+          canPrompt: true,
+        ),
+        const BusinessNotificationsState(),
+        const BusinessNotificationsState(
+          status: BusinessNotificationsStatus.enabled,
+        ),
+      ],
+      verify: (_) => verify(() => enable(any())).called(1),
+    );
+
+    blocTest<BusinessNotificationsCubit, BusinessNotificationsState>(
+      'con el permiso ya concedido pero apagados, no los reactiva',
+      setUp: () => when(
+        () => getStatus(any()),
+      ).thenAnswer((_) async => snapshot(PushPermission.granted)),
+      build: build,
+      act: (cubit) async {
+        await cubit.load();
+        await cubit.promptIfNeeded();
+      },
+      verify: (_) => verifyNever(() => enable(any())),
+    );
+
+    blocTest<BusinessNotificationsCubit, BusinessNotificationsState>(
+      'con el permiso bloqueado no insiste',
+      setUp: () => when(
+        () => getStatus(any()),
+      ).thenAnswer((_) async => snapshot(PushPermission.denied)),
+      build: build,
+      act: (cubit) async {
+        await cubit.load();
+        await cubit.promptIfNeeded();
+      },
+      verify: (_) => verifyNever(() => enable(any())),
+    );
+  });
 }
