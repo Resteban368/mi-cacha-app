@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../navigation/business_section.dart';
+import '../../../../core/widgets/app_logo_icon.dart';
 
 /// Contenido del menú lateral: cabecera de marca, secciones agrupadas y
 /// cierre de sesión. Se usa dentro del `Drawer` (móvil) o fijo (escritorio).
@@ -89,7 +88,10 @@ class _MenuHeader extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.brandTeal, AppColors.primary],
+          // En oscuro, como la barra superior: negro azulado con verde.
+          colors: AppColors.isDark
+              ? [AppColors.surfaceContainerHigh, AppColors.brandTealLight]
+              : [AppColors.brandTeal, AppColors.primary],
         ),
       ),
       child: SafeArea(
@@ -98,20 +100,7 @@ class _MenuHeader extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
           child: Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.accentLimeSignal.withValues(alpha: 0.35),
-                    width: 2,
-                  ),
-                ),
-                child: SvgPicture.asset(AppAssets.logo),
-              ),
+              const AppLogoIcon(size: 48),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

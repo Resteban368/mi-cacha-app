@@ -3,11 +3,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-import '../constants/app_assets.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import 'app_logo_icon.dart';
 
 /// Diálogo de carga de pantalla: ícono de la app, "Cargando información" y
 /// el fondo difuminado. No se cierra con atrás ni tocando afuera.
@@ -46,14 +45,7 @@ class AppLoadingDialog extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: SvgPicture.asset(
-                            AppAssets.logo,
-                            width: 64,
-                            height: 64,
-                          ),
-                        ),
+                        const AppLogoIcon(size: 64),
                         const SizedBox(height: 18),
                         Text(
                           title,

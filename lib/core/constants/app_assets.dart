@@ -2,6 +2,9 @@
 abstract final class AppAssets {
   static const logo = 'assets/icons/logo.svg';
 
+  /// Ícono de la app con esquinas redondeadas (fondo transparente).
+  static const logoRounded = 'assets/icons/logo_rounded.png';
+
   /// Logo vertical con nombre y lema, para fondos oscuros.
   static const logoVerticalDark =
       'assets/images/login/logo_vertical_oscuro.png';
