@@ -4,7 +4,7 @@ import '../../../../core/config/map_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 
-/// Crédito de OpenStreetMap (obligatorio por su licencia), en una esquina.
+/// Crédito de los mapas (obligatorio por su licencia), en una esquina.
 class OsmAttribution extends StatelessWidget {
   const OsmAttribution({super.key});
 
