@@ -15,6 +15,7 @@ import '../catalogs/data/datasources/catalogs_api_data_source.dart';
 import '../catalogs/data/datasources/catalogs_data_source.dart';
 import '../catalogs/data/repositories/catalogs_repository_impl.dart';
 import '../catalogs/domain/repositories/catalogs_repository.dart';
+import '../catalogs/domain/usecases/geography_usecases.dart';
 import '../catalogs/domain/usecases/get_catalogs.dart';
 import '../../features/business_account/data/datasources/business_account_api_data_source.dart';
 import '../../features/business_account/data/datasources/business_account_data_source.dart';
@@ -69,6 +70,7 @@ import '../../features/business_profile/domain/usecases/get_my_business.dart';
 import '../../features/business_profile/domain/usecases/business_photo_usecases.dart';
 import '../../features/business_profile/domain/usecases/get_online_booking_link.dart';
 import '../../features/business_profile/domain/usecases/save_business.dart';
+import '../../features/business_profile/presentation/bloc/business_city_cubit.dart';
 import '../../features/business_profile/presentation/bloc/business_profile_bloc.dart';
 import '../../features/business_reservations/data/datasources/reservations_api_data_source.dart';
 import '../../features/business_reservations/data/datasources/reservations_data_source.dart';
@@ -148,7 +150,9 @@ void _initCatalogs() {
     ..registerLazySingleton<CatalogsRepository>(
       () => CatalogsRepositoryImpl(sl()),
     )
-    ..registerLazySingleton(() => GetCatalogs(sl()));
+    ..registerLazySingleton(() => GetCatalogs(sl()))
+    ..registerLazySingleton(() => GetDepartments(sl()))
+    ..registerLazySingleton(() => GetCities(sl()));
 }
 
 void _initSplash() {
@@ -298,6 +302,9 @@ void _initBusinessProfile() {
         getBookingLink: sl(),
         getCatalogs: sl(),
       ),
+    )
+    ..registerFactory(
+      () => BusinessCityCubit(getDepartments: sl(), getCities: sl()),
     );
 }
 

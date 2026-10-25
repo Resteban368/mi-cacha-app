@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mi_cancha/core/router/app_routes.dart';
 import 'package:mi_cancha/features/business_account/domain/entities/business_account.dart';
+import 'package:mi_cancha/features/business_profile/domain/entities/business.dart';
 import 'package:mi_cancha/features/business_account/domain/usecases/change_password.dart';
 import 'package:mi_cancha/features/business_account/presentation/bloc/business_account_bloc.dart';
 import 'package:mi_cancha/features/business_account/presentation/bloc/change_password_cubit.dart';
@@ -29,10 +30,23 @@ void main() {
   late _MockBloc bloc;
   setUp(() => bloc = _MockBloc());
 
+  final venue = Business(
+    id: business.id,
+    name: business.name,
+    address: business.address,
+    neighborhood: business.neighborhood,
+    city: const City(
+      id: 'c18001',
+      name: 'Florencia',
+      departmentId: 'd18',
+      departmentName: 'Caquetá',
+    ),
+  );
+
   final ready = BusinessAccountState(
     status: BusinessAccountStatus.ready,
     account: account,
-    venue: business,
+    venue: venue,
     version: '1.0.0',
   );
 
@@ -113,15 +127,16 @@ void main() {
     expect(find.text('Carlos Rodríguez'), findsOneWidget);
     expect(find.text('ADMIN PRO'), findsOneWidget);
     expect(find.text(business.name), findsOneWidget);
-    expect(find.text('Centro · 3 canchas activas'), findsOneWidget);
+    // Ficha del negocio: «Ciudad, Departamento».
+    expect(find.text('Florencia, Caquetá · 3 canchas activas'), findsOneWidget);
     expect(find.text('Plan Básico'), findsOneWidget);
     expect(find.textContaining(r'$79.900'), findsOneWidget);
     expect(find.text('15 sep. 2026'), findsOneWidget);
     expect(find.text('15 oct. 2026'), findsOneWidget);
     expect(find.text('3 de 5 canchas (60%)'), findsOneWidget);
     expect(find.textContaining('Tienes 2 cupos libres'), findsOneWidget);
-    await reveal(tester, find.text('Mi Cancha v1.0.0 · Centro'));
-    expect(find.text('Mi Cancha v1.0.0 · Centro'), findsOneWidget);
+    await reveal(tester, find.text('Mi Cancha v1.0.0 · Florencia, Caquetá'));
+    expect(find.text('Mi Cancha v1.0.0 · Florencia, Caquetá'), findsOneWidget);
   });
 
   testWidgets('los beneficios se despliegan al tocarlos', (tester) async {
@@ -220,7 +235,8 @@ void main() {
 
     expect(find.byType(SubscriptionCard), findsNothing);
     expect(find.text('Sin plan activo'), findsOneWidget);
-    expect(find.text('Centro · 0 canchas activas'), findsOneWidget);
+    // Negocio anterior sin ciudad: el toque lleva a completarla.
+    expect(find.text('Sin ciudad · Toca para completarla'), findsOneWidget);
     await tapText(tester, 'Ver planes');
     expect(find.text('Planes: próximamente'), findsOneWidget);
   });

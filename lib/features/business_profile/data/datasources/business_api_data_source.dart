@@ -46,6 +46,8 @@ class BusinessApiDataSource implements BusinessDataSource {
           if (description != null && description.isNotEmpty)
             'description': description,
           'amenities': draft.amenities.toList(),
+          // Obligatoria al crear; al editar, sin ella se conserva la actual.
+          'cityId': ?draft.cityId,
           // Sin ubicación se omiten y la API la borra (es un PUT).
           if (draft.location case final location?) ...{
             'latitude': location.latitude,
@@ -131,6 +133,23 @@ class BusinessApiDataSource implements BusinessDataSource {
     },
     imageUrl: switch (json['imageUrl']) {
       final String url => ApiConfig.secureUrl(url),
+      _ => null,
+    },
+    city: switch (json['city']) {
+      {
+        'id': final String id,
+        'name': final String name,
+        'department': {
+          'id': final String departmentId,
+          'name': final String departmentName,
+        },
+      } =>
+        City(
+          id: id,
+          name: name,
+          departmentId: departmentId,
+          departmentName: departmentName,
+        ),
       _ => null,
     },
     photos: [

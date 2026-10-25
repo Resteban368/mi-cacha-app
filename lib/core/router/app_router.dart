@@ -32,6 +32,7 @@ import '../../features/business_payments/presentation/bloc/new_payment/new_payme
 import '../../features/business_payments/presentation/bloc/payments/payments_bloc.dart';
 import '../../features/business_payments/presentation/pages/new_payment_page.dart';
 import '../../features/business_payments/presentation/pages/payments_page.dart';
+import '../../features/business_profile/presentation/bloc/business_city_cubit.dart';
 import '../../features/business_profile/presentation/bloc/business_profile_bloc.dart';
 import '../../features/business_profile/presentation/pages/business_profile_page.dart';
 import '../../features/business_reservations/presentation/bloc/business_reservations_bloc.dart';
@@ -318,10 +319,15 @@ GoRouter _buildRouter(
           path: AppRoutes.businessProfile,
           pageBuilder: (_, state) => NoTransitionPage(
             key: state.pageKey,
-            child: BlocProvider(
-              create: (_) =>
-                  sl<BusinessProfileBloc>()
-                    ..add(const BusinessProfileRequested()),
+            child: MultiBlocProvider(
+              providers: [
+                BlocProvider(
+                  create: (_) =>
+                      sl<BusinessProfileBloc>()
+                        ..add(const BusinessProfileRequested()),
+                ),
+                BlocProvider(create: (_) => sl<BusinessCityCubit>()),
+              ],
               child: BusinessProfilePage(
                 photoPicker: sl<PhotoPicker>(),
                 deviceLocation: sl<DeviceLocation>(),

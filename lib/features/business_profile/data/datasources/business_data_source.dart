@@ -46,6 +46,7 @@ class FakeBusinessDataSource implements BusinessDataSource {
       imageUrl: _business?.imageUrl,
       photos: _business?.photos ?? const [],
       location: draft.location,
+      city: _business?.city,
     );
   }
 
@@ -105,6 +106,7 @@ class FakeBusinessDataSource implements BusinessDataSource {
       imageUrl: photos.firstOrNull?.url,
       photos: List.unmodifiable(photos),
       location: business.location,
+      city: business.city,
     );
   }
 }

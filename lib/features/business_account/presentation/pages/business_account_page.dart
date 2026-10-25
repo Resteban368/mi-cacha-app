@@ -152,7 +152,10 @@ class _AccountContent extends StatelessWidget {
               child: const NotificationsSettingRow(),
             ),
     );
-    final footer = _Footer(version: version, place: venue?.neighborhood);
+    final footer = _Footer(
+      version: version,
+      place: venue?.city?.label ?? venue?.neighborhood,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {

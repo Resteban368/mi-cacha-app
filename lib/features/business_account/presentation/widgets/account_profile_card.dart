@@ -220,10 +220,14 @@ class _VenueTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final venue = this.venue;
     final title = venue?.name ?? 'Registra tu sede deportiva';
-    final subtitle = venue == null
-        ? 'Completa los datos de tu negocio'
-        : '${venue.neighborhood} · $courtsInUse '
-              '${courtsInUse == 1 ? 'cancha activa' : 'canchas activas'}';
+    final subtitle = switch (venue) {
+      null => 'Completa los datos de tu negocio',
+      // Negocio anterior sin ciudad: el toque lleva a completarla.
+      Business(city: null) => 'Sin ciudad · Toca para completarla',
+      Business(:final city?) =>
+        '${city.label} · $courtsInUse '
+            '${courtsInUse == 1 ? 'cancha activa' : 'canchas activas'}',
+    };
 
     return Material(
       color: AppColors.surfaceTealSubtle,

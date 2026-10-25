@@ -10,9 +10,13 @@ import 'package:mi_cancha/core/location/device_location.dart';
 import 'package:mi_cancha/core/location/geo_point.dart';
 import 'package:mi_cancha/core/media/photo_picker.dart';
 import 'package:mi_cancha/core/router/app_routes.dart';
+import 'package:mi_cancha/core/usecase/usecase.dart';
 import 'package:mi_cancha/features/business_profile/domain/entities/business.dart';
 import 'package:mi_cancha/features/business_profile/domain/entities/online_booking_link.dart';
 import 'package:mi_cancha/core/media/image_upload.dart';
+import 'package:mi_cancha/core/catalogs/domain/entities/catalog_geography.dart';
+import 'package:mi_cancha/core/catalogs/domain/usecases/geography_usecases.dart';
+import 'package:mi_cancha/features/business_profile/presentation/bloc/business_city_cubit.dart';
 import 'package:mi_cancha/features/business_profile/presentation/bloc/business_profile_bloc.dart';
 import 'package:mi_cancha/features/business_profile/presentation/pages/business_profile_page.dart';
 import 'package:mi_cancha/features/business_profile/presentation/widgets/business_media_fields.dart';
@@ -23,6 +27,10 @@ import '../business_fixtures.dart';
 
 class _MockBloc extends MockBloc<BusinessProfileEvent, BusinessProfileState>
     implements BusinessProfileBloc {}
+
+class _MockGetDepartments extends Mock implements GetDepartments {}
+
+class _MockGetCities extends Mock implements GetCities {}
 
 class _FakePicker implements PhotoPicker {
   final sources = <PhotoSource>[];
@@ -55,16 +63,33 @@ void main() {
   setUpAll(() {
     GoogleFonts.config.allowRuntimeFetching = false;
     registerFallbackValue(const BusinessProfileRequested());
+    registerFallbackValue(const NoParams());
   });
 
   late _MockBloc bloc;
   late GoRouter router;
   late _FakePicker picker;
   late _FakeLocation location;
+  late _MockGetDepartments getDepartments;
+  late _MockGetCities getCities;
+
+  const antioquia = CatalogDepartment(id: 'd05', code: '05', name: 'Antioquia');
+  const bogota = CatalogDepartment(id: 'd11', code: '11', name: 'Bogotá, D.C.');
+  const medellin = CatalogCity(id: 'c05001', code: '05001', name: 'Medellín');
+  const envigado = CatalogCity(id: 'c05266', code: '05266', name: 'Envigado');
+
   setUp(() {
     bloc = _MockBloc();
     picker = _FakePicker();
     location = _FakeLocation();
+    getDepartments = _MockGetDepartments();
+    getCities = _MockGetCities();
+    when(
+      () => getDepartments(any()),
+    ).thenAnswer((_) async => const [antioquia, bogota]);
+    when(
+      () => getCities('d05'),
+    ).thenAnswer((_) async => const [envigado, medellin]);
   });
 
   const bookingLink = OnlineBookingLink(
@@ -100,8 +125,16 @@ void main() {
         GoRoute(
           path: AppRoutes.businessProfile,
           builder: (_, _) => Scaffold(
-            body: BlocProvider<BusinessProfileBloc>.value(
-              value: bloc,
+            body: MultiBlocProvider(
+              providers: [
+                BlocProvider<BusinessProfileBloc>.value(value: bloc),
+                BlocProvider(
+                  create: (_) => BusinessCityCubit(
+                    getDepartments: getDepartments,
+                    getCities: getCities,
+                  ),
+                ),
+              ],
               child: BusinessProfilePage(
                 photoPicker: picker,
                 deviceLocation: location,
@@ -126,6 +159,19 @@ void main() {
       matching: find.byType(FilledButton),
     ),
   );
+
+  /// Elige Antioquia y Medellín en los buscadores.
+  Future<void> chooseCity(WidgetTester tester) async {
+    await tester.ensureVisible(find.byKey(const Key('department-field')));
+    await tester.tap(find.byKey(const Key('department-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Antioquia'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('city-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Medellín'));
+    await tester.pumpAndSettle();
+  }
 
   Future<void> fillRequired(WidgetTester tester) async {
     final fields = find.byType(TextFormField);
@@ -159,6 +205,7 @@ void main() {
       await fillRequired(tester);
       expect(saveButton(tester).onPressed, isNotNull);
 
+      await chooseCity(tester);
       await tester.ensureVisible(find.text('Parqueadero'));
       await tester.tap(find.text('Parqueadero'));
       await tester.pump();
@@ -171,12 +218,133 @@ void main() {
             that: isA<BusinessProfileSaved>()
                 .having((e) => e.draft.name, 'nombre', 'El Campín')
                 .having((e) => e.draft.neighborhood, 'barrio', 'Centro')
+                .having((e) => e.draft.cityId, 'ciudad', 'c05001')
                 .having((e) => e.draft.amenities, 'servicios', {'PARQUEADERO'}),
           ),
         ),
       ).called(1);
     },
   );
+
+  group('departamento y ciudad', () {
+    testWidgets('al crear son obligatorios: sin ellos no guarda', (
+      tester,
+    ) async {
+      await pump(tester, empty);
+      await fillRequired(tester);
+      await tester.tap(find.text('Guardar negocio y continuar'));
+      await tester.pump();
+
+      expect(find.text('Elige el departamento'), findsOneWidget);
+      expect(find.text('Elige la ciudad'), findsOneWidget);
+      verifyNever(() => bloc.add(any(that: isA<BusinessProfileSaved>())));
+    });
+
+    testWidgets('la ciudad se habilita al elegir el departamento', (
+      tester,
+    ) async {
+      await pump(tester, empty);
+      expect(find.text('Primero elige el departamento'), findsOneWidget);
+
+      await chooseCity(tester);
+      expect(find.text('Antioquia'), findsOneWidget);
+      expect(find.text('Medellín'), findsOneWidget);
+      verify(() => getCities('d05')).called(1);
+    });
+
+    testWidgets('el buscador filtra sin importar tildes', (tester) async {
+      await pump(tester, empty);
+      await tester.ensureVisible(find.byKey(const Key('department-field')));
+      await tester.tap(find.byKey(const Key('department-field')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('search-picker-field')),
+        'bogota',
+      );
+      await tester.pump();
+      expect(find.text('Bogotá, D.C.'), findsOneWidget);
+      expect(find.text('Antioquia'), findsNothing);
+    });
+
+    testWidgets('si falla el catálogo se puede reintentar', (tester) async {
+      when(() => getDepartments(any())).thenThrow(Exception());
+      await pump(tester, empty);
+      await tester.pump();
+      expect(find.text('No pudimos cargar la lista.'), findsOneWidget);
+
+      when(
+        () => getDepartments(any()),
+      ).thenAnswer((_) async => const [antioquia]);
+      await tester.ensureVisible(find.byKey(const Key('departamento-retry')));
+      await tester.tap(find.byKey(const Key('departamento-retry')));
+      await tester.pump();
+      expect(find.text('No pudimos cargar la lista.'), findsNothing);
+    });
+
+    testWidgets('al editar precarga la ciudad actual', (tester) async {
+      await pump(
+        tester,
+        empty.copyWith(
+          business: const Business(
+            id: 'b1',
+            name: 'El Campín',
+            address: 'Carrera 11',
+            neighborhood: 'Centro',
+            city: City(
+              id: 'c05001',
+              name: 'Medellín',
+              departmentId: 'd05',
+              departmentName: 'Antioquia',
+            ),
+          ),
+          bookingLink: bookingLink,
+          bookingLinkStatus: OnlineBookingStatus.ready,
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Antioquia'), findsOneWidget);
+      expect(find.text('Medellín'), findsOneWidget);
+      expect(find.byKey(const Key('missing-city-notice')), findsNothing);
+    });
+
+    testWidgets('negocio anterior sin ciudad: pide completarla', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        empty.copyWith(
+          business: business,
+          bookingLink: bookingLink,
+          bookingLinkStatus: OnlineBookingStatus.ready,
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const Key('missing-city-notice')), findsOneWidget);
+      expect(
+        find.text('Completa tu ciudad. ', findRichText: true),
+        findsNothing,
+      );
+
+      await chooseCity(tester);
+      expect(find.byKey(const Key('missing-city-notice')), findsNothing);
+      await tester.tap(find.text('Guardar cambios'));
+      await tester.pump();
+      verify(
+        () => bloc.add(
+          any(
+            that: isA<BusinessProfileSaved>().having(
+              (e) => e.draft.cityId,
+              'ciudad',
+              'c05001',
+            ),
+          ),
+        ),
+      ).called(1);
+    });
+  });
 
   testWidgets('al crear continúa a Canchas', (tester) async {
     await pump(
@@ -514,6 +682,8 @@ void main() {
         amenityOptions: amenityCatalog,
         amenityStatus: AmenityCatalogStatus.ready,
       ),
+      // Con el aviso de ciudad y el link, los servicios quedan más abajo.
+      size: const Size(390, 2400),
     );
 
     Matcher chip({required bool selected}) =>
@@ -612,6 +782,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await fillRequired(tester);
+      await chooseCity(tester);
+      await tester.ensureVisible(find.text('Guardar negocio y continuar'));
       await tester.tap(find.text('Guardar negocio y continuar'));
       await tester.pump();
       expect(savedDraft().location, const GeoPoint(2.4448, -76.6147));

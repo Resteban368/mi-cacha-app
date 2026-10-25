@@ -11,6 +11,7 @@ class BusinessDraft extends Equatable {
     this.description,
     this.amenities = const {},
     this.location,
+    this.cityId,
   });
 
   final String name;
@@ -23,6 +24,10 @@ class BusinessDraft extends Equatable {
 
   /// Códigos del catálogo de servicios (`GET /catalogs`), p. ej. `WIFI`.
   final Set<String> amenities;
+
+  /// Municipio elegido (no el departamento). Obligatorio al crear; al
+  /// editar, `null` conserva la ciudad actual.
+  final String? cityId;
 
   /// Nombre, dirección y barrio son obligatorios (mínimos de la API).
   bool get isComplete =>
@@ -37,6 +42,7 @@ class BusinessDraft extends Equatable {
     description: description,
     amenities: amenities ?? this.amenities,
     location: location,
+    cityId: cityId,
   );
 
   @override
@@ -47,7 +53,29 @@ class BusinessDraft extends Equatable {
     description,
     amenities,
     location,
+    cityId,
   ];
+}
+
+/// Ciudad del negocio con su departamento.
+class City extends Equatable {
+  const City({
+    required this.id,
+    required this.name,
+    required this.departmentId,
+    required this.departmentName,
+  });
+
+  final String id;
+  final String name;
+  final String departmentId;
+  final String departmentName;
+
+  /// «Medellín, Antioquia».
+  String get label => '$name, $departmentName';
+
+  @override
+  List<Object?> get props => [id, name, departmentId, departmentName];
 }
 
 /// Foto de la galería del negocio.
@@ -75,6 +103,7 @@ class Business extends Equatable {
     this.imageUrl,
     this.photos = const [],
     this.location,
+    this.city,
   });
 
   /// Límite de fotos de la galería que acepta la API.
@@ -100,6 +129,9 @@ class Business extends Equatable {
   /// Punto de llegada; `null` si aún no se fijó en el mapa.
   final GeoPoint? location;
 
+  /// `null` en negocios anteriores que aún no la completaron.
+  final City? city;
+
   @override
   List<Object?> get props => [
     id,
@@ -111,5 +143,6 @@ class Business extends Equatable {
     imageUrl,
     photos,
     location,
+    city,
   ];
 }

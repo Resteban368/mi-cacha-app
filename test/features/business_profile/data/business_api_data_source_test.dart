@@ -82,6 +82,68 @@ void main() {
     },
   );
 
+  group('ciudad', () {
+    test('lee la ciudad con su departamento', () async {
+      adapter.handler = (_) => (
+        200,
+        {
+          ...profileJson,
+          'city': {
+            'id': 'c05001',
+            'name': 'Medellín',
+            'department': {'id': 'd05', 'name': 'Antioquia'},
+          },
+        },
+      );
+      final business = await source.getMyBusiness();
+
+      expect(
+        business!.city,
+        const City(
+          id: 'c05001',
+          name: 'Medellín',
+          departmentId: 'd05',
+          departmentName: 'Antioquia',
+        ),
+      );
+      expect(business.city!.label, 'Medellín, Antioquia');
+    });
+
+    test('city null o ausente (negocio anterior) queda null', () async {
+      adapter.handler = (_) => (200, {...profileJson, 'city': null});
+      expect((await source.getMyBusiness())!.city, isNull);
+
+      adapter.handler = (_) => (200, profileJson);
+      expect((await source.getMyBusiness())!.city, isNull);
+    });
+
+    test('al guardar envía cityId; sin ella no lo envía', () async {
+      Object? bodyOf(int i) {
+        final data = adapter.requests[i].data;
+        return data is String ? jsonDecode(data) : data;
+      }
+
+      await source.save(
+        const BusinessDraft(
+          name: 'El Golazo',
+          address: 'Calle 15 # 8-32',
+          neighborhood: 'Centro',
+          cityId: 'c05001',
+        ),
+      );
+      await source.save(
+        const BusinessDraft(
+          name: 'El Golazo',
+          address: 'Calle 15 # 8-32',
+          neighborhood: 'Centro',
+        ),
+      );
+
+      expect((bodyOf(0)! as Map)['cityId'], 'c05001');
+      expect((bodyOf(1)! as Map).containsKey('cityId'), isFalse);
+    });
+  });
+
   test(
     'la foto llega por HTTPS aunque la API arme el enlace con http',
     () async {

@@ -15,10 +15,12 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/app_top_bar.dart';
 import '../../domain/entities/business.dart';
+import '../bloc/business_city_cubit.dart';
 import '../bloc/business_profile_bloc.dart';
 import '../widgets/amenity_chips.dart';
 import 'location_picker_page.dart';
 import '../widgets/business_form_label.dart';
+import '../widgets/business_city_fields.dart';
 import '../widgets/business_media_fields.dart';
 import '../widgets/online_booking_card.dart';
 import '../../../../core/widgets/loading_dialog.dart';
@@ -208,6 +210,7 @@ class _BusinessFormState extends State<_BusinessForm> {
   bool get _isEditing => widget.initial != null;
 
   BusinessDraft get _draft => BusinessDraft(
+    cityId: context.read<BusinessCityCubit>().state.city?.id,
     name: _name.text,
     address: _address.text,
     neighborhood: _neighborhood.text,
@@ -215,6 +218,13 @@ class _BusinessFormState extends State<_BusinessForm> {
     amenities: _amenities.value,
     location: _location.value,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    // Al editar quedan elegidos el departamento y la ciudad actuales.
+    context.read<BusinessCityCubit>().load(initial: widget.initial?.city);
+  }
 
   @override
   void dispose() {
@@ -236,6 +246,20 @@ class _BusinessFormState extends State<_BusinessForm> {
   void _submit() {
     if (!ensureCanWrite(context)) return;
     FocusScope.of(context).unfocus();
+    // Al crear, departamento y ciudad son obligatorios (la API los exige).
+    // Al editar, sin ciudad se conserva la actual.
+    final cityOk = context.read<BusinessCityCubit>().validate();
+    if (!_isEditing && !cityOk) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Elige el departamento y la ciudad del negocio.'),
+            backgroundColor: AppColors.statusDue,
+          ),
+        );
+      return;
+    }
     context.read<BusinessProfileBloc>().add(BusinessProfileSaved(_draft));
   }
 
@@ -434,6 +458,11 @@ class _BusinessFormState extends State<_BusinessForm> {
       textInputAction: TextInputAction.next,
       textCapitalization: TextCapitalization.words,
       inputFormatters: [LengthLimitingTextInputFormatter(80)],
+    ),
+    const SizedBox(height: 16),
+    BusinessCityFields(
+      // Negocio anterior sin ciudad: se pide completarla.
+      showMissingNotice: _isEditing && widget.initial?.city == null,
     ),
     const SizedBox(height: 16),
     AppTextField(
