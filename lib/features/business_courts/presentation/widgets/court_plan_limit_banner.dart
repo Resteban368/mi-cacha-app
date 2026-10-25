@@ -47,7 +47,7 @@ class CourtPlanLimitBanner extends StatelessWidget {
                     color: AppColors.statusDue.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.warning_amber_rounded,
                     color: AppColors.statusDue,
                     size: 22,
@@ -131,11 +131,11 @@ class CourtPlanLimitBanner extends StatelessWidget {
           Container(
             width: 36,
             height: 36,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.brandTealLight,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.stadium_outlined,
               color: AppColors.brandTeal,
               size: 20,

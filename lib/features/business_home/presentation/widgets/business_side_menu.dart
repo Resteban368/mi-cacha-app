@@ -59,7 +59,7 @@ class BusinessSideMenu extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 1, color: AppColors.surfaceContainerHigh),
+          Divider(height: 1, color: AppColors.surfaceContainerHigh),
           SafeArea(
             top: false,
             child: Padding(
@@ -85,7 +85,7 @@ class _MenuHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -248,7 +248,7 @@ class _MenuItem extends StatelessWidget {
                     ),
                   ),
                   if (selected)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(right: 12),
                       child: Icon(
                         Icons.chevron_right_rounded,

@@ -4,6 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mi_cancha/core/appearance/appearance_cubit.dart';
+import 'package:mi_cancha/core/appearance/appearance_mode.dart';
+import 'package:mi_cancha/core/appearance/appearance_storage.dart';
 import 'package:mi_cancha/core/router/app_routes.dart';
 import 'package:mi_cancha/features/business_account/domain/entities/business_account.dart';
 import 'package:mi_cancha/features/business_profile/domain/entities/business.dart';
@@ -23,6 +26,8 @@ class _MockBloc extends MockBloc<BusinessAccountEvent, BusinessAccountState>
     implements BusinessAccountBloc {}
 
 class _MockChangePassword extends Mock implements ChangePassword {}
+
+class _MockAppearanceStorage extends Mock implements AppearanceStorage {}
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -55,6 +60,7 @@ void main() {
     BusinessAccountState? state,
     Size size = const Size(412, 915),
     ChangePasswordCubit Function()? createChangePasswordCubit,
+    AppearanceCubit? appearance,
   }) async {
     tester.view
       ..physicalSize = size
@@ -70,8 +76,12 @@ void main() {
             GoRoute(
               path: AppRoutes.businessSettings,
               builder: (_, _) => Scaffold(
-                body: BlocProvider<BusinessAccountBloc>.value(
-                  value: bloc,
+                body: MultiBlocProvider(
+                  providers: [
+                    BlocProvider<BusinessAccountBloc>.value(value: bloc),
+                    if (appearance != null)
+                      BlocProvider<AppearanceCubit>.value(value: appearance),
+                  ],
                   child: BusinessAccountPage(
                     onSignOut: () async {},
                     createChangePasswordCubit: createChangePasswordCubit,
@@ -210,6 +220,29 @@ void main() {
     await tapText(tester, 'Cambiar contraseña');
     expect(find.text('Guardar contraseña'), findsOneWidget);
     expect(find.text('Cambiar contraseña: próximamente'), findsNothing);
+  });
+
+  testWidgets('apariencia: claro, oscuro o sistema', (tester) async {
+    final storage = _MockAppearanceStorage();
+    when(() => storage.write(AppearanceMode.dark)).thenAnswer((_) async {});
+    final appearance = AppearanceCubit(storage);
+    addTearDown(appearance.close);
+    await pumpPage(tester, appearance: appearance);
+
+    await reveal(tester, find.text('Apariencia'));
+    expect(find.text('Claro'), findsOneWidget);
+    expect(find.text('Oscuro'), findsOneWidget);
+    expect(find.text('Sistema'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('appearance-dark')));
+    await settle(tester);
+    expect(appearance.state, AppearanceMode.dark);
+    verify(() => storage.write(AppearanceMode.dark)).called(1);
+  });
+
+  testWidgets('sin el modo de apariencia no muestra la fila', (tester) async {
+    await pumpPage(tester);
+    expect(find.text('Apariencia'), findsNothing);
   });
 
   testWidgets('muestra el error y reintenta', (tester) async {

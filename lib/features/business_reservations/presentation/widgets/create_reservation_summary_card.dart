@@ -228,7 +228,7 @@ class CreateReservationSummaryCard extends StatelessWidget {
                 ),
               ),
               icon: isLoading
-                  ? const SizedBox.square(
+                  ? SizedBox.square(
                       dimension: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,

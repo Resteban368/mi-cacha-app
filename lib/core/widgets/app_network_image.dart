@@ -53,7 +53,7 @@ class AppNetworkImage extends StatelessWidget {
       },
       errorBuilder: (_, _, _) =>
           error ??
-          const ColoredBox(
+          ColoredBox(
             color: AppColors.surfaceContainerLow,
             child: Center(
               child: Icon(

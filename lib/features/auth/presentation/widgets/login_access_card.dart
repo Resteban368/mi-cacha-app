@@ -65,7 +65,7 @@ class LoginAccessCard extends StatelessWidget {
             leading: SvgPicture.asset(
               AppAssets.appleIcon,
               width: 20,
-              colorFilter: const ColorFilter.mode(
+              colorFilter: ColorFilter.mode(
                 AppColors.inverseOnSurface,
                 BlendMode.srcIn,
               ),
@@ -88,7 +88,7 @@ class LoginAccessCard extends StatelessWidget {
           const SizedBox(height: 16),
           AuthButton(
             label: 'Continuar con correo electrónico',
-            leading: const Icon(
+            leading: Icon(
               Icons.mail_outline,
               size: 20,
               color: AppColors.brandTeal,
@@ -115,7 +115,7 @@ class _OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Divider(height: 1, color: AppColors.surfaceContainerHigh),
         ),
         Padding(
@@ -125,7 +125,7 @@ class _OrDivider extends StatelessWidget {
             style: AppTypography.bodySm.copyWith(color: AppColors.outline),
           ),
         ),
-        const Expanded(
+        Expanded(
           child: Divider(height: 1, color: AppColors.surfaceContainerHigh),
         ),
       ],

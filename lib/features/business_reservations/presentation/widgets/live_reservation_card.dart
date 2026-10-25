@@ -78,7 +78,7 @@ class LiveReservationCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const PulsingDot(color: AppColors.primary),
+                        PulsingDot(color: AppColors.primary),
                         const SizedBox(width: 4),
                         Text(
                           'EN JUEGO',
@@ -95,7 +95,7 @@ class LiveReservationCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.update, size: 16, color: AppColors.primary),
+                  Icon(Icons.update, size: 16, color: AppColors.primary),
                   const SizedBox(width: 4),
                   Text(
                     AppFormatters.timeRange(r.start, r.end),
@@ -130,7 +130,7 @@ class LiveReservationCard extends StatelessWidget {
                         ),
                         if (r.isRecurring) ...[
                           const SizedBox(width: 6),
-                          const Tooltip(
+                          Tooltip(
                             message: 'Reserva semanal recurrente',
                             child: Icon(
                               Icons.repeat,
@@ -150,13 +150,13 @@ class LiveReservationCard extends StatelessWidget {
                         children: [
                           TextSpan(text: r.phone),
                           if (r.tag != null) ...[
-                            const TextSpan(
+                            TextSpan(
                               text: ' · ',
                               style: TextStyle(color: AppColors.outlineVariant),
                             ),
                             TextSpan(
                               text: r.tag,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.secondary,
                                 fontWeight: FontWeight.w600,
                               ),

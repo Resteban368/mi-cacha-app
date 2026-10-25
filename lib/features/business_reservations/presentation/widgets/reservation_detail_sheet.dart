@@ -244,7 +244,7 @@ class ReservationDetailView extends StatelessWidget {
                 onCopy: () => _copySummary(context, r),
               ),
 
-              const Divider(height: 1, color: AppColors.slate200),
+              Divider(height: 1, color: AppColors.slate200),
 
               // Content Body
               Flexible(
@@ -259,12 +259,12 @@ class ReservationDetailView extends StatelessWidget {
 
               if (working) const LinearProgressIndicator(minHeight: 2),
 
-              const Divider(height: 1, color: AppColors.slate200),
+              Divider(height: 1, color: AppColors.slate200),
 
               // Actions Footer
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                decoration: const BoxDecoration(color: AppColors.slate50),
+                decoration: BoxDecoration(color: AppColors.slate50),
                 child: Wrap(
                   alignment: WrapAlignment.center,
                   runAlignment: WrapAlignment.center,
@@ -286,7 +286,7 @@ class ReservationDetailView extends StatelessWidget {
                           label: const Text('No asistió'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.slate700,
-                            side: const BorderSide(color: AppColors.slate200),
+                            side: BorderSide(color: AppColors.slate200),
                           ),
                         ),
                       ),
@@ -446,7 +446,7 @@ class _HeaderBar extends StatelessWidget {
           const SizedBox(width: 8),
           IconButton(
             tooltip: 'Copiar resumen',
-            icon: const Icon(
+            icon: Icon(
               Icons.copy_rounded,
               size: 18,
               color: AppColors.slate600,
@@ -456,7 +456,7 @@ class _HeaderBar extends StatelessWidget {
           ),
           IconButton(
             tooltip: 'Cerrar',
-            icon: const Icon(
+            icon: Icon(
               Icons.close_rounded,
               size: 20,
               color: AppColors.slate600,
@@ -596,22 +596,22 @@ class _ScheduleHeroCard extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE0F2FE),
+                          color: AppColors.infoTint,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.repeat_rounded,
                               size: 12,
-                              color: Color(0xFF0369A1),
+                              color: AppColors.infoInk,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               'Recurrente',
                               style: AppTypography.labelSm.copyWith(
-                                color: const Color(0xFF0369A1),
+                                color: AppColors.infoInk,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 11,
                               ),
@@ -644,7 +644,7 @@ class _ScheduleHeroCard extends StatelessWidget {
           ),
 
           const SizedBox(height: 14),
-          const Divider(height: 1, color: AppColors.slate100),
+          Divider(height: 1, color: AppColors.slate100),
           const SizedBox(height: 14),
 
           // Date and Time info
@@ -661,7 +661,7 @@ class _ScheduleHeroCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: AppColors.slate200),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.calendar_today_rounded,
                         size: 18,
                         color: AppColors.slate700,
@@ -705,7 +705,7 @@ class _ScheduleHeroCard extends StatelessWidget {
                         color: AppColors.brandTealLight,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.access_time_filled_rounded,
                         size: 18,
                         color: AppColors.brandTeal,
@@ -847,7 +847,7 @@ class _CustomerCard extends StatelessWidget {
           ),
 
           const SizedBox(height: 12),
-          const Divider(height: 1, color: AppColors.slate100),
+          Divider(height: 1, color: AppColors.slate100),
           const SizedBox(height: 12),
 
           // Contact details & WhatsApp Actions
@@ -883,12 +883,12 @@ class _CustomerCard extends StatelessWidget {
               if (r.phone.isNotEmpty) ...[
                 OutlinedButton.icon(
                   onPressed: onWhatsApp,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.chat_bubble_outline_rounded,
                     size: 16,
                     color: AppColors.whatsappDark,
                   ),
-                  label: const Text(
+                  label: Text(
                     'WhatsApp',
                     style: TextStyle(
                       color: AppColors.whatsappDark,
@@ -898,7 +898,7 @@ class _CustomerCard extends StatelessWidget {
                   ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.whatsapp),
-                    backgroundColor: const Color(0xFFF0FDF4),
+                    backgroundColor: AppColors.successTint,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 8,
@@ -913,13 +913,13 @@ class _CustomerCard extends StatelessWidget {
                 IconButton.outlined(
                   tooltip: 'Llamar',
                   onPressed: onCall,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.phone_outlined,
                     size: 16,
                     color: AppColors.slate700,
                   ),
                   style: IconButton.styleFrom(
-                    side: const BorderSide(color: AppColors.slate200),
+                    side: BorderSide(color: AppColors.slate200),
                     visualDensity: VisualDensity.compact,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -941,7 +941,7 @@ class _CustomerCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.notes_rounded,
                     size: 16,
                     color: AppColors.slate500,
@@ -1018,7 +1018,7 @@ class _FinancialCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isPaid
                       ? AppColors.brandTealLight
-                      : const Color(0xFFFEF3C7),
+                      : AppColors.warningTint,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -1026,7 +1026,7 @@ class _FinancialCard extends StatelessWidget {
                   style: AppTypography.labelSm.copyWith(
                     color: isPaid
                         ? AppColors.brandTealDeep
-                        : const Color(0xFF92400E),
+                        : AppColors.warningInk,
                     fontWeight: FontWeight.w800,
                     fontSize: 10,
                   ),
@@ -1077,13 +1077,13 @@ class _FinancialCard extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isPaid
-                        ? const Color(0xFFF0FDF4)
-                        : const Color(0xFFFEF2F2),
+                        ? AppColors.successTint
+                        : AppColors.dangerTint,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: isPaid
-                          ? const Color(0xFFBBF7D0)
-                          : const Color(0xFFFECACA),
+                          ? AppColors.successBorder
+                          : AppColors.dangerBorder,
                     ),
                   ),
                   child: Column(
@@ -1163,7 +1163,7 @@ class _FinancialCard extends StatelessWidget {
           // Payments list
           if (r.payments.isNotEmpty) ...[
             const SizedBox(height: 14),
-            const Divider(height: 1, color: AppColors.slate100),
+            Divider(height: 1, color: AppColors.slate100),
             const SizedBox(height: 12),
             Text(
               'HISTORIAL DE PAGOS REGISTRADOS',
@@ -1287,14 +1287,14 @@ class _CancellationCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: AppColors.dangerTint,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFECACA)),
+        border: Border.all(color: AppColors.dangerBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.cancel_rounded,
             color: AppColors.statusDue,
             size: 20,
@@ -1389,10 +1389,10 @@ class _CancelDialogState extends State<_CancelDialog> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: const Color(0xFFFEE2E2),
+              color: AppColors.dangerTint,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.event_busy_rounded,
               color: AppColors.statusDue,
               size: 20,
@@ -1433,7 +1433,7 @@ class _CancelDialogState extends State<_CancelDialog> {
                 fillColor: AppColors.slate50,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.slate200),
+                  borderSide: BorderSide(color: AppColors.slate200),
                 ),
               ),
               validator: (value) =>
@@ -1451,7 +1451,7 @@ class _CancelDialogState extends State<_CancelDialog> {
                       color: AppColors.slate600,
                     ),
                     backgroundColor: AppColors.slate50,
-                    side: const BorderSide(color: AppColors.slate200),
+                    side: BorderSide(color: AppColors.slate200),
                     onPressed: () => _useReason(reason),
                   ),
               ],

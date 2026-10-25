@@ -40,7 +40,7 @@ class SplashPage extends StatelessWidget {
           body: Stack(
             fit: StackFit.expand,
             children: [
-              const DecoratedBox(
+              DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,

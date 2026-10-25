@@ -99,11 +99,11 @@ class _BusinessLoginPageState extends State<BusinessLoginPage> {
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light.copyWith(
           statusBarColor: Colors.transparent,
-          systemNavigationBarColor: Colors.white,
+          systemNavigationBarColor: AppColors.surfaceContainerLowest,
           systemNavigationBarIconBrightness: Brightness.dark,
         ),
         child: Scaffold(
-          backgroundColor: isWide ? Colors.white : AppColors.surface,
+          backgroundColor: isWide ? AppColors.surfaceContainerLowest : AppColors.surface,
           body: isWide
               ? _WideLayout(onBack: _onBack(context))
               : Center(
@@ -192,8 +192,8 @@ class _LoginSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
@@ -285,7 +285,7 @@ class _RegisterBusinessFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(top: 16),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(top: BorderSide(color: AppColors.slate100)),
       ),
       child: Column(

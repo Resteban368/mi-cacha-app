@@ -134,7 +134,7 @@ class _BusinessReservationsListPageState
                           child:
                               state.status == ReservationsListStatus.loading &&
                                   state.page > 0
-                              ? const LinearProgressIndicator(
+                              ? LinearProgressIndicator(
                                   color: AppColors.brandTeal,
                                 )
                               : null,
@@ -247,7 +247,7 @@ class _Footer extends StatelessWidget {
     if (state.loadingMore) {
       return Padding(
         padding: EdgeInsets.fromLTRB(16, 16, 16, bottom),
-        child: const Center(
+        child: Center(
           child: SizedBox.square(
             dimension: 24,
             child: CircularProgressIndicator(

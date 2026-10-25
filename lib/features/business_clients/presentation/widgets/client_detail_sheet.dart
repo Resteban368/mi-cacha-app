@@ -118,7 +118,7 @@ class ClientDetailContent extends StatelessWidget {
         // Header
         Container(
           padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.slate50,
             border: Border(bottom: BorderSide(color: AppColors.slate200)),
           ),
@@ -171,7 +171,7 @@ class ClientDetailContent extends StatelessWidget {
               ),
               IconButton(
                 tooltip: 'Editar',
-                icon: const Icon(
+                icon: Icon(
                   Icons.edit_outlined,
                   size: 20,
                   color: AppColors.slate600,
@@ -180,7 +180,7 @@ class ClientDetailContent extends StatelessWidget {
               ),
               IconButton(
                 tooltip: 'Cerrar',
-                icon: const Icon(
+                icon: Icon(
                   Icons.close_rounded,
                   size: 22,
                   color: AppColors.slate600,
@@ -202,14 +202,14 @@ class ClientDetailContent extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: onWhatsApp,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.chat_bubble_outline_rounded,
                         color: AppColors.whatsappDark,
                         size: 18,
                       ),
                       label: Text(
                         client.phone.isNotEmpty ? client.phone : 'Sin teléfono',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.whatsappDark,
                           fontWeight: FontWeight.w700,
                         ),
@@ -227,7 +227,7 @@ class ClientDetailContent extends StatelessWidget {
                     const SizedBox(width: 12),
                     IconButton(
                       tooltip: client.email,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.email_outlined,
                         color: AppColors.slate600,
                       ),
@@ -326,7 +326,7 @@ class ClientDetailContent extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.sports_rounded,
                           size: 18,
                           color: AppColors.brandTeal,
@@ -345,7 +345,7 @@ class ClientDetailContent extends StatelessWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.stadium_outlined,
                             size: 18,
                             color: AppColors.brandTeal,
@@ -363,7 +363,7 @@ class ClientDetailContent extends StatelessWidget {
                     ],
                     if (client.notes.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      const Divider(height: 1, color: AppColors.slate200),
+                      Divider(height: 1, color: AppColors.slate200),
                       const SizedBox(height: 12),
                       Text(
                         'Notas operativas:',
@@ -391,8 +391,8 @@ class ClientDetailContent extends StatelessWidget {
         // Sticky Bottom Footer Actions
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
             border: Border(top: BorderSide(color: AppColors.slate200)),
           ),
           child: Row(
@@ -455,7 +455,7 @@ class _DetailStatBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isAlert ? const Color(0xFFFEF2F2) : AppColors.slate50,
+        color: isAlert ? AppColors.dangerTint : AppColors.slate50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isAlert

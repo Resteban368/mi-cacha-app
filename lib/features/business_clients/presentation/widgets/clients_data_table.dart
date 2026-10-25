@@ -41,11 +41,11 @@ class ClientsDataTable extends StatelessWidget {
             Container(
               width: 56,
               height: 56,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.brandTealLight,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.person_search_rounded,
                 size: 28,
                 color: AppColors.brandTeal,
@@ -102,7 +102,7 @@ class ClientsDataTable extends StatelessWidget {
                       horizontal: 20,
                       vertical: 14,
                     ),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppColors.slate50,
                       border: Border(
                         bottom: BorderSide(color: AppColors.slate200),
@@ -143,7 +143,7 @@ class ClientsDataTable extends StatelessWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: clients.length,
-                    separatorBuilder: (_, _) => const Divider(
+                    separatorBuilder: (_, _) => Divider(
                       height: 1,
                       thickness: 1,
                       color: AppColors.slate100,
@@ -309,7 +309,7 @@ class _ClientTableRowState extends State<_ClientTableRow> {
                     if (client.phone.isNotEmpty)
                       IconButton(
                         tooltip: 'Chatear por WhatsApp',
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.chat_bubble_outline_rounded,
                           size: 18,
                           color: AppColors.whatsappDark,
@@ -395,7 +395,7 @@ class _ClientTableRowState extends State<_ClientTableRow> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEE2E2),
+                          color: AppColors.dangerTint,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -451,7 +451,7 @@ class _ClientTableRowState extends State<_ClientTableRow> {
                   children: [
                     IconButton(
                       tooltip: 'Ver historial de reservas',
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.history_rounded,
                         size: 20,
                         color: AppColors.slate600,
@@ -502,16 +502,16 @@ class _TierBadge extends StatelessWidget {
 
     switch (tier) {
       case ClientTier.vip:
-        bg = const Color(0xFFFEF3C7);
-        fg = const Color(0xFF92400E);
+        bg = AppColors.warningTint;
+        fg = AppColors.warningInk;
         icon = Icons.star_rounded;
       case ClientTier.frecuente:
         bg = AppColors.brandTealLight;
         fg = AppColors.brandTealDeep;
         icon = Icons.verified_rounded;
       case ClientTier.recurrente:
-        bg = const Color(0xFFE0F2FE);
-        fg = const Color(0xFF0369A1);
+        bg = AppColors.infoTint;
+        fg = AppColors.infoInk;
         icon = Icons.repeat_rounded;
       case ClientTier.nuevo:
         bg = AppColors.slate100;

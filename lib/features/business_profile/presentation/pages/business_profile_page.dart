@@ -124,7 +124,7 @@ class BusinessProfilePage extends StatelessWidget {
         );
       case BusinessSaveStatus.failure:
         messenger.showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('No pudimos guardar el negocio. Intenta de nuevo.'),
             backgroundColor: AppColors.statusDue,
           ),
@@ -253,7 +253,7 @@ class _BusinessFormState extends State<_BusinessForm> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Elige el departamento y la ciudad del negocio.'),
             backgroundColor: AppColors.statusDue,
           ),
@@ -586,7 +586,7 @@ class _DescriptionField extends StatelessWidget {
           filled: true,
           fillColor: WidgetStateColor.resolveWith(
             (states) => states.contains(WidgetState.focused)
-                ? Colors.white
+                ? AppColors.surfaceContainerLowest
                 : AppColors.slate50,
           ),
           contentPadding: const EdgeInsets.all(14),
@@ -668,9 +668,9 @@ class _SaveBar extends StatelessWidget {
     );
 
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
-        border: Border(top: BorderSide(color: Color(0xFFE0ECE9))),
+        border: Border(top: BorderSide(color: AppColors.outlineVariant)),
         boxShadow: [
           BoxShadow(
             color: Color(0x1413211E),
@@ -713,7 +713,7 @@ class _LoadError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_outlined,
               size: 40,
               color: AppColors.brandTeal,

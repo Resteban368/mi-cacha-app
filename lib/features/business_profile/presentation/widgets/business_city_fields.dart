@@ -108,7 +108,7 @@ class _MissingCityNotice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.info_outline_rounded,
             size: 20,
             color: AppColors.onErrorContainer,
@@ -224,7 +224,7 @@ class _PickerField extends StatelessWidget {
                       ),
                     ),
                     if (status == GeographyLoad.loading)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(right: 14),
                         child: SizedBox.square(
                           dimension: 18,
@@ -235,7 +235,7 @@ class _PickerField extends StatelessWidget {
                         ),
                       )
                     else
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(right: 10),
                         child: Icon(
                           Icons.expand_more_rounded,
@@ -388,11 +388,11 @@ class _SearchPickerState<T> extends State<_SearchPicker<T>> {
                 fillColor: AppColors.slate50,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.slate200),
+                  borderSide: BorderSide(color: AppColors.slate200),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.slate200),
+                  borderSide: BorderSide(color: AppColors.slate200),
                 ),
               ),
             ),

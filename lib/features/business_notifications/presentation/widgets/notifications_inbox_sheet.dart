@@ -80,7 +80,7 @@ class NotificationsInboxView extends StatelessWidget {
                 ],
               ),
             ),
-            const Divider(height: 1, color: AppColors.slate200),
+            Divider(height: 1, color: AppColors.slate200),
             Expanded(
               child: switch (state.status) {
                 InboxStatus.initial || InboxStatus.loading => const Center(
@@ -333,7 +333,7 @@ class NotificationTile extends StatelessWidget {
                   margin: const EdgeInsets.only(top: 6),
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.brandTeal,
                     shape: BoxShape.circle,
                   ),

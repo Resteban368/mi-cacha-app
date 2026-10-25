@@ -138,7 +138,7 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
               ..showSnackBar(
-                const SnackBar(
+                SnackBar(
                   content: Text(
                     'No pudimos registrar el pago. Intenta de nuevo.',
                   ),
@@ -391,7 +391,7 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
                         fontSize: 20,
                         letterSpacing: -0.5,
                       ),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: InputBorder.none,
                         hintText: '0',
                         hintStyle: TextStyle(
@@ -433,7 +433,7 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
               children: [
                 if (hasReservation && resBalance > 0)
                   ActionChip(
-                    avatar: const Icon(
+                    avatar: Icon(
                       Icons.bolt_rounded,
                       size: 14,
                       color: AppColors.brandDark,
@@ -593,7 +593,7 @@ class _SectionCard extends StatelessWidget {
               Container(
                 width: 6,
                 height: 6,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.brandTeal,
                   shape: BoxShape.circle,
                 ),
@@ -673,7 +673,7 @@ class _ChoicePill extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (selected) ...[
-                  const Icon(
+                  Icon(
                     Icons.check_circle_rounded,
                     size: 15,
                     color: AppColors.brandTeal,
@@ -800,9 +800,9 @@ class _BottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
-        border: Border(top: BorderSide(color: Color(0xFFE1E6E2))),
+        border: Border(top: BorderSide(color: AppColors.outlineVariant)),
         boxShadow: [
           BoxShadow(
             color: Color(0x1417231C),
@@ -907,7 +907,7 @@ class _SummaryPanel extends StatelessWidget {
           // Barra de acento gradiente superior
           Container(
             height: 4,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
                   AppColors.brandDark,
@@ -966,7 +966,7 @@ class _SummaryPanel extends StatelessWidget {
                         Container(
                           width: 7,
                           height: 7,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: AppColors.emerald600,
                             shape: BoxShape.circle,
                           ),
@@ -1020,7 +1020,7 @@ class _SummaryPanel extends StatelessWidget {
                                 '${AppFormatters.shortDate(reservationDate!)} · ${AppFormatters.time(reservationDate!)}',
                           ),
                         if (totalTurno > 0) ...[
-                          const Divider(height: 12, color: AppColors.slate200),
+                          Divider(height: 12, color: AppColors.slate200),
                           _SubRow(
                             label: 'Valor total turno',
                             value: '${AppFormatters.cop(totalTurno)} COP',
@@ -1087,7 +1087,7 @@ class _SummaryPanel extends StatelessWidget {
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.only(top: 8),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     border: Border(top: BorderSide(color: AppColors.slate100)),
                   ),
                   child: Row(
@@ -1098,7 +1098,7 @@ class _SummaryPanel extends StatelessWidget {
                           Container(
                             width: 5,
                             height: 5,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: AppColors.emerald600,
                               shape: BoxShape.circle,
                             ),
@@ -1263,7 +1263,7 @@ class _TicketPerforationDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: 10),
       child: Divider(height: 1, thickness: 1, color: AppColors.slate200),
     );

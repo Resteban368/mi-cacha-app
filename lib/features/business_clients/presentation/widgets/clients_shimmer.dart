@@ -124,7 +124,7 @@ class ClientsCardShimmer extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(
+          Divider(
             height: 1,
             thickness: 1,
             color: AppColors.slate100,
@@ -277,7 +277,7 @@ class ClientsTableShimmer extends StatelessWidget {
                       horizontal: 20,
                       vertical: 14,
                     ),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppColors.slate50,
                       border: Border(
                         bottom: BorderSide(color: AppColors.slate200),
@@ -324,7 +324,7 @@ class ClientsTableShimmer extends StatelessWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: rowCount,
-                    separatorBuilder: (_, _) => const Divider(
+                    separatorBuilder: (_, _) => Divider(
                       height: 1,
                       thickness: 1,
                       color: AppColors.slate100,
@@ -353,7 +353,7 @@ class _ShimmerHeaderCell extends StatelessWidget {
       alignment: alignment,
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,

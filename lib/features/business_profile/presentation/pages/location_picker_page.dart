@@ -258,7 +258,7 @@ class _VenueTargetPin extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
@@ -355,7 +355,7 @@ class _ModernMapHeaderCard extends StatelessWidget {
               color: AppColors.brandTeal.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.pin_drop_rounded,
               size: 18,
               color: AppColors.brandTeal,
@@ -508,7 +508,7 @@ class _ControlIconButton extends StatelessWidget {
       iconSize: 20,
       color: iconColor ?? AppColors.onSurfaceVariant,
       icon: busy
-          ? const SizedBox.square(
+          ? SizedBox.square(
               dimension: 18,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
@@ -569,12 +569,12 @@ class _ConfirmBar extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: hasError
-                          ? const Color(0xFFFEF3E2)
+                          ? AppColors.warningTint
                           : AppColors.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: hasError
-                            ? const Color(0xFFFCD39D)
+                            ? AppColors.warningBorder
                             : AppColors.outlineVariant.withValues(alpha: 0.4),
                       ),
                     ),
@@ -598,7 +598,7 @@ class _ConfirmBar extends StatelessWidget {
                             textAlign: TextAlign.center,
                             style: AppTypography.bodySm.copyWith(
                               color: hasError
-                                  ? const Color(0xFF9C4100)
+                                  ? AppColors.warningInk
                                   : AppColors.onSurface,
                               fontWeight: FontWeight.w600,
                             ),

@@ -229,7 +229,7 @@ class _BusinessClientsPageState extends State<BusinessClientsPage> {
                           if (isLoading && clients.isNotEmpty)
                             SliverPadding(
                               padding: EdgeInsets.fromLTRB(side, 0, side, 12),
-                              sliver: const SliverToBoxAdapter(
+                              sliver: SliverToBoxAdapter(
                                 child: LinearProgressIndicator(
                                   color: AppColors.brandTeal,
                                   backgroundColor: AppColors.brandTealLight,
@@ -336,11 +336,11 @@ class _BusinessClientsPageState extends State<BusinessClientsPage> {
           Container(
             width: 56,
             height: 56,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFEE2E2),
+            decoration: BoxDecoration(
+              color: AppColors.dangerTint,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.error_outline_rounded,
               size: 28,
               color: AppColors.statusDue,
@@ -397,7 +397,7 @@ class _LoadMoreFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final child = switch (status) {
-      LoadMoreStatus.loading => const SizedBox.square(
+      LoadMoreStatus.loading => SizedBox.square(
         key: Key('clients-loading-more'),
         dimension: 24,
         child: CircularProgressIndicator(

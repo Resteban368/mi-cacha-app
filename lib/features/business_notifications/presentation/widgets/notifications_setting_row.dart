@@ -28,7 +28,7 @@ class NotificationsSettingRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
           child: Row(
             children: [
-              const AccountIconBox(
+              AccountIconBox(
                 icon: Icons.notifications_active_outlined,
                 background: AppColors.brandTealLight,
                 foreground: AppColors.brandTeal,

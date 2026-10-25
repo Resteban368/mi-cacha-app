@@ -56,7 +56,7 @@ class ReservationOperationalInspector extends StatelessWidget {
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.brandTeal,
                     shape: BoxShape.circle,
                   ),
@@ -215,7 +215,7 @@ class _CourtHighlightBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [AppColors.brandDark, AppColors.brandTeal],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -401,7 +401,7 @@ class _CustomerIdentityCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(
+                        Icon(
                           Icons.verified_rounded,
                           size: 14,
                           color: AppColors.brandTeal,

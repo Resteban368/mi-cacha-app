@@ -132,7 +132,7 @@ class CreateReservationOptionsCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.slate200),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.repeat,
                     size: 15,
                     color: AppColors.brandTeal,

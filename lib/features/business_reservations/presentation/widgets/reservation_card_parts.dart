@@ -49,13 +49,15 @@ class ContactActions extends StatelessWidget {
     super.key,
     required this.reservation,
     this.size = 32,
-    this.callBackground = AppColors.surfaceContainer,
+    this.callBackground,
     this.whatsappAlpha = 0.15,
   });
 
   final Reservation reservation;
   final double size;
-  final Color callBackground;
+  final Color? callBackground;
+
+  Color get _callBackground => callBackground ?? AppColors.surfaceContainer;
   final double whatsappAlpha;
 
   @override
@@ -67,7 +69,7 @@ class ContactActions extends StatelessWidget {
         _RoundAction(
           size: size,
           icon: Icons.call_outlined,
-          background: callBackground,
+          background: _callBackground,
           foreground: AppColors.onSurface,
           tooltip: 'Llamar a $name',
           onTap: () => showCallOptions(context, reservation),

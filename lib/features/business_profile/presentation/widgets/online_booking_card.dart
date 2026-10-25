@@ -47,7 +47,7 @@ class OnlineBookingCard extends StatelessWidget {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('No pudimos abrir el enlace.'),
           backgroundColor: AppColors.statusDue,
         ),
@@ -86,7 +86,7 @@ class OnlineBookingCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.link_rounded,
                 size: 20,
                 color: AppColors.brandTeal,
@@ -180,7 +180,7 @@ class _LinkBody extends StatelessWidget {
             key: const Key('online-booking-warning'),
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
+              Icon(
                 Icons.info_outline_rounded,
                 size: 18,
                 color: AppColors.onErrorContainer,

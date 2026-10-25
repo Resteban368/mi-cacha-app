@@ -108,7 +108,7 @@ class ClientCardItem extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 12),
-                const Divider(
+                Divider(
                   height: 1,
                   thickness: 1,
                   color: AppColors.slate100,
@@ -155,14 +155,14 @@ class ClientCardItem extends StatelessWidget {
                       IconButton.outlined(
                         tooltip: 'Abrir WhatsApp',
                         onPressed: onWhatsAppTap,
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.chat_bubble_outline_rounded,
                           size: 18,
                           color: AppColors.whatsappDark,
                         ),
                         style: IconButton.styleFrom(
                           side: const BorderSide(color: AppColors.whatsapp),
-                          backgroundColor: const Color(0xFFF0FDF4),
+                          backgroundColor: AppColors.successTint,
                           visualDensity: VisualDensity.compact,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -181,7 +181,7 @@ class ClientCardItem extends StatelessWidget {
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.slate700,
-                          side: const BorderSide(color: AppColors.slate200),
+                          side: BorderSide(color: AppColors.slate200),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
                             vertical: 8,
@@ -243,7 +243,7 @@ class _MetricPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isAlert ? const Color(0xFFFEF2F2) : AppColors.slate50,
+        color: isAlert ? AppColors.dangerTint : AppColors.slate50,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isAlert
@@ -305,14 +305,14 @@ class _TierBadgeCompact extends StatelessWidget {
 
     switch (tier) {
       case ClientTier.vip:
-        bg = const Color(0xFFFEF3C7);
-        fg = const Color(0xFF92400E);
+        bg = AppColors.warningTint;
+        fg = AppColors.warningInk;
       case ClientTier.frecuente:
         bg = AppColors.brandTealLight;
         fg = AppColors.brandTealDeep;
       case ClientTier.recurrente:
-        bg = const Color(0xFFE0F2FE);
-        fg = const Color(0xFF0369A1);
+        bg = AppColors.infoTint;
+        fg = AppColors.infoInk;
       case ClientTier.nuevo:
         bg = AppColors.slate100;
         fg = AppColors.slate700;

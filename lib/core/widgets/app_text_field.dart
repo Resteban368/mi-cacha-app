@@ -102,7 +102,7 @@ class _AppTextFieldState extends State<AppTextField> {
             // Se aclara a blanco al enfocar, como en el diseño.
             fillColor: WidgetStateColor.resolveWith(
               (states) => states.contains(WidgetState.focused)
-                  ? Colors.white
+                  ? AppColors.surfaceContainerLowest
                   : AppColors.slate50,
             ),
             contentPadding: const EdgeInsets.symmetric(vertical: 14),

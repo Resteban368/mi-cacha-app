@@ -150,7 +150,7 @@ class _NewPaymentTargetSelectorState extends State<NewPaymentTargetSelector> {
         else ...[
           // Mientras busca se mantienen los resultados anteriores.
           if (widget.state.customerSearchStatus == EntitySearchStatus.loading)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(bottom: 4),
               child: LinearProgressIndicator(
                 minHeight: 2,
@@ -381,7 +381,7 @@ class _TabItem extends StatelessWidget {
                   Container(
                     width: 5,
                     height: 5,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppColors.emerald600,
                       shape: BoxShape.circle,
                     ),
@@ -410,7 +410,7 @@ class _SelectedCustomerCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             AppColors.emerald50.withValues(alpha: 0.8),
-            Colors.white,
+            AppColors.surfaceContainerLowest,
             AppColors.emerald50.withValues(alpha: 0.4),
           ],
         ),
@@ -476,7 +476,7 @@ class _SelectedCustomerCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.star_rounded,
                             size: 10,
                             color: AppColors.emerald800,
@@ -514,7 +514,7 @@ class _SelectedCustomerCard extends StatelessWidget {
             label: const Text('Cambiar'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.brandTealDeep,
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.surfaceContainerLowest,
               side: BorderSide(
                 color: AppColors.brandTeal.withValues(alpha: 0.3),
               ),
@@ -559,7 +559,7 @@ class _CustomerReservationsSection extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.event_note_rounded,
                   size: 15,
                   color: AppColors.brandTeal,
@@ -612,7 +612,7 @@ class _CustomerReservationsSection extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.info_outline_rounded,
                   size: 16,
                   color: AppColors.slate500,
@@ -823,7 +823,7 @@ class _SelectedReservationCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.check_circle_rounded,
                 color: AppColors.brandTeal,
                 size: 20,
@@ -844,7 +844,7 @@ class _SelectedReservationCard extends StatelessWidget {
                 label: const Text('Cambiar'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.brandTealDeep,
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppColors.surfaceContainerLowest,
                   side: BorderSide(
                     color: AppColors.brandTeal.withValues(alpha: 0.3),
                   ),
@@ -934,7 +934,7 @@ class _CustomerTile extends StatelessWidget {
       color: AppColors.surfaceContainerLowest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: const BorderSide(color: AppColors.slate200),
+        side: BorderSide(color: AppColors.slate200),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -988,7 +988,7 @@ class _CustomerTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 18,
                 color: AppColors.slate400,
@@ -1015,7 +1015,7 @@ class _ReservationTile extends StatelessWidget {
       color: AppColors.surfaceContainerLowest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: const BorderSide(color: AppColors.slate200),
+        side: BorderSide(color: AppColors.slate200),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -1165,7 +1165,7 @@ class _CompactSearchField extends StatelessWidget {
         isDense: true,
         hintText: hint,
         hintStyle: AppTypography.bodyMd.copyWith(color: AppColors.slate400),
-        prefixIcon: const Icon(
+        prefixIcon: Icon(
           Icons.search_rounded,
           size: 18,
           color: AppColors.slate400,
@@ -1293,7 +1293,7 @@ class _LoadMoreRowState extends State<_LoadMoreRow> {
         ),
       );
     }
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: 8),
       child: Center(
         child: SizedBox.square(

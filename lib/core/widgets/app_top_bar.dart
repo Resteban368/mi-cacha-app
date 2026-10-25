@@ -83,11 +83,13 @@ class AppTopBar extends StatelessWidget {
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(bottom: _radius),
           child: DecoratedBox(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.brandTeal, AppColors.primary],
+                colors: AppColors.isDark
+                    ? [AppColors.surfaceContainerHigh, AppColors.brandTealLight]
+                    : [AppColors.brandTeal, AppColors.primary],
               ),
             ),
             child: Stack(

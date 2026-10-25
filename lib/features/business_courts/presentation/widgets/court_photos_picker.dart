@@ -236,7 +236,7 @@ class _PhotoSlot extends StatelessWidget {
                             image,
                             fit: BoxFit.cover,
                             gaplessPlayback: true,
-                            errorBuilder: (_, _, _) => const Icon(
+                            errorBuilder: (_, _, _) => Icon(
                               Icons.broken_image_outlined,
                               color: AppColors.outline,
                             ),

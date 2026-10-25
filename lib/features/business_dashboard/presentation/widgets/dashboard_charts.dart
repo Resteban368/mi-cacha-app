@@ -22,10 +22,12 @@ String _hours(num value) {
 
 /// Barra horizontal de progreso con fondo gris.
 class _Bar extends StatelessWidget {
-  const _Bar({required this.fraction, this.color = AppColors.brandTeal});
+  const _Bar({required this.fraction, this.color});
 
   final double fraction;
-  final Color color;
+  final Color? color;
+
+  Color get _color => color ?? AppColors.brandTeal;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +41,7 @@ class _Bar extends StatelessWidget {
             alignment: Alignment.centerLeft,
             widthFactor: fraction.clamp(0, 1).toDouble(),
             heightFactor: 1,
-            child: ColoredBox(color: color),
+            child: ColoredBox(color: _color),
           ),
         ),
       ),

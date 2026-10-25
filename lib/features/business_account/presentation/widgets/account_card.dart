@@ -47,14 +47,18 @@ class AccountIconBox extends StatelessWidget {
     super.key,
     required this.icon,
     this.size = 36,
-    this.background = AppColors.surfaceContainerLow,
-    this.foreground = AppColors.brandTeal,
+    this.background,
+    this.foreground,
   });
 
   final IconData icon;
   final double size;
-  final Color background;
-  final Color foreground;
+  final Color? background;
+
+  Color get _background => background ?? AppColors.surfaceContainerLow;
+  final Color? foreground;
+
+  Color get _foreground => foreground ?? AppColors.brandTeal;
 
   @override
   Widget build(BuildContext context) {
@@ -62,10 +66,10 @@ class AccountIconBox extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: background,
+        color: _background,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(icon, size: size * 0.55, color: foreground),
+      child: Icon(icon, size: size * 0.55, color: _foreground),
     );
   }
 }

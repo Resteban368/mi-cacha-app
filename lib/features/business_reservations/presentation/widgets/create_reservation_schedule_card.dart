@@ -385,7 +385,7 @@ class _CreateReservationScheduleCardState
             children: [
               Row(
                 children: [
-                  const Icon(Icons.timelapse, color: AppColors.brandTeal),
+                  Icon(Icons.timelapse, color: AppColors.brandTeal),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -854,7 +854,7 @@ class _Legend extends StatelessWidget {
     final start = selectedStart;
     return Container(
       padding: const EdgeInsets.only(top: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(top: BorderSide(color: AppColors.slate100)),
       ),
       child: Wrap(

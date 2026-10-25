@@ -59,11 +59,11 @@ class CourtRatesSection extends StatelessWidget {
               child: Container(
                 width: 56,
                 height: 56,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.brandTealLight,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.payments_outlined,
                   size: 28,
                   color: AppColors.primary,
@@ -188,7 +188,7 @@ class _RateTile extends StatelessWidget {
               IconButton(
                 tooltip: 'Quitar tarifa ${rate.name}',
                 onPressed: onRemove,
-                icon: const Icon(
+                icon: Icon(
                   Icons.delete_outline,
                   color: AppColors.onSurfaceVariant,
                 ),

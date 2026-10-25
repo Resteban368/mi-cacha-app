@@ -40,7 +40,7 @@ class LoginHero extends StatelessWidget {
             children: [
               const _PhotoMosaic(),
               // Gradación de color de marca (multiply) + viñeta.
-              const DecoratedBox(
+              DecoratedBox(
                 decoration: BoxDecoration(
                   backgroundBlendMode: BlendMode.multiply,
                   gradient: LinearGradient(

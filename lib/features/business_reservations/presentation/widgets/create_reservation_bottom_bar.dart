@@ -83,7 +83,7 @@ class CreateReservationBottomBar extends StatelessWidget {
               ),
             ),
             icon: isLoading
-                ? const SizedBox.square(
+                ? SizedBox.square(
                     dimension: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,

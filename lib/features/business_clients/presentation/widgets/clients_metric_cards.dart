@@ -61,7 +61,7 @@ class ClientsMetricCards extends StatelessWidget {
             subtitle: 'Fidelidad activa (+5 res.)',
             icon: Icons.workspace_premium_rounded,
             color: const Color(0xFFD97706),
-            bgColor: const Color(0xFFFEF3C7),
+            bgColor: AppColors.warningTint,
             trendLabel: trendLoyal,
           ),
           _MetricItem(
@@ -69,8 +69,8 @@ class ClientsMetricCards extends StatelessWidget {
             value: totalBookings.toString(),
             subtitle: 'Partidos organizados',
             icon: Icons.sports_soccer_rounded,
-            color: const Color(0xFF0284C7),
-            bgColor: const Color(0xFFE0F2FE),
+            color: AppColors.infoInk,
+            bgColor: AppColors.infoTint,
             trendLabel: 'Alta recurrencia',
           ),
           _MetricItem(
@@ -80,7 +80,7 @@ class ClientsMetricCards extends StatelessWidget {
             icon: Icons.pending_actions_rounded,
             color: totalDebt > 0 ? AppColors.statusDue : AppColors.brandTeal,
             bgColor: totalDebt > 0
-                ? const Color(0xFFFEE2E2)
+                ? AppColors.dangerTint
                 : AppColors.brandTealLight,
             badgeAlert: totalDebt > 0,
           ),

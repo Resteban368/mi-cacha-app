@@ -448,7 +448,7 @@ class _EmptyCover extends StatelessWidget {
             child: SizedBox(
               height: BusinessPhotoGallery._height,
               child: onTap == null
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(
                         color: AppColors.brandTeal,
                       ),
@@ -456,7 +456,7 @@ class _EmptyCover extends StatelessWidget {
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const _IconBubble(
+                        _IconBubble(
                           icon: Icons.add_a_photo_outlined,
                           color: AppColors.primary,
                         ),
@@ -490,7 +490,7 @@ class _BrokenImage extends StatelessWidget {
   const _BrokenImage();
 
   @override
-  Widget build(BuildContext context) => const Center(
+  Widget build(BuildContext context) => Center(
     child: Icon(
       Icons.broken_image_outlined,
       size: 32,
@@ -571,7 +571,7 @@ class _IconBubble extends StatelessWidget {
     return Container(
       width: 48,
       height: 48,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surfaceContainerHigh,
         shape: BoxShape.circle,
         boxShadow: [
@@ -716,7 +716,7 @@ class _LocationPreview extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.all(5),
                                   decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
+                                    gradient: LinearGradient(
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                       colors: [
@@ -776,7 +776,7 @@ class _LocationPreview extends StatelessWidget {
                           Container(
                             width: 7,
                             height: 7,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: AppColors.primary,
                             ),
@@ -802,7 +802,7 @@ class _LocationPreview extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.place_rounded,
                   size: 18,
                   color: AppColors.brandTeal,
@@ -887,7 +887,7 @@ class _EmptyLocation extends StatelessWidget {
                     color: AppColors.brandTeal.withValues(alpha: 0.25),
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.wrong_location_rounded,
                   size: 26,
                   color: AppColors.brandTeal,

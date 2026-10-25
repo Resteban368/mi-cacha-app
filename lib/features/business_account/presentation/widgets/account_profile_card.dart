@@ -89,7 +89,7 @@ class _Avatar extends StatelessWidget {
             width: 64,
             height: 64,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 begin: Alignment.bottomLeft,
@@ -125,7 +125,7 @@ class _Avatar extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: AppColors.accentLime,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.verified,
                     size: 14,
                     color: AppColors.brandTealDeep,
@@ -279,7 +279,7 @@ class _VenueTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 size: 20,
                 color: AppColors.outlineVariant,

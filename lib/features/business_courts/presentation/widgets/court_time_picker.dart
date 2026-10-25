@@ -45,7 +45,7 @@ class CourtTimeButton extends StatelessWidget {
         color: AppColors.surfaceContainerLowest,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: const BorderSide(color: AppColors.outlineVariant),
+          side: BorderSide(color: AppColors.outlineVariant),
         ),
         child: InkWell(
           onTap: onPressed,

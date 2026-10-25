@@ -82,7 +82,7 @@ class CreateReservationCourtsCard extends StatelessWidget {
                 key: Key('reservation-add-court-${c.court.id}'),
                 avatar: const Icon(Icons.add, size: 18),
                 label: Text(c.court.name),
-                side: const BorderSide(color: AppColors.brandTeal),
+                side: BorderSide(color: AppColors.brandTeal),
                 labelStyle: AppTypography.labelMd.copyWith(
                   color: AppColors.brandTeal,
                   fontWeight: FontWeight.w600,

@@ -103,7 +103,7 @@ class TrendChip extends StatelessWidget {
     final (background, foreground) = switch (good) {
       null => (AppColors.slate100, AppColors.slate500),
       true => (AppColors.emerald50, AppColors.emerald800),
-      false => (const Color(0xFFFEF2F2), AppColors.statusDue),
+      false => (AppColors.dangerTint, AppColors.statusDue),
     };
     return Tooltip(
       message: pct == null
@@ -148,7 +148,7 @@ class KpiCard extends StatelessWidget {
     required this.value,
     this.trend,
     this.detail,
-    this.accent = AppColors.brandTeal,
+    this.accent,
     this.lowerIsBetter = false,
     this.onTap,
   });
@@ -158,7 +158,9 @@ class KpiCard extends StatelessWidget {
   final String value;
   final Trend? trend;
   final String? detail;
-  final Color accent;
+  final Color? accent;
+
+  Color get _accent => accent ?? AppColors.brandTeal;
   final bool lowerIsBetter;
   final VoidCallback? onTap;
 
@@ -184,7 +186,7 @@ class KpiCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(icon, size: 16, color: accent),
+                  Icon(icon, size: 16, color: _accent),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(

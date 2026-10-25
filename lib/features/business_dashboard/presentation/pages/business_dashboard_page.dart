@@ -88,7 +88,7 @@ class _DashboardBody extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               if (state.status == DashboardStatus.loading && dashboard != null)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(bottom: 12),
                   child: LinearProgressIndicator(
                     minHeight: 3,
@@ -338,7 +338,7 @@ class _Failure extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.cloud_off_outlined,
             size: 36,
             color: AppColors.slate400,

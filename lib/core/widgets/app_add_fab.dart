@@ -42,7 +42,7 @@ class AppAddFab extends StatelessWidget {
                     color: AppColors.accentLime,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.add,
                     size: 22,
                     color: AppColors.inverseSurface,

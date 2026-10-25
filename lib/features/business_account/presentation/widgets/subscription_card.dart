@@ -31,7 +31,7 @@ class SubscriptionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Acento deportivo superior.
-          const SizedBox(
+          SizedBox(
             height: 6,
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -156,7 +156,7 @@ class _StatusBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           active
-              ? const PulsingDot(color: AppColors.brandTeal)
+              ? PulsingDot(color: AppColors.brandTeal)
               : Icon(Icons.error_outline, size: 12, color: color),
           const SizedBox(width: 6),
           Text(
@@ -293,7 +293,7 @@ class _AutoBillingNote extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.autorenew, size: 15, color: AppColors.brandTeal),
+          Icon(Icons.autorenew, size: 15, color: AppColors.brandTeal),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -335,11 +335,7 @@ class _CourtUsage extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.stadium,
-                    size: 16,
-                    color: AppColors.brandTeal,
-                  ),
+                  Icon(Icons.stadium, size: 16, color: AppColors.brandTeal),
                   const SizedBox(width: 6),
                   Text(
                     'Uso de canchas',
@@ -372,7 +368,7 @@ class _CourtUsage extends StatelessWidget {
                 child: FractionallySizedBox(
                   alignment: Alignment.centerLeft,
                   widthFactor: plan.usage,
-                  child: const DecoratedBox(
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.all(Radius.circular(999)),
                       gradient: LinearGradient(
@@ -438,7 +434,7 @@ class _BenefitsState extends State<_Benefits> {
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.task_alt,
                         size: 18,
                         color: AppColors.brandTeal,
@@ -474,7 +470,7 @@ class _BenefitsState extends State<_Benefits> {
                       AnimatedRotation(
                         turns: _expanded ? 0.5 : 0,
                         duration: duration,
-                        child: const Icon(
+                        child: Icon(
                           Icons.expand_more,
                           size: 20,
                           color: AppColors.outlineVariant,
@@ -524,15 +520,11 @@ class _BenefitRow extends StatelessWidget {
             width: 24,
             height: 24,
             margin: const EdgeInsets.only(top: 2),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.brandTealLight,
             ),
-            child: const Icon(
-              Icons.check,
-              size: 15,
-              color: AppColors.brandTeal,
-            ),
+            child: Icon(Icons.check, size: 15, color: AppColors.brandTeal),
           ),
           const SizedBox(width: 12),
           Expanded(

@@ -66,7 +66,8 @@ class BusinessLoginHeader extends StatelessWidget {
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.emerald100.withValues(alpha: 0.75),
+                      // Va sobre el encabezado verde en los dos modos.
+                      color: const Color(0xBFD1FADF),
                     ),
                   ),
                   if (panel) ...[
@@ -225,7 +226,7 @@ class _LiveIndicatorState extends State<_LiveIndicator>
             child: Opacity(opacity: 1 - t, child: child),
           );
         },
-        child: const DecoratedBox(
+        child: DecoratedBox(
           decoration: BoxDecoration(
             color: AppColors.brandDark,
             shape: BoxShape.circle,
@@ -264,7 +265,7 @@ class _CourtTexture extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const DecoratedBox(
+    return DecoratedBox(
       decoration: BoxDecoration(color: AppColors.brandTeal),
       child: DecoratedBox(
         decoration: BoxDecoration(

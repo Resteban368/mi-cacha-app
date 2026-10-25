@@ -146,7 +146,7 @@ class ClientsFilterBar extends StatelessWidget {
       decoration: InputDecoration(
         hintText: 'Buscar por nombre, cédula o teléfono (+57)...',
         hintStyle: AppTypography.bodyMd.copyWith(color: AppColors.slate400),
-        prefixIcon: const Icon(
+        prefixIcon: Icon(
           Icons.search_rounded,
           color: AppColors.brandTeal,
           size: 20,
@@ -181,7 +181,7 @@ class ClientsFilterBar extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.brandTeal, width: 1.5),
+          borderSide: BorderSide(color: AppColors.brandTeal, width: 1.5),
         ),
       ),
     );
@@ -237,7 +237,7 @@ class ClientsFilterBar extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.sort_rounded, size: 20, color: AppColors.slate600),
+            Icon(Icons.sort_rounded, size: 20, color: AppColors.slate600),
             const SizedBox(width: 8),
             Text(
               selectedSort.label,
@@ -247,7 +247,7 @@ class ClientsFilterBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(
+            Icon(
               Icons.arrow_drop_down_rounded,
               size: 20,
               color: AppColors.slate500,

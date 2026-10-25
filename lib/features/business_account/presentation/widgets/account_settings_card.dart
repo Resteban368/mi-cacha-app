@@ -4,7 +4,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import 'account_card.dart';
 
-/// "Configuración y seguridad": contraseña, soporte y cierre de sesión.
+/// "Configuración y seguridad": contraseña, soporte, apariencia, avisos y
+/// cierre de sesión.
 class AccountSettingsCard extends StatelessWidget {
   const AccountSettingsCard({
     super.key,
@@ -12,6 +13,7 @@ class AccountSettingsCard extends StatelessWidget {
     required this.onSupport,
     required this.onLogout,
     this.notifications,
+    this.appearance,
   });
 
   final VoidCallback onChangePassword;
@@ -21,6 +23,9 @@ class AccountSettingsCard extends StatelessWidget {
   /// Fila de avisos push (solo web). Se omite si no hay.
   final Widget? notifications;
 
+  /// Selector claro / oscuro / sistema. Se omite si no hay.
+  final Widget? appearance;
+
   @override
   Widget build(BuildContext context) {
     return AccountCard(
@@ -29,7 +34,7 @@ class AccountSettingsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.tune, size: 20, color: AppColors.brandTeal),
+              Icon(Icons.tune, size: 20, color: AppColors.brandTeal),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -56,6 +61,7 @@ class AccountSettingsCard extends StatelessWidget {
             subtitle: 'Asistencia directa del equipo técnico',
             onTap: onSupport,
           ),
+          ?appearance,
           ?notifications,
           _SettingsTile(
             icon: Icons.logout,
@@ -77,7 +83,7 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.iconBackground = AppColors.surfaceContainerLow,
+    this.iconBackground,
     this.color,
     this.badge,
   });
@@ -86,7 +92,9 @@ class _SettingsTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final Color iconBackground;
+  final Color? iconBackground;
+
+  Color get _iconBackground => iconBackground ?? AppColors.surfaceContainerLow;
 
   /// Color de acciones destructivas (ícono, título y flecha).
   final Color? color;
@@ -106,7 +114,7 @@ class _SettingsTile extends StatelessWidget {
             children: [
               AccountIconBox(
                 icon: icon,
-                background: iconBackground,
+                background: _iconBackground,
                 foreground: color ?? AppColors.brandTeal,
               ),
               const SizedBox(width: 12),

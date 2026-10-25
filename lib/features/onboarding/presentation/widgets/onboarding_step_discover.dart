@@ -62,7 +62,7 @@ class OnboardingStepDiscover extends StatelessWidget {
       ),
       media: const _CityIllustration(),
       children: [
-        const OnboardingBlock(
+        OnboardingBlock(
           child: OnboardingStepPill(
             icon: Icons.explore,
             label: 'Paso 1 de 3 • Descubre',

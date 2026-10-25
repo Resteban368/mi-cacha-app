@@ -174,7 +174,7 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
                           Container(
                             width: 40,
                             height: 40,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: AppColors.brandTealLight,
                               shape: BoxShape.circle,
                             ),
@@ -206,19 +206,19 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFEE2E2),
+                        color: AppColors.dangerTint,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: AppColors.statusDue.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded, color: AppColors.statusDue, size: 20),
+                          Icon(Icons.error_outline_rounded, color: AppColors.statusDue, size: 20),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               _errorMessage!,
                               style: AppTypography.bodySm.copyWith(
-                                color: const Color(0xFF991B1B),
+                                color: AppColors.dangerInk,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -292,13 +292,13 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
                       fillColor: AppColors.slate50,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
+                        borderSide: BorderSide(
                           color: AppColors.slate200,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
+                        borderSide: BorderSide(
                           color: AppColors.slate200,
                         ),
                       ),

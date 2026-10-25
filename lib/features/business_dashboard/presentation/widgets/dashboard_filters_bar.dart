@@ -252,7 +252,7 @@ class _MenuPill<T> extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_drop_down,
               size: 18,
               color: AppColors.slate500,

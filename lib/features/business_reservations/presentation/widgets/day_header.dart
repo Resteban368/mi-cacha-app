@@ -138,7 +138,7 @@ class DayHeader extends StatelessWidget {
                               ),
                               if (isToday) ...[
                                 const SizedBox(width: 4),
-                                const PulsingDot(
+                                PulsingDot(
                                   color: AppColors.statusPaid,
                                   size: 7,
                                 ),

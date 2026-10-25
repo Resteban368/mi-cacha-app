@@ -38,7 +38,7 @@ class PaymentCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0ECE9), width: 1.5),
+        border: Border.all(color: AppColors.outlineVariant, width: 1.5),
         boxShadow: [
           BoxShadow(
             color: AppColors.brandTeal.withValues(alpha: 0.06),
@@ -144,7 +144,7 @@ class PaymentCard extends StatelessWidget {
                         foreground: AppColors.onSurfaceVariant,
                       ),
                     if (p.registeredByBusiness)
-                      const _Tag(
+                      _Tag(
                         label: 'Registrado por ti',
                         background: AppColors.surfaceContainer,
                         foreground: AppColors.onSurfaceVariant,
@@ -172,23 +172,23 @@ class PaymentCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFEE2E2),
+                        color: AppColors.dangerTint,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.info_outline,
                             size: 14,
-                            color: Color(0xFF991B1B),
+                            color: AppColors.dangerInk,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               p.rejectionReason!,
                               style: AppTypography.bodySm.copyWith(
-                                color: const Color(0xFF991B1B),
+                                color: AppColors.dangerInk,
                               ),
                             ),
                           ),
@@ -297,8 +297,8 @@ class _StatusPill extends StatelessWidget {
       PaymentStatus.pending => (
         'Por validar',
         Icons.hourglass_top_rounded,
-        const Color(0xFFFEF3C7),
-        const Color(0xFF92400E),
+        AppColors.warningTint,
+        AppColors.warningInk,
       ),
       PaymentStatus.approved => (
         'Aprobado',
@@ -309,8 +309,8 @@ class _StatusPill extends StatelessWidget {
       PaymentStatus.rejected => (
         'Rechazado',
         Icons.cancel_outlined,
-        const Color(0xFFFEE2E2),
-        const Color(0xFF991B1B),
+        AppColors.dangerTint,
+        AppColors.dangerInk,
       ),
       PaymentStatus.refunded => (
         'Devuelto',

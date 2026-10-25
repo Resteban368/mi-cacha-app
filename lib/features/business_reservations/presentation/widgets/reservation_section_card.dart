@@ -126,7 +126,7 @@ class ReservationSectionCard extends StatelessWidget {
             heading,
           Padding(
             padding: EdgeInsets.symmetric(vertical: compact ? 8 : 14),
-            child: const Divider(height: 1, color: AppColors.slate100),
+            child: Divider(height: 1, color: AppColors.slate100),
           ),
           child,
         ],

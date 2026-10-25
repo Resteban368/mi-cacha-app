@@ -620,7 +620,7 @@ class _CourtFormState extends State<_CourtForm> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.info_outline, color: AppColors.brandTeal),
+            Icon(Icons.info_outline, color: AppColors.brandTeal),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -796,11 +796,11 @@ class _ActiveCard extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.brandTealLight,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.toggle_on_outlined,
               color: AppColors.brandTeal,
               size: 24,
@@ -888,7 +888,7 @@ class _Heading extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.stadium_outlined,
                 size: 18,
                 color: AppColors.primary,
@@ -913,7 +913,7 @@ class _Heading extends StatelessWidget {
             onPressed: copy,
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.brandTeal,
-              side: const BorderSide(color: AppColors.brandTeal),
+              side: BorderSide(color: AppColors.brandTeal),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1063,7 +1063,7 @@ class _SaveBar extends StatelessWidget {
         ),
       ),
       icon: status.isBusy
-          ? const SizedBox(
+          ? SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(
@@ -1088,7 +1088,7 @@ class _SaveBar extends StatelessWidget {
             ),
           );
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         boxShadow: [
           BoxShadow(

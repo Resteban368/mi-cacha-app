@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
+
 /// Contenedor con borde punteado redondeado (zonas para subir archivos o
 /// estados vacíos).
 class DashedBorderBox extends StatelessWidget {
   const DashedBorderBox({
     super.key,
     required this.child,
-    this.color = const Color(0xFFBDC9C5),
+    this.color,
     this.backgroundColor,
     this.radius = 16,
     this.strokeWidth = 2,
@@ -15,7 +17,9 @@ class DashedBorderBox extends StatelessWidget {
   });
 
   final Widget child;
-  final Color color;
+
+  /// Por defecto, el borde suave del tema.
+  final Color? color;
   final Color? backgroundColor;
   final double radius;
   final double strokeWidth;
@@ -26,7 +30,7 @@ class DashedBorderBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomPaint(
       foregroundPainter: _DashedRRectPainter(
-        color: color,
+        color: color ?? AppColors.outlineVariant,
         radius: radius,
         strokeWidth: strokeWidth,
         dash: dash,

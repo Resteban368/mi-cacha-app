@@ -110,7 +110,7 @@ class CreateReservationPaymentCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Tooltip(
+                    Tooltip(
                       message:
                           'El valor final lo calcula el sistema con las '
                           'tarifas vigentes.',
@@ -148,7 +148,7 @@ class CreateReservationPaymentCard extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 6),
-          const Divider(height: 1, color: AppColors.slate100),
+          Divider(height: 1, color: AppColors.slate100),
           SwitchListTile.adaptive(
             key: const Key('register-payment'),
             dense: true,
@@ -271,7 +271,7 @@ class CreateReservationPaymentCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: paid >= total
               ? AppColors.brandTealLight
-              : const Color(0xFFFFFBEB),
+              : AppColors.warningTint,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -282,7 +282,7 @@ class CreateReservationPaymentCard extends StatelessWidget {
                 style: AppTypography.bodySm.copyWith(
                   color: paid >= total
                       ? AppColors.brandTealDeep
-                      : const Color(0xFFB45309),
+                      : AppColors.warningInk,
                   fontSize: 11,
                 ),
               ),
@@ -292,7 +292,7 @@ class CreateReservationPaymentCard extends StatelessWidget {
               style: AppTypography.labelMd.copyWith(
                 color: paid >= total
                     ? AppColors.brandTealDeep
-                    : const Color(0xFFB45309),
+                    : AppColors.warningInk,
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
               ),

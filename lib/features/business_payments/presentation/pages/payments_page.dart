@@ -220,7 +220,7 @@ class _EmptyMessage extends StatelessWidget {
           Container(
             width: 64,
             height: 64,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.brandTealLight,
               shape: BoxShape.circle,
             ),

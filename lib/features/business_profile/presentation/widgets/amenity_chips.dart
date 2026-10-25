@@ -28,7 +28,7 @@ class AmenityChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (status) {
-      AmenityCatalogStatus.loading => const Padding(
+      AmenityCatalogStatus.loading => Padding(
         padding: EdgeInsets.symmetric(vertical: 12),
         child: Center(
           child: SizedBox.square(

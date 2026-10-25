@@ -95,7 +95,7 @@ class CreateReservationClientCard extends StatelessWidget {
           isDense: true,
           hintText: 'Buscar por nombre, celular o cédula…',
           hintStyle: AppTypography.bodyMd.copyWith(color: AppColors.slate400),
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Icons.search,
             size: 18,
             color: AppColors.slate400,
@@ -109,11 +109,11 @@ class CreateReservationClientCard extends StatelessWidget {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.slate200),
+            borderSide: BorderSide(color: AppColors.slate200),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.brandTeal),
+            borderSide: BorderSide(color: AppColors.brandTeal),
           ),
         ),
         onChanged: onQueryChanged,
@@ -128,7 +128,7 @@ class CreateReservationClientCard extends StatelessWidget {
       const SizedBox(height: 8),
       // Mientras busca se mantienen los resultados anteriores (sin parpadeo).
       if (searchStatus == CustomerSearchStatus.loading && results.isNotEmpty)
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(bottom: 4),
           child: LinearProgressIndicator(
             minHeight: 2,
@@ -341,7 +341,7 @@ class _CustomerTile extends StatelessWidget {
                 Container(
                   width: 20,
                   height: 20,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.brandTeal,
                     shape: BoxShape.circle,
                   ),

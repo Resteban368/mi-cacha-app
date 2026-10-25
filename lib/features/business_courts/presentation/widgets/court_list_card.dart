@@ -183,7 +183,7 @@ class CourtListCard extends StatelessWidget {
                   ),
                 ),
                 if (onEdit != null || onUseAsBase != null) ...[
-                  const Divider(
+                  Divider(
                     height: 1,
                     color: AppColors.surfaceContainerHigh,
                   ),

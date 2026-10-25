@@ -15,6 +15,8 @@ import '../catalogs/data/datasources/catalogs_api_data_source.dart';
 import '../catalogs/data/datasources/catalogs_data_source.dart';
 import '../catalogs/data/repositories/catalogs_repository_impl.dart';
 import '../catalogs/domain/repositories/catalogs_repository.dart';
+import '../appearance/appearance_cubit.dart';
+import '../appearance/appearance_storage.dart';
 import '../catalogs/domain/usecases/geography_usecases.dart';
 import '../catalogs/domain/usecases/get_catalogs.dart';
 import '../../features/business_account/data/datasources/business_account_api_data_source.dart';
@@ -121,6 +123,8 @@ Future<void> initDependencies() async {
       () => const FlutterSecureStorage(),
     )
     ..registerLazySingleton<SharedPreferencesAsync>(SharedPreferencesAsync.new)
+    ..registerLazySingleton(() => AppearanceStorage(sl()))
+    ..registerLazySingleton(() => AppearanceCubit(sl()))
     ..registerLazySingleton<Clock>(Clock.new)
     // Sesión y API
     ..registerLazySingleton<SessionStorage>(() => SecureSessionStorage(sl()))

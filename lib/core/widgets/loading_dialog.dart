@@ -74,7 +74,7 @@ class AppLoadingDialog extends StatelessWidget {
                         const SizedBox(height: 20),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(999),
-                          child: const LinearProgressIndicator(
+                          child: LinearProgressIndicator(
                             minHeight: 4,
                             color: AppColors.brandTeal,
                             backgroundColor: AppColors.brandTealLight,

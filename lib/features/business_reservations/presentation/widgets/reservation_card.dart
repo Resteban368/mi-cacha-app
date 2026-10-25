@@ -142,7 +142,7 @@ class ReservationCard extends StatelessWidget {
 
   Widget _trailing() {
     if (reservation.status == ReservationStatus.noShow) {
-      return const StatusPill(
+      return StatusPill(
         label: 'No asistió',
         icon: Icons.cancel_outlined,
         background: AppColors.errorContainer,
@@ -150,7 +150,7 @@ class ReservationCard extends StatelessWidget {
       );
     }
     if (_isFinished) {
-      return const StatusPill(
+      return StatusPill(
         label: 'Completada',
         icon: Icons.check_circle_outline,
         background: AppColors.brandTealLight,
@@ -158,7 +158,7 @@ class ReservationCard extends StatelessWidget {
       );
     }
     if (reservation.isFullyPaid) {
-      return const StatusPill(
+      return StatusPill(
         label: 'Confirmada',
         icon: Icons.verified_outlined,
         background: AppColors.surfaceContainerHigh,
@@ -219,7 +219,7 @@ class _ContactLine extends StatelessWidget {
                 : '${r.phone} (${r.contactNote})',
           ),
           if (r.tag != null) ...[
-            const TextSpan(
+            TextSpan(
               text: ' · ',
               style: TextStyle(color: AppColors.outlineVariant),
             ),

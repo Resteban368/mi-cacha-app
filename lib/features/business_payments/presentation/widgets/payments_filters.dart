@@ -184,7 +184,7 @@ class _ChipBody extends StatelessWidget {
             : AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: active ? AppColors.brandTeal : const Color(0xFFE0ECE9),
+          color: active ? AppColors.brandTeal : AppColors.outlineVariant,
           width: 1.5,
         ),
       ),

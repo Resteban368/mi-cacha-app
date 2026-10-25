@@ -20,8 +20,8 @@ class _ShimmerBoxState extends State<ShimmerBox>
     duration: const Duration(milliseconds: 1300),
   );
 
-  static const _base = AppColors.surfaceContainerHigh;
-  static const _highlight = AppColors.surfaceContainerLowest;
+  static Color get _base => AppColors.surfaceContainerHigh;
+  static Color get _highlight => AppColors.surfaceContainerLowest;
 
   @override
   void didChangeDependencies() {
@@ -52,7 +52,7 @@ class _ShimmerBoxState extends State<ShimmerBox>
               gradient: LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
-                colors: const [_base, _highlight, _base],
+                colors: [_base, _highlight, _base],
                 stops: const [0.35, 0.5, 0.65],
                 transform: _SlideGradient(_controller.value),
               ),

@@ -302,15 +302,19 @@ class OnboardingBrand extends StatelessWidget {
     super.key,
     required this.icon,
     this.size = 40,
-    this.background = AppColors.brandTeal,
-    this.titleColor = AppColors.onSurface,
+    this.background,
+    this.titleColor,
     this.boxShadow,
   });
 
   final IconData icon;
   final double size;
-  final Color background;
-  final Color titleColor;
+  final Color? background;
+
+  Color get _background => background ?? AppColors.brandTeal;
+  final Color? titleColor;
+
+  Color get _titleColor => titleColor ?? AppColors.onSurface;
   final List<BoxShadow>? boxShadow;
 
   @override
@@ -322,7 +326,7 @@ class OnboardingBrand extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: background,
+            color: _background,
             borderRadius: BorderRadius.circular(size * 0.3),
             boxShadow:
                 boxShadow ??
@@ -343,7 +347,7 @@ class OnboardingBrand extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: AppTypography.headlineSm.copyWith(
-              color: titleColor,
+              color: _titleColor,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.45,
               height: 1,
@@ -448,9 +452,11 @@ class OnboardingDots extends StatelessWidget {
 
 /// Círculo lima con flecha usado dentro de los botones principales.
 class LimeArrowBadge extends StatelessWidget {
-  const LimeArrowBadge({super.key, this.iconColor = AppColors.brandTealDeep});
+  const LimeArrowBadge({super.key, this.iconColor});
 
-  final Color iconColor;
+  final Color? iconColor;
+
+  Color get _iconColor => iconColor ?? AppColors.brandTealDeep;
 
   @override
   Widget build(BuildContext context) {
@@ -461,7 +467,7 @@ class LimeArrowBadge extends StatelessWidget {
         color: AppColors.accentLime,
         shape: BoxShape.circle,
       ),
-      child: Icon(Icons.arrow_forward, size: 18, color: iconColor),
+      child: Icon(Icons.arrow_forward, size: 18, color: _iconColor),
     );
   }
 }
@@ -545,7 +551,7 @@ class FeatureTile extends StatelessWidget {
     required this.icon,
     required this.label,
     this.caption,
-    this.iconColor = AppColors.brandTeal,
+    this.iconColor,
     this.iconSize = 22,
     this.padding = const EdgeInsets.all(8),
     this.labelStyle,
@@ -555,7 +561,9 @@ class FeatureTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? caption;
-  final Color iconColor;
+  final Color? iconColor;
+
+  Color get _iconColor => iconColor ?? AppColors.brandTeal;
   final double iconSize;
   final EdgeInsets padding;
   final TextStyle? labelStyle;
@@ -581,7 +589,7 @@ class FeatureTile extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: iconSize, color: iconColor),
+          Icon(icon, size: iconSize, color: _iconColor),
           const SizedBox(height: 4),
           Text(
             label,

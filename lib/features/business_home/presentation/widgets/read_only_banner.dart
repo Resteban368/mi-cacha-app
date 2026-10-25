@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/app_colors.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
@@ -50,8 +52,8 @@ class _WriteAccessRefresherState extends State<WriteAccessRefresher> {
 class ReadOnlyBanner extends StatelessWidget {
   const ReadOnlyBanner({super.key});
 
-  static const _background = Color(0xFFFEF3C7);
-  static const _foreground = Color(0xFF92400E);
+  static Color get _background => AppColors.warningTint;
+  static Color get _foreground => AppColors.warningInk;
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +67,7 @@ class ReadOnlyBanner extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
             child: Row(
               children: [
-                const Icon(Icons.lock_outline, size: 20, color: _foreground),
+                Icon(Icons.lock_outline, size: 20, color: _foreground),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -108,7 +110,7 @@ class ReadOnlyMessage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.lock_outline,
                 size: 48,
                 color: ReadOnlyBanner._foreground,

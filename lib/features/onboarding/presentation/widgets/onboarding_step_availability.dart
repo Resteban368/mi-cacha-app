@@ -38,7 +38,7 @@ class OnboardingStepAvailability extends StatelessWidget {
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
                     onTap: onBack,
-                    child: const SizedBox(
+                    child: SizedBox(
                       width: 56,
                       height: 52,
                       child: Icon(
@@ -99,7 +99,7 @@ class OnboardingStepAvailability extends StatelessWidget {
       ),
       media: const _CalendarCard(),
       children: [
-        const OnboardingBlock(
+        OnboardingBlock(
           child: OnboardingStepPill(
             icon: Icons.schedule,
             label: 'Paso 2 de 3 · Tiempo Real',
@@ -188,7 +188,7 @@ class _CalendarCard extends StatelessWidget {
                       background: AppColors.brandTealLight,
                       horizontalPadding: 10,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.bolt,
                           size: 16,
                           color: AppColors.brandTeal,
@@ -217,7 +217,7 @@ class _CalendarCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       child: _LegendPill(

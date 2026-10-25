@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/appearance/appearance_cubit.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -15,6 +16,7 @@ import '../bloc/business_account_bloc.dart';
 import '../bloc/change_password_cubit.dart';
 import '../widgets/account_profile_card.dart';
 import '../widgets/account_settings_card.dart';
+import '../widgets/appearance_setting_row.dart';
 import '../widgets/change_password_dialog.dart';
 import '../widgets/subscription_card.dart';
 import '../../../../core/widgets/loading_dialog.dart';
@@ -116,6 +118,15 @@ class _AccountContent extends StatelessWidget {
       ..showSnackBar(SnackBar(content: Text('$feature: próximamente')));
   }
 
+  static bool _hasAppearance(BuildContext context) {
+    try {
+      context.read<AppearanceCubit>();
+      return true;
+    } on ProviderNotFoundException {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = AccountProfileCard(
@@ -145,6 +156,8 @@ class _AccountContent extends StatelessWidget {
       },
       onSupport: () => _comingSoon(context, 'Soporte por WhatsApp'),
       onLogout: () => confirmBusinessLogout(context, signOut: onSignOut),
+      // Solo si la app provee el modo de apariencia (no en algunos tests).
+      appearance: _hasAppearance(context) ? const AppearanceSettingRow() : null,
       notifications: create == null
           ? null
           : BlocProvider(
@@ -227,11 +240,7 @@ class _Footer extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.sports_soccer,
-              size: 14,
-              color: AppColors.brandTeal,
-            ),
+            Icon(Icons.sports_soccer, size: 14, color: AppColors.brandTeal),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
@@ -271,7 +280,7 @@ class _LoadError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_outlined,
               size: 40,
               color: AppColors.brandTeal,

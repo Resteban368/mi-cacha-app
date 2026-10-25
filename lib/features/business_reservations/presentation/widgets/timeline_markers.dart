@@ -25,7 +25,7 @@ class TimelineSectionLabel extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Divider(
               height: 1,
               thickness: 1,
