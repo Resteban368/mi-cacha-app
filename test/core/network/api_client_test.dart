@@ -40,7 +40,7 @@ void main() {
 
   test('usa la URL base de la API', () {
     expect(dio.options.baseUrl, ApiConfig.baseUrl);
-    expect(ApiConfig.baseUrl, 'https://mi-cancha-api.vercel.app/api/v1');
+    expect(ApiConfig.baseUrl, 'https://app.micanchaapp.com/api/v1');
   });
 
   group('AuthInterceptor', () {

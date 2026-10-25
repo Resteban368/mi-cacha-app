@@ -3,7 +3,7 @@
 abstract final class ApiConfig {
   static const baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://mi-cancha-api.vercel.app/api/v1',
+    defaultValue: 'https://app.micanchaapp.com/api/v1',
   );
 
   static const connectTimeout = Duration(seconds: 15);
