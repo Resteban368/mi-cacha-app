@@ -112,7 +112,8 @@ class _BusinessLoginPageState extends State<BusinessLoginPage> {
                       maxWidth: _maxContentWidth,
                     ),
                     child: ColoredBox(
-                      color: AppColors.brandTeal,
+                      // Mismo fondo que la cabecera (se ve tras las esquinas de la hoja).
+                      color: const Color(0xFF0B1F28),
                       child: CustomScrollView(
                         slivers: [
                           SliverToBoxAdapter(
@@ -157,7 +158,7 @@ class _WideLayout extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(32),
               child: ColoredBox(
-                color: AppColors.brandTeal,
+                color: const Color(0xFF0B1F28),
                 child: BusinessLoginHeader(onBack: onBack, panel: true),
               ),
             ),

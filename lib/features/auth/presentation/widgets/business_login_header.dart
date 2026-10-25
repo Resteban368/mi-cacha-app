@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_assets.dart';
-import '../../../../core/theme/app_colors.dart';
 
-/// Cabecera teal del login de negocio: textura de canchas, logo y deportes.
+/// Cabecera del login de negocio: fondo Negro Azulado de la marca con
+/// textura de canchas y el logo vertical.
 ///
 /// En web ([panel]) ocupa todo el espacio que recibe, centra el contenido y
 /// suma una línea con la propuesta de valor.
@@ -41,34 +40,11 @@ class BusinessLoginHeader extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const _LogoBadge(),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Mi Cancha',
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 30,
-                      height: 36 / 30,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.75,
-                      color: Colors.white,
-                      shadows: const [
-                        Shadow(
-                          color: Color(0x0D000000),
-                          blurRadius: 1,
-                          offset: Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Fútbol · Pádel · Baloncesto · Voleibol',
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      // Va sobre el encabezado verde en los dos modos.
-                      color: const Color(0xBFD1FADF),
-                    ),
+                  // Logo vertical de la marca (para fondo oscuro).
+                  Image.asset(
+                    AppAssets.logoVerticalDark,
+                    height: panel ? 170 : 116,
+                    semanticLabel: 'Mi Cancha, tus reservas al instante',
                   ),
                   if (panel) ...[
                     const SizedBox(height: 28),
@@ -138,106 +114,6 @@ class _BackButton extends StatelessWidget {
   }
 }
 
-class _LogoBadge extends StatelessWidget {
-  const _LogoBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: 80,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.accentLimeSignal.withValues(alpha: 0.3),
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.emerald950.withValues(alpha: 0.2),
-                  blurRadius: 25,
-                  offset: const Offset(0, 20),
-                  spreadRadius: -5,
-                ),
-              ],
-            ),
-            child: SvgPicture.asset(AppAssets.logo),
-          ),
-          const Positioned(top: -4, right: -4, child: _LiveIndicator()),
-        ],
-      ),
-    );
-  }
-}
-
-/// Punto lima con un "ping" oscuro al centro.
-class _LiveIndicator extends StatefulWidget {
-  const _LiveIndicator();
-
-  @override
-  State<_LiveIndicator> createState() => _LiveIndicatorState();
-}
-
-class _LiveIndicatorState extends State<_LiveIndicator>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 1),
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _controller.stop();
-    } else if (!_controller.isAnimating) {
-      _controller.repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 16,
-      height: 16,
-      decoration: BoxDecoration(
-        color: AppColors.accentLimeSignal,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.brandTeal, width: 2),
-      ),
-      alignment: Alignment.center,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (_, child) {
-          final t = Curves.easeOut.transform(_controller.value);
-          return Transform.scale(
-            scale: 1 + t,
-            child: Opacity(opacity: 1 - t, child: child),
-          );
-        },
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.brandDark,
-            shape: BoxShape.circle,
-          ),
-          child: SizedBox.square(dimension: 6),
-        ),
-      ),
-    );
-  }
-}
-
 class _Glow extends StatelessWidget {
   const _Glow({required this.size, required this.color});
 
@@ -259,14 +135,15 @@ class _Glow extends StatelessWidget {
   }
 }
 
-/// Fondo teal con gradientes radiales y patrón de líneas de cancha en mosaico.
+/// Fondo Negro Azulado (igual en los dos modos, el logo es para fondo
+/// oscuro) con gradientes radiales y patrón de líneas de cancha en mosaico.
 class _CourtTexture extends StatelessWidget {
   const _CourtTexture();
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(color: AppColors.brandTeal),
+      decoration: const BoxDecoration(color: Color(0xFF0B1F28)),
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: RadialGradient(

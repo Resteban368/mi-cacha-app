@@ -1,6 +1,10 @@
 /// Rutas de assets declarados en pubspec.yaml.
 abstract final class AppAssets {
   static const logo = 'assets/icons/logo.svg';
+
+  /// Logo vertical con nombre y lema, para fondos oscuros.
+  static const logoVerticalDark =
+      'assets/images/login/logo_vertical_oscuro.png';
   static const googleIcon = 'assets/icons/google.svg';
   static const appleIcon = 'assets/icons/apple.svg';
   static const whatsappIcon = 'assets/icons/whatsapp.svg';
