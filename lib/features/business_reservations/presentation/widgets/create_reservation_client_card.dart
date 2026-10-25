@@ -95,11 +95,7 @@ class CreateReservationClientCard extends StatelessWidget {
           isDense: true,
           hintText: 'Buscar por nombre, celular o cédula…',
           hintStyle: AppTypography.bodyMd.copyWith(color: AppColors.slate400),
-          prefixIcon: Icon(
-            Icons.search,
-            size: 18,
-            color: AppColors.slate400,
-          ),
+          prefixIcon: Icon(Icons.search, size: 18, color: AppColors.slate400),
           prefixIconConstraints: const BoxConstraints(minWidth: 38),
           filled: true,
           fillColor: AppColors.slate50,
@@ -139,8 +135,7 @@ class CreateReservationClientCard extends StatelessWidget {
       switch (searchStatus) {
         CustomerSearchStatus.loading when results.isNotEmpty => _results(),
         CustomerSearchStatus.loading ||
-        CustomerSearchStatus.idle =>
-          const CustomerSearchShimmer(itemCount: 2),
+        CustomerSearchStatus.idle => const CustomerSearchShimmer(itemCount: 2),
         CustomerSearchStatus.failure => const _Hint(
           'No pudimos buscar clientes. Revisa tu conexión.',
         ),
@@ -374,6 +369,11 @@ class _ModeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sobre el lima va tinta oscura fija (en oscuro `slate900` es casi
+    // blanco y no se lee); la opción no elegida queda atenuada.
+    final ink = selected
+        ? AppColors.onSecondaryFixed
+        : AppColors.onSurfaceVariant;
     return Semantics(
       selected: selected,
       button: true,
@@ -388,18 +388,14 @@ class _ModeButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  icon,
-                  size: 15,
-                  color: selected ? AppColors.slate900 : AppColors.slate600,
-                ),
+                Icon(icon, size: 15, color: ink),
                 const SizedBox(width: 5),
                 Flexible(
                   child: Text(
                     label,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.labelSm.copyWith(
-                      color: selected ? AppColors.slate900 : AppColors.slate600,
+                      color: ink,
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                     ),

@@ -469,7 +469,9 @@ class TopCustomersList extends StatelessWidget {
                             child: Text(
                               '${i + 1}',
                               style: AppTypography.labelSm.copyWith(
-                                color: AppColors.slate900,
+                                color: i == 0
+                                    ? AppColors.onSecondaryFixed
+                                    : AppColors.slate900,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),

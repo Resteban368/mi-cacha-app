@@ -213,7 +213,7 @@ class CreateReservationSummaryCard extends StatelessWidget {
               onPressed: isLoading ? null : onConfirm,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.accentLime,
-                foregroundColor: AppColors.slate900,
+                foregroundColor: AppColors.onSecondaryFixed,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 disabledBackgroundColor: AppColors.onPrimary.withValues(
                   alpha: 0.12,
