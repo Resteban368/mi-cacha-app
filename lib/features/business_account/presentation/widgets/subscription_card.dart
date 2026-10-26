@@ -61,21 +61,24 @@ class SubscriptionCard extends StatelessWidget {
                 ],
                 const SizedBox(height: 16),
                 _CourtUsage(plan: plan),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: onUpgrade,
-                  icon: const Icon(Icons.rocket_launch, size: 19),
-                  label: const Text('Cambiar a Plan Pro o Anual'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(50),
-                    backgroundColor: AppColors.brandTeal,
-                    foregroundColor: AppColors.onPrimary,
-                    textStyle: AppTypography.labelLg,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                // Con el plan más alto no hay a qué cambiar.
+                if (plan.nextPlanName case final next?) ...[
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: onUpgrade,
+                    icon: const Icon(Icons.rocket_launch, size: 19),
+                    label: Text('Cambiar al plan $next'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                      backgroundColor: AppColors.brandTeal,
+                      foregroundColor: AppColors.onPrimary,
+                      textStyle: AppTypography.labelLg,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 4),
                 TextButton.icon(
                   onPressed: onBillingHistory,

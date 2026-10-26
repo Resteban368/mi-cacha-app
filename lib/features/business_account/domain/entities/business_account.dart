@@ -54,6 +54,7 @@ final class Subscription extends Equatable {
     required this.benefits,
     this.isActive = true,
     this.autoBilling = true,
+    this.nextPlanName,
   });
 
   final String planName;
@@ -69,6 +70,9 @@ final class Subscription extends Equatable {
 
   /// Cobro automático con tarjeta.
   final bool autoBilling;
+
+  /// Plan al que puede mejorar; `null` si ya tiene el más alto.
+  final String? nextPlanName;
 
   int get freeCourtSlots => (courtLimit - courtsInUse).clamp(0, courtLimit);
 
@@ -87,6 +91,7 @@ final class Subscription extends Equatable {
     benefits,
     isActive,
     autoBilling,
+    nextPlanName,
   ];
 }
 

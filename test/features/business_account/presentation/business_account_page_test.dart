@@ -204,10 +204,38 @@ void main() {
   testWidgets('las acciones pendientes avisan "próximamente"', (tester) async {
     await pumpPage(tester);
 
-    await tapText(tester, 'Cambiar a Plan Pro o Anual');
-    expect(find.text('Cambio de plan: próximamente'), findsOneWidget);
     await tapText(tester, 'Cambiar contraseña');
     expect(find.text('Cambiar contraseña: próximamente'), findsOneWidget);
+  });
+
+  testWidgets('ofrece cambiar al plan siguiente', (tester) async {
+    await pumpPage(tester);
+    expect(find.text('Cambiar al plan Pro'), findsOneWidget);
+  });
+
+  testWidgets('con el plan más alto no ofrece cambiar de plan', (tester) async {
+    final top = account.subscription!;
+    await pumpPage(
+      tester,
+      state: BusinessAccountState(
+        status: BusinessAccountStatus.ready,
+        account: BusinessAccount(
+          admin: account.admin,
+          subscription: Subscription(
+            planName: 'Pro',
+            monthlyPrice: top.monthlyPrice,
+            since: top.since,
+            nextPayment: top.nextPayment,
+            courtLimit: top.courtLimit,
+            courtsInUse: top.courtsInUse,
+            benefits: top.benefits,
+          ),
+        ),
+        venue: venue,
+      ),
+    );
+    expect(find.textContaining('Cambiar al plan'), findsNothing);
+    expect(find.text('Ver historial de facturación'), findsOneWidget);
   });
 
   testWidgets('"Cambiar contraseña" abre el formulario', (tester) async {

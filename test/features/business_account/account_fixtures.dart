@@ -15,6 +15,7 @@ final account = BusinessAccount(
     nextPayment: DateTime(2026, 10, 15),
     courtLimit: 5,
     courtsInUse: 3,
+    nextPlanName: 'Pro',
     benefits: const [
       PlanBenefit(title: 'Hasta 5 canchas registradas', detail: 'Detalle 1'),
       PlanBenefit(title: 'Reservas ilimitadas', detail: 'Detalle 2'),

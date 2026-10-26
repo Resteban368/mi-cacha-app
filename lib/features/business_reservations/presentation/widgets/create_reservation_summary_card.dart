@@ -34,8 +34,14 @@ class CreateReservationSummaryCard extends StatelessWidget {
   /// el resto de la columna.
   final bool compact;
 
+  /// Textos secundarios: la tarjeta es oscura en los dos modos.
+  static final _muted = AppColors.onPrimary.withValues(alpha: 0.65);
+
   @override
   Widget build(BuildContext context) {
+    // En modo oscuro los grises se invierten (slate900 sería claro): se usa
+    // un panel del fondo oscuro con borde lima para que resalte.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Widget row(String label, String? value, {Color? color}) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -43,10 +49,7 @@ class CreateReservationSummaryCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: AppTypography.bodySm.copyWith(
-              color: AppColors.slate400,
-              fontSize: 11,
-            ),
+            style: AppTypography.bodySm.copyWith(color: _muted, fontSize: 11),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -71,8 +74,11 @@ class CreateReservationSummaryCard extends StatelessWidget {
         vertical: compact ? 10 : 14,
       ),
       decoration: BoxDecoration(
-        color: AppColors.slate900,
+        color: isDark ? AppColors.surfaceContainerHigh : AppColors.slate900,
         borderRadius: BorderRadius.circular(12),
+        border: isDark
+            ? Border.all(color: AppColors.accentLime.withValues(alpha: 0.35))
+            : null,
         boxShadow: const [
           BoxShadow(
             color: Color(0x33000000),
@@ -123,7 +129,7 @@ class CreateReservationSummaryCard extends StatelessWidget {
                     Text(
                       'Total estimado',
                       style: AppTypography.bodySm.copyWith(
-                        color: AppColors.slate400,
+                        color: _muted,
                         fontSize: 10,
                       ),
                     ),
@@ -178,7 +184,7 @@ class CreateReservationSummaryCard extends StatelessWidget {
                 Text(
                   'Total estimado',
                   style: AppTypography.bodySm.copyWith(
-                    color: AppColors.slate400,
+                    color: _muted,
                     fontSize: 12,
                   ),
                 ),
@@ -199,10 +205,7 @@ class CreateReservationSummaryCard extends StatelessWidget {
             Text(
               'Falta: ${missing.join(', ')}',
               key: const Key('reservation-missing'),
-              style: AppTypography.bodySm.copyWith(
-                color: AppColors.slate400,
-                fontSize: 10,
-              ),
+              style: AppTypography.bodySm.copyWith(color: _muted, fontSize: 10),
             ),
           ],
           SizedBox(height: compact ? 6 : 8),
@@ -218,7 +221,7 @@ class CreateReservationSummaryCard extends StatelessWidget {
                 disabledBackgroundColor: AppColors.onPrimary.withValues(
                   alpha: 0.12,
                 ),
-                disabledForegroundColor: AppColors.slate400,
+                disabledForegroundColor: _muted,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -232,7 +235,7 @@ class CreateReservationSummaryCard extends StatelessWidget {
                       dimension: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.slate400,
+                        color: _muted,
                       ),
                     )
                   : const Icon(Icons.check_circle_outline, size: 17),

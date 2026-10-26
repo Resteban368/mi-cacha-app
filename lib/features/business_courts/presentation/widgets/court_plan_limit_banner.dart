@@ -11,13 +11,17 @@ class CourtPlanLimitBanner extends StatelessWidget {
     required this.courtLimit,
     this.planName = 'Plan Pro',
     this.onUpgradePlan,
+    this.upgradeLabel = 'Mejorar plan de suscripción',
     this.noActivePlan = false,
   });
 
   final int courtsInUse;
   final int courtLimit;
   final String planName;
+
+  /// `null` oculta el botón (p. ej. ya tiene el plan más alto).
   final VoidCallback? onUpgradePlan;
+  final String upgradeLabel;
 
   /// Sin suscripción activa: no se pueden habilitar canchas.
   final bool noActivePlan;
@@ -85,27 +89,32 @@ class CourtPlanLimitBanner extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Puedes crear esta cancha como inactiva y habilitarla cuando '
-              'amplíes tu suscripción.',
+              onUpgradePlan == null
+                  ? 'Puedes crear esta cancha como inactiva y habilitarla '
+                        'cuando desactives otra.'
+                  : 'Puedes crear esta cancha como inactiva y habilitarla '
+                        'cuando amplíes tu suscripción.',
               style: AppTypography.bodySm.copyWith(
                 color: AppColors.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: onUpgradePlan,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.statusDue,
-                foregroundColor: AppColors.onError,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            if (onUpgradePlan != null) ...[
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: onUpgradePlan,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.statusDue,
+                  foregroundColor: AppColors.onError,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  minimumSize: const Size.fromHeight(40),
+                  textStyle: AppTypography.labelMd,
                 ),
-                minimumSize: const Size.fromHeight(40),
-                textStyle: AppTypography.labelMd,
+                icon: const Icon(Icons.upgrade_rounded, size: 18),
+                label: Text(upgradeLabel),
               ),
-              icon: const Icon(Icons.upgrade_rounded, size: 18),
-              label: const Text('Mejorar plan de suscripción'),
-            ),
+            ],
           ],
         ),
       );

@@ -19,6 +19,7 @@ import '../widgets/account_settings_card.dart';
 import '../widgets/appearance_setting_row.dart';
 import '../widgets/change_password_dialog.dart';
 import '../widgets/subscription_card.dart';
+import '../utils/plan_upgrade_whatsapp.dart';
 import '../../../../core/widgets/loading_dialog.dart';
 
 /// Sección "Mi cuenta" del administrador (diseño "Mi Cuenta / Ajustes"):
@@ -141,7 +142,11 @@ class _AccountContent extends StatelessWidget {
         ? NoPlanCard(onSeePlans: () => _comingSoon(context, 'Planes'))
         : SubscriptionCard(
             subscription: plan,
-            onUpgrade: () => _comingSoon(context, 'Cambio de plan'),
+            onUpgrade: () => openPlanUpgrade(
+              context,
+              plan.nextPlanName ?? '',
+              businessName: venue?.name,
+            ),
             onBillingHistory: () =>
                 _comingSoon(context, 'Historial de facturación'),
           );

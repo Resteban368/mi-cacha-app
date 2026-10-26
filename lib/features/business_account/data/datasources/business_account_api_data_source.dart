@@ -74,5 +74,6 @@ class BusinessAccountApiDataSource implements BusinessAccountDataSource {
     ],
     isActive: json['isActive'] as bool? ?? false,
     autoBilling: json['autoBilling'] as bool? ?? false,
+    nextPlanName: json['nextPlanName'] as String?,
   );
 }

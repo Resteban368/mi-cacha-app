@@ -33,6 +33,7 @@ class FakeBusinessAccountDataSource implements BusinessAccountDataSource {
       courtLimit: 5,
       // TODO: tomar el número real de canchas cuando exista la sección Canchas.
       courtsInUse: 3,
+      nextPlanName: 'Pro',
       benefits: const [
         PlanBenefit(
           title: 'Hasta 5 canchas registradas',

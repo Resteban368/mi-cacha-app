@@ -25,6 +25,7 @@ import '../../domain/entities/week_day.dart';
 import '../widgets/copy_from_court_dialog.dart';
 import '../widgets/court_photos_picker.dart';
 import '../widgets/court_plan_limit_banner.dart';
+import '../../../business_account/presentation/utils/plan_upgrade_whatsapp.dart';
 import '../widgets/court_pricing_card.dart';
 import '../widgets/court_rate_editor.dart';
 import '../widgets/court_rates_section.dart';
@@ -597,20 +598,24 @@ class _CourtFormState extends State<_CourtForm> {
   Widget? _planBanner(BuildContext context, CourtFormState state) {
     if (!state.planKnown) return null;
     final plan = state.subscription;
-    void upgrade() => context.go(AppRoutes.businessSettings);
     if (plan == null || !plan.isActive) {
       return CourtPlanLimitBanner(
         courtsInUse: 0,
         courtLimit: 0,
         noActivePlan: true,
-        onUpgradePlan: upgrade,
+        onUpgradePlan: () => context.go(AppRoutes.businessSettings),
       );
     }
+    // Con el plan más alto no se ofrece mejorar.
+    final next = plan.nextPlanName;
     return CourtPlanLimitBanner(
       courtsInUse: plan.courtsInUse,
       courtLimit: plan.courtLimit,
       planName: plan.planName,
-      onUpgradePlan: upgrade,
+      onUpgradePlan: next == null ? null : () => openPlanUpgrade(context, next),
+      upgradeLabel: next == null
+          ? 'Mejorar plan de suscripción'
+          : 'Cambiar al plan $next',
     );
   }
 
