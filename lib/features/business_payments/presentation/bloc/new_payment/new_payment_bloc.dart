@@ -51,6 +51,27 @@ class NewPaymentBloc extends Bloc<NewPaymentEvent, NewPaymentState> {
   final CreatePayment _createPayment;
   final GetBusinessCustomers _getCustomers;
   final ListReservations _listReservations;
+
+  /// Páginas que se recorren como máximo buscando reservas con saldo.
+  static const _maxPendingPages = 5;
+
+  /// Solo las reservas a las que les falta pagar (sin las canceladas). La
+  /// API no filtra por saldo: se recorren páginas hasta juntar una página
+  /// llena o acabarse los resultados.
+  Future<List<Reservation>> _pendingReservations(ReservationQuery query) async {
+    final pending = <Reservation>[];
+    for (var page = 1; page <= _maxPendingPages; page++) {
+      final result = await _listReservations((query: query, page: page));
+      pending.addAll(
+        result.items.where(
+          (r) => !r.isFullyPaid && r.status != ReservationStatus.cancelled,
+        ),
+      );
+      if (pending.length >= result.pageSize || !result.hasMore) break;
+    }
+    return pending;
+  }
+
   final Duration searchDebounce;
 
   static const customersPageSize = 20;
@@ -99,9 +120,9 @@ class NewPaymentBloc extends Bloc<NewPaymentEvent, NewPaymentState> {
     try {
       final generation = ++_customerGeneration;
       _customerQuery = '';
-      final (customers, reservationsPage) = await (
+      final (customers, reservations) = await (
         _customersPage('', 1),
-        _listReservations((query: const ReservationQuery(), page: 1)),
+        _pendingReservations(const ReservationQuery()),
       ).wait;
       if (generation != _customerGeneration) return;
 
@@ -112,7 +133,7 @@ class NewPaymentBloc extends Bloc<NewPaymentEvent, NewPaymentState> {
           customerHasMore: customers.hasMore,
           customerLoadMoreStatus: EntitySearchStatus.idle,
           customerSearchStatus: EntitySearchStatus.ready,
-          reservationResults: reservationsPage.items,
+          reservationResults: reservations,
           reservationSearchStatus: EntitySearchStatus.ready,
         ),
       );
@@ -221,14 +242,13 @@ class NewPaymentBloc extends Bloc<NewPaymentEvent, NewPaymentState> {
     );
 
     try {
-      final page = await _listReservations((
-        query: ReservationQuery(customerId: customer.id),
-        page: 1,
-      ));
+      final reservations = await _pendingReservations(
+        ReservationQuery(customerId: customer.id),
+      );
       if (emit.isDone) return;
       emit(
         state.copyWith(
-          customerReservations: page.items,
+          customerReservations: reservations,
           customerReservationsStatus: EntitySearchStatus.ready,
         ),
       );
@@ -251,14 +271,13 @@ class NewPaymentBloc extends Bloc<NewPaymentEvent, NewPaymentState> {
     }
 
     try {
-      final page = await _listReservations((
-        query: ReservationQuery(search: event.query),
-        page: 1,
-      ));
+      final reservations = await _pendingReservations(
+        ReservationQuery(search: event.query),
+      );
       if (emit.isDone) return;
       emit(
         state.copyWith(
-          reservationResults: page.items,
+          reservationResults: reservations,
           reservationSearchStatus: EntitySearchStatus.ready,
         ),
       );

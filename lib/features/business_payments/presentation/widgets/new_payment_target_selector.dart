@@ -231,8 +231,8 @@ class _NewPaymentTargetSelectorState extends State<NewPaymentTargetSelector> {
           _EmptyNotice(
             icon: Icons.event_busy_outlined,
             message: _reservationSearchController.text.trim().isEmpty
-                ? 'No hay reservas recientes disponibles'
-                : 'No se encontraron reservas con "${_reservationSearchController.text.trim()}"',
+                ? 'No hay reservas con saldo pendiente'
+                : 'No hay reservas con saldo pendiente para "${_reservationSearchController.text.trim()}"',
           )
         else
           ListView.separated(
@@ -620,7 +620,7 @@ class _CustomerReservationsSection extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'No hay reservas activas asociadas a este cliente.',
+                    'Este cliente no tiene reservas con saldo pendiente.',
                     style: AppTypography.bodySm.copyWith(
                       color: AppColors.slate600,
                       fontSize: 12,

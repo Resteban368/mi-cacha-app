@@ -250,6 +250,90 @@ void main() {
       ],
     );
 
+    group('solo reservas con saldo pendiente', () {
+      Reservation reservation(
+        String id, {
+        required int paid,
+        ReservationStatus status = ReservationStatus.confirmed,
+      }) => Reservation(
+        id: id,
+        courtName: 'Cancha 1',
+        sport: Sport.futbol,
+        start: DateTime(2026, 10, 15, 18),
+        end: DateTime(2026, 10, 15, 19),
+        customerName: 'Carlos Ruiz',
+        phone: '3001234567',
+        totalPrice: 60000,
+        amountPaid: paid,
+        status: status,
+        customer: sampleCustomer,
+      );
+
+      blocTest<NewPaymentBloc, NewPaymentState>(
+        'del cliente quita las pagadas y las canceladas',
+        setUp: () => when(() => listReservations(any())).thenAnswer(
+          (_) async => ReservationPage(
+            items: [
+              reservation('debe', paid: 20000),
+              reservation('pagada', paid: 60000),
+              reservation(
+                'cancelada',
+                paid: 0,
+                status: ReservationStatus.cancelled,
+              ),
+            ],
+            total: 3,
+            page: 1,
+            pageSize: 20,
+          ),
+        ),
+        build: buildBloc,
+        act: (bloc) =>
+            bloc.add(const NewPaymentCustomerSelected(sampleCustomer)),
+        skip: 1,
+        expect: () => [
+          isA<NewPaymentState>().having(
+            (s) => s.customerReservations.map((r) => r.id),
+            'reservas',
+            ['debe'],
+          ),
+        ],
+      );
+
+      blocTest<NewPaymentBloc, NewPaymentState>(
+        'si la primera página está toda pagada busca en la siguiente',
+        setUp: () {
+          when(() => listReservations(any())).thenAnswer((invocation) async {
+            final params =
+                invocation.positionalArguments.first as ListReservationsParams;
+            return params.page == 1
+                ? ReservationPage(
+                    items: [reservation('pagada', paid: 60000)],
+                    total: 2,
+                    page: 1,
+                    pageSize: 1,
+                  )
+                : ReservationPage(
+                    items: [reservation('debe', paid: 0)],
+                    total: 2,
+                    page: 2,
+                    pageSize: 1,
+                  );
+          });
+        },
+        build: buildBloc,
+        act: (bloc) => bloc.add(const NewPaymentReservationSearchChanged('')),
+        skip: 1,
+        expect: () => [
+          isA<NewPaymentState>().having(
+            (s) => s.reservationResults.map((r) => r.id),
+            'reservas',
+            ['debe'],
+          ),
+        ],
+      );
+    });
+
     group('clientes con scroll infinito', () {
       final first = [for (var i = 0; i < 20; i++) profile('c$i', 'Cliente $i')];
       NewPaymentState loaded() => NewPaymentState(
