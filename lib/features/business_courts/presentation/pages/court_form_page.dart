@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../business_setup/presentation/business_setup_gate.dart';
 import '../../../../core/catalogs/domain/entities/catalog_court_surface.dart';
 import '../../../../core/domain/entities/sport.dart';
 import '../../../../core/media/image_upload.dart';
@@ -142,6 +143,12 @@ class CourtFormPage extends StatelessWidget {
         ),
       );
 
+    if (state.submitStatus
+        case CourtFormSubmitStatus.success ||
+            CourtFormSubmitStatus.photosFailed) {
+      // Puede dejar lista la primera cancha de la configuración inicial.
+      BusinessSetupScope.refresh(context);
+    }
     switch (state.submitStatus) {
       case CourtFormSubmitStatus.success:
         final court = state.saved!;
@@ -888,11 +895,7 @@ class _Heading extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(
-                Icons.stadium_outlined,
-                size: 18,
-                color: AppColors.primary,
-              ),
+              Icon(Icons.stadium_outlined, size: 18, color: AppColors.primary),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(

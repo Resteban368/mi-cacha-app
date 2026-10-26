@@ -13,9 +13,13 @@ class BusinessSideMenu extends StatelessWidget {
     required this.current,
     required this.onSelected,
     required this.onLogout,
+    this.locked = const {},
   });
 
   final BusinessSection current;
+
+  /// Secciones bloqueadas hasta terminar la configuración inicial.
+  final Set<BusinessSection> locked;
   final ValueChanged<BusinessSection> onSelected;
   final VoidCallback onLogout;
 
@@ -49,6 +53,7 @@ class BusinessSideMenu extends StatelessWidget {
                           : section.icon,
                       label: section.label,
                       selected: section == current,
+                      locked: locked.contains(section),
                       onTap: () => _run(context, () {
                         if (section != current) onSelected(section);
                       }),
@@ -175,11 +180,13 @@ class _MenuItem extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.foreground,
+    this.locked = false,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
+  final bool locked;
   final VoidCallback onTap;
   final Color? foreground;
 
@@ -190,14 +197,18 @@ class _MenuItem extends StatelessWidget {
         (selected ? AppColors.brandTeal : AppColors.onSurfaceVariant);
     final textColor =
         foreground ??
-        (selected ? AppColors.brandTealDeep : AppColors.onSurface);
+        (selected
+            ? AppColors.brandTealDeep
+            : locked
+            ? AppColors.onSurfaceVariant
+            : AppColors.onSurface);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Semantics(
         button: true,
         selected: selected,
-        label: label,
+        label: locked ? '$label (bloqueado)' : label,
         excludeSemantics: true,
         child: Material(
           color: selected ? AppColors.brandTealLight : Colors.transparent,
@@ -236,6 +247,15 @@ class _MenuItem extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (locked && !selected)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Icon(
+                        Icons.lock_outline_rounded,
+                        size: 18,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
                   if (selected)
                     Padding(
                       padding: EdgeInsets.only(right: 12),

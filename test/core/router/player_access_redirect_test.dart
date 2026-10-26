@@ -8,7 +8,6 @@ void main() {
     () {
       expect(playerAccessRedirect(AppRoutes.login), AppRoutes.businessLogin);
       expect(playerAccessRedirect(AppRoutes.home), AppRoutes.businessLogin);
-      expect(playerAccessRedirect(AppRoutes.onboarding), isNull);
       expect(playerAccessRedirect(AppRoutes.businessReservations), isNull);
     },
   );

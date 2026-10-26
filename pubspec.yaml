@@ -83,7 +83,6 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/login/
-    - assets/images/onboarding/
 
   # Fuentes locales: las usan los textos de las ilustraciones SVG.
   fonts:

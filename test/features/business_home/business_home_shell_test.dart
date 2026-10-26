@@ -8,6 +8,19 @@ import 'package:mi_cancha/core/widgets/app_top_bar.dart';
 import 'package:mi_cancha/features/business_home/presentation/navigation/business_section.dart';
 import 'package:mi_cancha/features/business_home/presentation/pages/business_home_shell.dart';
 import 'package:mi_cancha/features/business_home/presentation/widgets/business_side_menu.dart';
+import 'package:mi_cancha/core/session/session.dart';
+import 'package:mi_cancha/core/session/session_manager.dart';
+import 'package:mi_cancha/core/session/session_storage.dart';
+import 'package:mi_cancha/core/usecase/usecase.dart';
+import 'package:mi_cancha/features/business_profile/domain/entities/business.dart';
+import 'package:mi_cancha/features/business_setup/domain/entities/setup_progress.dart';
+import 'package:mi_cancha/features/business_setup/domain/usecases/get_setup_progress.dart';
+import 'package:mi_cancha/features/business_setup/presentation/business_setup_gate.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockStorage extends Mock implements SessionStorage {}
+
+class _MockGetSetupProgress extends Mock implements GetSetupProgress {}
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -21,6 +34,7 @@ void main() {
     String initialLocation = AppRoutes.businessClients,
     Size size = const Size(390, 844),
     bool canWrite = true,
+    BusinessSetupGate? setup,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -36,6 +50,7 @@ void main() {
           builder: (_, state, child) => BusinessHomeShell(
             location: state.uri.path,
             onSignOut: () async => signOuts++,
+            setup: setup,
             child: child,
           ),
           routes: [
@@ -273,6 +288,74 @@ void main() {
     testWidgets('con plan activo no hay aviso', (tester) async {
       await pumpShell(tester);
       expect(find.text('Ver mi plan'), findsNothing);
+    });
+  });
+
+  group('configuración inicial pendiente', () {
+    Future<BusinessSetupGate> gateAt(SetupProgress progress) async {
+      final storage = _MockStorage();
+      when(() => storage.read()).thenAnswer(
+        (_) async => const Session(
+          accessToken: 'tok',
+          role: 'ADMIN_NEGOCIO',
+          displayName: 'Andrés',
+        ),
+      );
+      final session = SessionManager(storage);
+      await session.restore();
+      final getProgress = _MockGetSetupProgress();
+      when(
+        () => getProgress(const NoParams()),
+      ).thenAnswer((_) async => progress);
+      final gate = BusinessSetupGate(getProgress, session);
+      await gate.load();
+      return gate;
+    }
+
+    testWidgets('muestra el paso y lo que falta del negocio', (tester) async {
+      final gate = await tester.runAsync(
+        () => gateAt(
+          const SetupProgress(
+            SetupStep.business,
+            missing: [BusinessRequirement.location, BusinessRequirement.photo],
+          ),
+        ),
+      );
+      await pumpShell(
+        tester,
+        initialLocation: AppRoutes.businessProfile,
+        setup: gate,
+      );
+
+      expect(find.text('Paso 1 de 2 · Completa tu negocio'), findsOneWidget);
+      expect(
+        find.text('Falta: ubicación en el mapa y al menos una foto.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('una sección bloqueada avisa y no navega', (tester) async {
+      final gate = await tester.runAsync(
+        () => gateAt(const SetupProgress(SetupStep.court)),
+      );
+      await pumpShell(
+        tester,
+        initialLocation: AppRoutes.businessCourts,
+        setup: gate,
+      );
+      expect(find.text('Paso 2 de 2 · Registra tu primera cancha'), findsOne);
+
+      await openMenu(tester);
+      expect(find.bySemanticsLabel('Clientes (bloqueado)'), findsOneWidget);
+      expect(find.bySemanticsLabel('Mi negocio'), findsOneWidget);
+      await tester.tap(menuItem('Clientes'));
+      await tester.pumpAndSettle();
+
+      expect(location(), AppRoutes.businessCourts);
+      expect(
+        find.text('Primero registra una cancha lista para recibir reservas.'),
+        findsOneWidget,
+      );
     });
   });
 }

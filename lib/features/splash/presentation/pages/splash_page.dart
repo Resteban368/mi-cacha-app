@@ -25,7 +25,6 @@ class SplashPage extends StatelessWidget {
       listenWhen: (prev, curr) =>
           prev.destination == null && curr.destination != null,
       listener: (context, state) => context.go(switch (state.destination!) {
-        StartDestination.onboarding => AppRoutes.onboarding,
         StartDestination.home => AppRoutes.home,
         StartDestination.businessHome => AppRoutes.businessReservations,
         StartDestination.login => AppRoutes.login,

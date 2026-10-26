@@ -2,7 +2,6 @@
 /// la ruta actual en el stack (sin rutas repetidas).
 abstract final class AppRoutes {
   static const splash = '/';
-  static const onboarding = '/onboarding';
   static const login = '/login';
   static const businessLogin = '/negocio/login';
 

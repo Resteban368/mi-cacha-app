@@ -43,8 +43,8 @@ import '../../features/business_reservations/presentation/bloc/reservations_list
 import '../../features/business_reservations/presentation/pages/business_reservations_list_page.dart';
 import '../../features/business_reservations/presentation/pages/business_new_reservation_page.dart';
 import '../../features/business_reservations/presentation/pages/business_reservations_page.dart';
-import '../../features/onboarding/presentation/bloc/onboarding_bloc.dart';
-import '../../features/onboarding/presentation/pages/onboarding_page.dart';
+import '../../features/business_setup/domain/entities/setup_progress.dart';
+import '../../features/business_setup/presentation/business_setup_gate.dart';
 import '../../features/placeholder/placeholder_page.dart';
 import '../../features/splash/presentation/bloc/splash_bloc.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
@@ -67,19 +67,31 @@ GoRouter buildAppRouter(SessionManager session) {
 /// Protege el panel del negocio: sin sesión de administrador (o cuando la
 /// API respondió 401) se vuelve al login de negocio; con sesión, el login
 /// lleva directo al panel.
-Future<String?> businessGuard(SessionManager session, String path) async {
+///
+/// Con [setup], mientras falte la configuración inicial solo se abre la
+/// pantalla del paso pendiente (primero Mi negocio, después Canchas).
+Future<String?> businessGuard(
+  SessionManager session,
+  String path, {
+  BusinessSetupGate? setup,
+}) async {
   final isBusinessArea = path.startsWith('/negocio/');
   if (!isBusinessArea) return null;
   await session.restore();
   final isLogin = path == AppRoutes.businessLogin;
-  if (session.isBusinessAdmin) {
-    return isLogin ? AppRoutes.businessReservations : null;
+  if (!session.isBusinessAdmin) {
+    return isLogin ? null : AppRoutes.businessLogin;
   }
-  return isLogin ? null : AppRoutes.businessLogin;
+  // Sin dato (sin conexión) no se bloquea nada.
+  final step = (await setup?.load())?.step ?? SetupStep.done;
+  final target = setup?.consumePendingTarget();
+  if (target != null && target != path) return target;
+  if (isLogin) return step.path;
+  return step.allows(path) ? null : step.path;
 }
 
 /// Mientras el acceso de jugadores esté oculto, sus pantallas llevan al
-/// login de negocio (incluye el final del onboarding y el splash).
+/// login de negocio (incluye el splash).
 String? playerAccessRedirect(
   String path, {
   bool enabled = FeatureFlags.playerAccess,
@@ -114,24 +126,22 @@ GoRouter _buildRouter(
 ) => GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splash,
-  // Re-evalúa la guarda cuando la sesión cambia (login, logout, 401).
-  refreshListenable: session,
+  // Re-evalúa la guarda cuando la sesión cambia (login, logout, 401) o la
+  // configuración inicial avanza.
+  refreshListenable: Listenable.merge([session, sl<BusinessSetupGate>()]),
   redirect: (_, state) async =>
       playerAccessRedirect(state.uri.path) ??
-      await businessGuard(session, state.uri.path),
+      await businessGuard(
+        session,
+        state.uri.path,
+        setup: sl<BusinessSetupGate>(),
+      ),
   routes: [
     GoRoute(
       path: AppRoutes.splash,
       builder: (_, _) => BlocProvider(
         create: (_) => sl<SplashBloc>()..add(const SplashStarted()),
         child: const SplashPage(),
-      ),
-    ),
-    GoRoute(
-      path: AppRoutes.onboarding,
-      builder: (_, _) => BlocProvider(
-        create: (_) => sl<OnboardingBloc>(),
-        child: const OnboardingPage(),
       ),
     ),
     GoRoute(
@@ -161,6 +171,7 @@ GoRouter _buildRouter(
           child: BusinessHomeShell(
             location: state.uri.path,
             onSignOut: _signOut,
+            setup: sl<BusinessSetupGate>(),
             child: child,
           ),
         ),

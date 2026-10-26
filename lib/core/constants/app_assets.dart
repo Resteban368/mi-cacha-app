@@ -16,10 +16,4 @@ abstract final class AppAssets {
   static const loginFutbol = 'assets/images/login/futbol.jpg';
   static const loginBasket = 'assets/images/login/basket.jpg';
   static const loginVoley = 'assets/images/login/voley.jpg';
-
-  static const onboardingCiudad = 'assets/images/onboarding/ciudad_canchas.svg';
-  static const onboardingCalendario =
-      'assets/images/onboarding/calendario_disponibilidad.svg';
-  static const onboardingReserva =
-      'assets/images/onboarding/reserva_confirmada.svg';
 }

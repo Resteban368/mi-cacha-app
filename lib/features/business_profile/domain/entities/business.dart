@@ -91,6 +91,18 @@ class BusinessPhoto extends Equatable {
   List<Object?> get props => [id, url];
 }
 
+/// Datos que el negocio debe tener completos antes de usar el panel.
+enum BusinessRequirement {
+  basics('nombre, dirección y barrio'),
+  city('ciudad'),
+  location('ubicación en el mapa'),
+  photo('al menos una foto');
+
+  const BusinessRequirement(this.label);
+
+  final String label;
+}
+
 /// Negocio (sede deportiva) registrado por el administrador.
 class Business extends Equatable {
   const Business({
@@ -125,6 +137,17 @@ class Business extends Equatable {
   final List<BusinessPhoto> photos;
 
   bool get canAddPhoto => photos.length < maxPhotos;
+
+  /// Lo que falta para dar por completo el negocio; vacío si está listo.
+  List<BusinessRequirement> get missingRequirements => [
+    if (name.trim().length < 2 ||
+        address.trim().length < 3 ||
+        neighborhood.trim().length < 2)
+      BusinessRequirement.basics,
+    if (city == null) BusinessRequirement.city,
+    if (location == null) BusinessRequirement.location,
+    if (photos.isEmpty && imageUrl == null) BusinessRequirement.photo,
+  ];
 
   /// Punto de llegada; `null` si aún no se fijó en el mapa.
   final GeoPoint? location;

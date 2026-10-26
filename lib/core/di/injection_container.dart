@@ -64,6 +64,8 @@ import '../../features/business_payments/domain/usecases/get_payments.dart';
 import '../../features/business_payments/domain/usecases/validate_payment.dart';
 import '../../features/business_payments/presentation/bloc/new_payment/new_payment_bloc.dart';
 import '../../features/business_payments/presentation/bloc/payments/payments_bloc.dart';
+import '../../features/business_setup/domain/usecases/get_setup_progress.dart';
+import '../../features/business_setup/presentation/business_setup_gate.dart';
 import '../../features/business_profile/data/datasources/business_api_data_source.dart';
 import '../../features/business_profile/data/datasources/business_data_source.dart';
 import '../../features/business_profile/data/repositories/business_repository_impl.dart';
@@ -84,11 +86,6 @@ import '../../features/business_reservations/presentation/bloc/business_reservat
 import '../../features/business_reservations/presentation/bloc/new_reservation/new_reservation_bloc.dart';
 import '../../features/business_reservations/presentation/bloc/reservation_detail/reservation_detail_cubit.dart';
 import '../../features/business_reservations/presentation/bloc/reservations_list/reservations_list_bloc.dart';
-import '../../features/onboarding/data/datasources/onboarding_local_data_source.dart';
-import '../../features/onboarding/data/repositories/onboarding_repository_impl.dart';
-import '../../features/onboarding/domain/repositories/onboarding_repository.dart';
-import '../../features/onboarding/domain/usecases/complete_onboarding.dart';
-import '../../features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import '../../features/splash/data/datasources/app_info_data_source.dart';
 import '../../features/splash/data/repositories/app_info_repository_impl.dart';
 import '../../features/splash/data/repositories/session_repository_impl.dart';
@@ -133,7 +130,6 @@ Future<void> initDependencies() async {
     ..registerLazySingleton<Dio>(() => buildApiClient(sl(), sl()));
 
   _initCatalogs();
-  _initOnboarding();
   _initSplash();
   _initAuth();
   _initBusinessReservations();
@@ -144,6 +140,7 @@ Future<void> initDependencies() async {
   _initBusinessCourts();
   _initBusinessClients();
   _initBusinessDashboard();
+  _initBusinessSetup();
 }
 
 void _initCatalogs() {
@@ -171,7 +168,7 @@ void _initSplash() {
       () => AppInfoRepositoryImpl(sl()),
     )
     // Use cases
-    ..registerLazySingleton(() => ResolveStartDestination(sl(), sl()))
+    ..registerLazySingleton(() => ResolveStartDestination(sl()))
     ..registerLazySingleton(() => GetAppVersion(sl()))
     // Bloc: factory, una instancia nueva por pantalla
     ..registerFactory(
@@ -198,18 +195,6 @@ void _initAuth() {
     ..registerLazySingleton(() => SignOut(sl()))
     ..registerFactory(() => LoginBloc(signIn: sl()))
     ..registerFactory(() => BusinessLoginBloc(signInWithCredentials: sl()));
-}
-
-void _initOnboarding() {
-  sl
-    ..registerLazySingleton<OnboardingLocalDataSource>(
-      () => OnboardingLocalDataSourceImpl(sl()),
-    )
-    ..registerLazySingleton<OnboardingRepository>(
-      () => OnboardingRepositoryImpl(sl()),
-    )
-    ..registerLazySingleton(() => CompleteOnboarding(sl()))
-    ..registerFactory(() => OnboardingBloc(completeOnboarding: sl()));
 }
 
 void _initBusinessReservations() {
@@ -431,4 +416,10 @@ void _initBusinessDashboard() {
     )
     ..registerLazySingleton(() => GetBusinessDashboard(sl()))
     ..registerFactory(() => DashboardBloc(getDashboard: sl(), getCourts: sl()));
+}
+
+void _initBusinessSetup() {
+  sl
+    ..registerLazySingleton(() => GetSetupProgress(sl(), sl()))
+    ..registerLazySingleton(() => BusinessSetupGate(sl(), sl()));
 }

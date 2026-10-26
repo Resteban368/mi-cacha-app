@@ -24,6 +24,7 @@ import '../widgets/business_city_fields.dart';
 import '../widgets/business_media_fields.dart';
 import '../widgets/online_booking_card.dart';
 import '../../../../core/widgets/loading_dialog.dart';
+import '../../../business_setup/presentation/business_setup_gate.dart';
 
 /// Sección "Mi negocio". Sin negocio creado muestra el formulario
 /// "Registra tu sede deportiva" (diseño "Crear Negocio (Estado Vacío)");
@@ -103,6 +104,11 @@ class BusinessProfilePage extends StatelessWidget {
 
   void _onSaveStatus(BuildContext context, BusinessProfileState state) {
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    if (state.saveStatus
+        case BusinessSaveStatus.created || BusinessSaveStatus.updated) {
+      // Puede completar el paso "negocio" de la configuración inicial.
+      BusinessSetupScope.refresh(context);
+    }
     switch (state.saveStatus) {
       case BusinessSaveStatus.created:
         final coverFailed = state.photoStatus == BusinessPhotoStatus.failure;
@@ -137,6 +143,10 @@ class BusinessProfilePage extends StatelessWidget {
   void _onPhotoStatus(BuildContext context, BusinessProfileState state) {
     // Al registrar el negocio el aviso lo da _onSaveStatus.
     if (state.isSaving) return;
+    if (state.photoStatus
+        case BusinessPhotoStatus.uploaded || BusinessPhotoStatus.removed) {
+      BusinessSetupScope.refresh(context);
+    }
     final (message, isError) = switch (state.photoStatus) {
       BusinessPhotoStatus.uploaded => ('Foto agregada', false),
       BusinessPhotoStatus.removed => ('Foto eliminada', false),

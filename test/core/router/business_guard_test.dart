@@ -24,12 +24,7 @@ void main() {
 
   test('las rutas fuera del panel no se tocan', () async {
     final session = managerWith(null);
-    for (final path in [
-      AppRoutes.splash,
-      AppRoutes.login,
-      AppRoutes.onboarding,
-      AppRoutes.home,
-    ]) {
+    for (final path in [AppRoutes.splash, AppRoutes.login, AppRoutes.home]) {
       expect(await businessGuard(session, path), isNull);
     }
   });
