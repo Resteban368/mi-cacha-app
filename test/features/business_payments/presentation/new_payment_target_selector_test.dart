@@ -68,9 +68,7 @@ void main() {
     testWidgets('switches to reservation mode on tab tap', (tester) async {
       PaymentTargetMode? selectedMode;
       await tester.pumpWidget(
-        createWidget(
-          onModeChanged: (mode) => selectedMode = mode,
-        ),
+        createWidget(onModeChanged: (mode) => selectedMode = mode),
       );
 
       await tester.tap(find.text('Por Reserva'));
@@ -79,7 +77,9 @@ void main() {
       expect(selectedMode, PaymentTargetMode.reservation);
     });
 
-    testWidgets('shows customer results and triggers selection', (tester) async {
+    testWidgets('shows customer results and triggers selection', (
+      tester,
+    ) async {
       Customer? picked;
       await tester.pumpWidget(
         createWidget(
@@ -100,7 +100,9 @@ void main() {
       expect(picked, sampleCustomer);
     });
 
-    testWidgets('shows selected customer card and reservations', (tester) async {
+    testWidgets('shows selected customer card and reservations', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createWidget(
           state: NewPaymentState(

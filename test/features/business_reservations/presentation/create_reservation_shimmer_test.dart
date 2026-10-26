@@ -9,9 +9,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(
-          body: CustomerSearchShimmer(itemCount: 3),
-        ),
+        home: Scaffold(body: CustomerSearchShimmer(itemCount: 3)),
       ),
     );
     await tester.pump();
@@ -21,37 +19,34 @@ void main() {
   });
 
   testWidgets(
-      'CourtSchedulesShimmer renders court cards and slots grid on wide width',
-      (tester) async {
-    tester.view.physicalSize = const Size(1280, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
+    'CourtSchedulesShimmer renders court cards and slots grid on wide width',
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: CourtSchedulesShimmer(courtCount: 2),
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: CourtSchedulesShimmer(courtCount: 2)),
         ),
-      ),
-    );
-    await tester.pump();
+      );
+      await tester.pump();
 
-    expect(find.byType(CourtSchedulesShimmer), findsOneWidget);
-    expect(find.byType(ShimmerBox), findsWidgets);
-  });
+      expect(find.byType(CourtSchedulesShimmer), findsOneWidget);
+      expect(find.byType(ShimmerBox), findsWidgets);
+    },
+  );
 
-  testWidgets(
-      'CourtSchedulesShimmer renders single column on mobile width',
-      (tester) async {
+  testWidgets('CourtSchedulesShimmer renders single column on mobile width', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(
-          body: CourtSchedulesShimmer(courtCount: 2),
-        ),
+        home: Scaffold(body: CourtSchedulesShimmer(courtCount: 2)),
       ),
     );
     await tester.pump();

@@ -6,11 +6,7 @@ import '../../../../core/widgets/shimmer_box.dart';
 /// Shimmer de carga responsivo para la sección de clientes.
 /// Muestra un skeleton de tabla en desktop / web y una lista de tarjetas skeleton en móvil.
 class ClientsShimmer extends StatelessWidget {
-  const ClientsShimmer({
-    super.key,
-    this.isDesktop,
-    this.itemCount = 6,
-  });
+  const ClientsShimmer({super.key, this.isDesktop, this.itemCount = 6});
 
   /// Si es null, se determina automáticamente según el ancho disponible (>= 840 px).
   final bool? isDesktop;
@@ -37,10 +33,7 @@ class ClientsShimmer extends StatelessWidget {
 
 /// Skeleton de lista de tarjetas para móvil/tablet reducida.
 class ClientsCardListShimmer extends StatelessWidget {
-  const ClientsCardListShimmer({
-    super.key,
-    this.itemCount = 5,
-  });
+  const ClientsCardListShimmer({super.key, this.itemCount = 5});
 
   final int itemCount;
 
@@ -87,9 +80,7 @@ class ClientsCardShimmer extends StatelessWidget {
               SizedBox(
                 width: 44,
                 height: 44,
-                child: ShimmerBox(
-                  borderRadius: BorderRadius.circular(22),
-                ),
+                child: ShimmerBox(borderRadius: BorderRadius.circular(22)),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -124,11 +115,7 @@ class ClientsCardShimmer extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: AppColors.slate100,
-          ),
+          Divider(height: 1, thickness: 1, color: AppColors.slate100),
           const SizedBox(height: 12),
           // Métricas pills
           Row(
@@ -213,9 +200,7 @@ class ClientsCardShimmer extends StatelessWidget {
               Expanded(
                 child: SizedBox(
                   height: 36,
-                  child: ShimmerBox(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  child: ShimmerBox(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -236,10 +221,7 @@ class ClientsCardShimmer extends StatelessWidget {
 
 /// Skeleton de tabla para escritorio / web.
 class ClientsTableShimmer extends StatelessWidget {
-  const ClientsTableShimmer({
-    super.key,
-    this.rowCount = 6,
-  });
+  const ClientsTableShimmer({super.key, this.rowCount = 6});
 
   final int rowCount;
 
@@ -263,8 +245,9 @@ class ClientsTableShimmer extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final tableWidth =
-              constraints.maxWidth < 980 ? 980.0 : constraints.maxWidth;
+          final tableWidth = constraints.maxWidth < 980
+              ? 980.0
+              : constraints.maxWidth;
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SizedBox(
@@ -293,10 +276,7 @@ class ClientsTableShimmer extends StatelessWidget {
                           flex: 2,
                           child: _ShimmerHeaderCell('CONTACTO / WHATSAPP'),
                         ),
-                        Expanded(
-                          flex: 2,
-                          child: _ShimmerHeaderCell('NIVEL'),
-                        ),
+                        Expanded(flex: 2, child: _ShimmerHeaderCell('NIVEL')),
                         Expanded(
                           flex: 2,
                           child: _ShimmerHeaderCell('RESERVAS / ASISTENCIA'),
@@ -381,9 +361,7 @@ class _ClientTableRowShimmer extends StatelessWidget {
                 SizedBox(
                   width: 36,
                   height: 36,
-                  child: ShimmerBox(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
+                  child: ShimmerBox(borderRadius: BorderRadius.circular(18)),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(

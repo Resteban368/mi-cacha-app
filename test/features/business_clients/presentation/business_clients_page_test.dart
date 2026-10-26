@@ -267,46 +267,44 @@ void main() {
   });
 
   testWidgets(
-      'renders ClientsShimmer when status is loading and clients list is empty',
-      (tester) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
+    'renders ClientsShimmer when status is loading and clients list is empty',
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-    const loadingState = BusinessClientsState(
-      status: ClientsStatus.loading,
-    );
+      const loadingState = BusinessClientsState(status: ClientsStatus.loading);
 
-    await tester.pumpWidget(
-      buildSubject(size: const Size(1280, 900), state: loadingState),
-    );
-    await tester.pump();
+      await tester.pumpWidget(
+        buildSubject(size: const Size(1280, 900), state: loadingState),
+      );
+      await tester.pump();
 
-    expect(find.byType(ClientsShimmer), findsOneWidget);
-    expect(find.byType(ClientsTableShimmer), findsOneWidget);
-    expect(find.byType(ClientsDataTable), findsNothing);
-  });
+      expect(find.byType(ClientsShimmer), findsOneWidget);
+      expect(find.byType(ClientsTableShimmer), findsOneWidget);
+      expect(find.byType(ClientsDataTable), findsNothing);
+    },
+  );
 
   testWidgets(
-      'renders ClientsCardListShimmer on mobile when status is loading',
-      (tester) async {
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
+    'renders ClientsCardListShimmer on mobile when status is loading',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-    const loadingState = BusinessClientsState(
-      status: ClientsStatus.loading,
-    );
+      const loadingState = BusinessClientsState(status: ClientsStatus.loading);
 
-    await tester.pumpWidget(
-      buildSubject(size: const Size(400, 800), state: loadingState),
-    );
-    await tester.pump();
+      await tester.pumpWidget(
+        buildSubject(size: const Size(400, 800), state: loadingState),
+      );
+      await tester.pump();
 
-    expect(find.byType(ClientsShimmer), findsOneWidget);
-    expect(find.byType(ClientsCardListShimmer), findsOneWidget);
-    expect(find.byType(ClientCardItem), findsNothing);
-  });
+      expect(find.byType(ClientsShimmer), findsOneWidget);
+      expect(find.byType(ClientsCardListShimmer), findsOneWidget);
+      expect(find.byType(ClientCardItem), findsNothing);
+    },
+  );
 
   group('scroll infinito y filtros fijos', () {
     final many = [

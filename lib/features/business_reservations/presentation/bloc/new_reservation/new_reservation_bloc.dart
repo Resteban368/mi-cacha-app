@@ -305,7 +305,10 @@ class NewReservationBloc
     final availability = state.availability;
     if (!state.anyCourt || start == null || availability == null) return;
     final free = availability.courtsFreeAt(start, 1).length;
-    final courts = event.count.clamp(1, free.clamp(1, NewReservation.maxCourts));
+    final courts = event.count.clamp(
+      1,
+      free.clamp(1, NewReservation.maxCourts),
+    );
     final max = availability.reachFor(start, courts);
     if (max == 0) return;
     emit(

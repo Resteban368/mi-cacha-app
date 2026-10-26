@@ -29,10 +29,7 @@ class BusinessCustomersApiDataSource implements BusinessCustomersDataSource {
   @override
   Future<ClientProfile> createCustomer(CustomerPayload payload) async {
     final response = await apiCall(
-      () => _dio.post<Map<String, dynamic>>(
-        _path,
-        data: payload.toJson(),
-      ),
+      () => _dio.post<Map<String, dynamic>>(_path, data: payload.toJson()),
     );
     return ClientProfile.fromJson(response.data!);
   }

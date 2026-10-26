@@ -140,8 +140,7 @@ class _CreateReservationScheduleCardState
           icon: Icons.sports_soccer,
           text: 'Elige un deporte para ver sus turnos.',
         ),
-        AvailabilityLoad.loading =>
-          const CourtSchedulesShimmer(courtCount: 2),
+        AvailabilityLoad.loading => const CourtSchedulesShimmer(courtCount: 2),
         AvailabilityLoad.failure => _Info(
           icon: Icons.cloud_off_outlined,
           text: 'No pudimos cargar los turnos.',

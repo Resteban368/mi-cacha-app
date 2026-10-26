@@ -10,10 +10,7 @@ import '../../domain/entities/day_agenda.dart';
 /// - Cobrado en Caja (Anticipos y pagos completos)
 /// - Por Cobrar Taquilla (Saldos pendientes)
 class AgendaMetricCards extends StatelessWidget {
-  const AgendaMetricCards({
-    super.key,
-    required this.agenda,
-  });
+  const AgendaMetricCards({super.key, required this.agenda});
 
   final DayAgenda agenda;
 
@@ -78,10 +75,7 @@ class AgendaMetricCards extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: items.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (_, i) => SizedBox(
-                width: 210,
-                child: items[i],
-              ),
+              itemBuilder: (_, i) => SizedBox(width: 210, child: items[i]),
             ),
           );
         }

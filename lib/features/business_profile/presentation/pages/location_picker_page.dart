@@ -143,11 +143,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           ),
 
           // Marcador deportivo central con target reticle y sombra
-          const IgnorePointer(
-            child: Center(
-              child: _VenueTargetPin(),
-            ),
-          ),
+          const IgnorePointer(child: Center(child: _VenueTargetPin())),
 
           // Tarjeta flotante superior con instrucciones
           Positioned(
@@ -261,10 +257,7 @@ class _VenueTargetPin extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.brandTeal,
-                        AppColors.primary,
-                      ],
+                      colors: [AppColors.brandTeal, AppColors.primary],
                     ),
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2.2),

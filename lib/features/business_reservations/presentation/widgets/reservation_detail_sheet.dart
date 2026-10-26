@@ -446,11 +446,7 @@ class _HeaderBar extends StatelessWidget {
           const SizedBox(width: 8),
           IconButton(
             tooltip: 'Copiar resumen',
-            icon: Icon(
-              Icons.copy_rounded,
-              size: 18,
-              color: AppColors.slate600,
-            ),
+            icon: Icon(Icons.copy_rounded, size: 18, color: AppColors.slate600),
             splashRadius: 18,
             onPressed: onCopy,
           ),
@@ -1294,11 +1290,7 @@ class _CancellationCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.cancel_rounded,
-            color: AppColors.statusDue,
-            size: 20,
-          ),
+          Icon(Icons.cancel_rounded, color: AppColors.statusDue, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

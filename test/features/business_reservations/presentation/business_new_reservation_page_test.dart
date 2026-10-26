@@ -287,10 +287,8 @@ void main() {
     expect(find.text('¡Reserva confirmada!'), findsOneWidget);
     // Con la cancha elegida no se destaca la asignación.
     expect(find.byKey(const Key('assigned-court')), findsNothing);
-    Finder inDialog(String text) => find.descendant(
-      of: find.byType(Dialog),
-      matching: find.text(text),
-    );
+    Finder inDialog(String text) =>
+        find.descendant(of: find.byType(Dialog), matching: find.text(text));
     expect(inDialog(r'$100.000'), findsOneWidget);
     expect(inDialog(r'$50.000'), findsNWidgets(2)); // pagado y saldo
     expect(find.text('Confirmada'), findsOneWidget);
@@ -422,9 +420,7 @@ void main() {
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
   });
 
-  testWidgets('muestra shimmers al cargar turnos o clientes', (
-    tester,
-  ) async {
+  testWidgets('muestra shimmers al cargar turnos o clientes', (tester) async {
     await pump(
       tester,
       ready.copyWith(

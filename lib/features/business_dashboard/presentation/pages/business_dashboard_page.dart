@@ -338,11 +338,7 @@ class _Failure extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.cloud_off_outlined,
-            size: 36,
-            color: AppColors.slate400,
-          ),
+          Icon(Icons.cloud_off_outlined, size: 36, color: AppColors.slate400),
           const SizedBox(height: 8),
           Text(
             title,

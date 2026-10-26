@@ -12,11 +12,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: ClientsShimmer(),
-        ),
-      ),
+      const MaterialApp(home: Scaffold(body: ClientsShimmer())),
     );
     await tester.pump();
 
@@ -35,11 +31,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: ClientsShimmer(),
-        ),
-      ),
+      const MaterialApp(home: Scaffold(body: ClientsShimmer())),
     );
     await tester.pump();
 
@@ -54,9 +46,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(
-          body: ClientsShimmer(isDesktop: false, itemCount: 3),
-        ),
+        home: Scaffold(body: ClientsShimmer(isDesktop: false, itemCount: 3)),
       ),
     );
     await tester.pump();

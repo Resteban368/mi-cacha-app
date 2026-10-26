@@ -1,12 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum CustomerFailure {
-  network,
-  conflict,
-  notFound,
-  invalid,
-  server,
-}
+enum CustomerFailure { network, conflict, notFound, invalid, server }
 
 class CustomerException implements Exception, Equatable {
   const CustomerException({

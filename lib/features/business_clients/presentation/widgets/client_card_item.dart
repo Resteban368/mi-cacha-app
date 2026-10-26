@@ -108,11 +108,7 @@ class ClientCardItem extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 12),
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: AppColors.slate100,
-                ),
+                Divider(height: 1, thickness: 1, color: AppColors.slate100),
                 const SizedBox(height: 12),
 
                 // Middle: Metrics summary row

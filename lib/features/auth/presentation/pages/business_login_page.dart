@@ -103,7 +103,9 @@ class _BusinessLoginPageState extends State<BusinessLoginPage> {
           systemNavigationBarIconBrightness: Brightness.dark,
         ),
         child: Scaffold(
-          backgroundColor: isWide ? AppColors.surfaceContainerLowest : AppColors.surface,
+          backgroundColor: isWide
+              ? AppColors.surfaceContainerLowest
+              : AppColors.surface,
           body: isWide
               ? _WideLayout(onBack: _onBack(context))
               : Center(

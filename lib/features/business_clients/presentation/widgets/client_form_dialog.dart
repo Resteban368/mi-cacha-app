@@ -23,8 +23,16 @@ Future<ClientProfile?> showClientFormDialog(
     context: context,
     builder: (context) => _ClientFormDialog(
       initialClient: initialClient,
-      createUseCase: createUseCase ?? (sl.isRegistered<CreateBusinessCustomer>() ? sl<CreateBusinessCustomer>() : null),
-      updateUseCase: updateUseCase ?? (sl.isRegistered<UpdateBusinessCustomer>() ? sl<UpdateBusinessCustomer>() : null),
+      createUseCase:
+          createUseCase ??
+          (sl.isRegistered<CreateBusinessCustomer>()
+              ? sl<CreateBusinessCustomer>()
+              : null),
+      updateUseCase:
+          updateUseCase ??
+          (sl.isRegistered<UpdateBusinessCustomer>()
+              ? sl<UpdateBusinessCustomer>()
+              : null),
     ),
   );
 }
@@ -65,7 +73,9 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
     _document = TextEditingController(text: c?.documentId ?? '');
     _email = TextEditingController(text: c?.email ?? '');
     _notes = TextEditingController(text: c?.notes ?? '');
-    _sport = c?.preferredSport.isNotEmpty == true ? c!.preferredSport : 'Fútbol';
+    _sport = c?.preferredSport.isNotEmpty == true
+        ? c!.preferredSport
+        : 'Fútbol';
   }
 
   @override
@@ -99,7 +109,10 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
       if (widget.initialClient != null) {
         if (widget.updateUseCase != null) {
           result = await widget.updateUseCase!(
-            UpdateCustomerParams(id: widget.initialClient!.id, payload: payload),
+            UpdateCustomerParams(
+              id: widget.initialClient!.id,
+              payload: payload,
+            ),
           );
         } else {
           result = widget.initialClient!.copyWith(
@@ -133,7 +146,8 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
-          _errorMessage = e.message ??
+          _errorMessage =
+              e.message ??
               (e.failure == CustomerFailure.conflict
                   ? 'Ya existe un cliente con este número de teléfono o documento.'
                   : 'Error al procesar la solicitud.');
@@ -179,7 +193,9 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              isEdit ? Icons.edit_note_rounded : Icons.person_add_alt_1_rounded,
+                              isEdit
+                                  ? Icons.edit_note_rounded
+                                  : Icons.person_add_alt_1_rounded,
                               color: AppColors.brandTeal,
                               size: 20,
                             ),
@@ -196,7 +212,9 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
-                        onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                        onPressed: _isSubmitting
+                            ? null
+                            : () => Navigator.of(context).pop(),
                       ),
                     ],
                   ),
@@ -204,15 +222,24 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
 
                   if (_errorMessage != null) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.dangerTint,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.statusDue.withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: AppColors.statusDue.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.error_outline_rounded, color: AppColors.statusDue, size: 20),
+                          Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.statusDue,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -292,26 +319,16 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
                       fillColor: AppColors.slate50,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: AppColors.slate200,
-                        ),
+                        borderSide: BorderSide(color: AppColors.slate200),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: AppColors.slate200,
-                        ),
+                        borderSide: BorderSide(color: AppColors.slate200),
                       ),
                     ),
                     items: const [
-                      DropdownMenuItem(
-                        value: 'Fútbol',
-                        child: Text('Fútbol'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Pádel',
-                        child: Text('Pádel'),
-                      ),
+                      DropdownMenuItem(value: 'Fútbol', child: Text('Fútbol')),
+                      DropdownMenuItem(value: 'Pádel', child: Text('Pádel')),
                       DropdownMenuItem(
                         value: 'Baloncesto',
                         child: Text('Baloncesto'),
@@ -342,7 +359,9 @@ class _ClientFormDialogState extends State<_ClientFormDialog> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                        onPressed: _isSubmitting
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         child: const Text('Cancelar'),
                       ),
                       const SizedBox(width: 12),

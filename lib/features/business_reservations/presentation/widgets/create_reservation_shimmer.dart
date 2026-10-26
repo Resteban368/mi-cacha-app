@@ -5,10 +5,7 @@ import '../../../../core/widgets/shimmer_box.dart';
 
 /// Shimmer de carga para la lista de clientes sugeridos / resultados en Crear Reserva.
 class CustomerSearchShimmer extends StatelessWidget {
-  const CustomerSearchShimmer({
-    super.key,
-    this.itemCount = 3,
-  });
+  const CustomerSearchShimmer({super.key, this.itemCount = 3});
 
   final int itemCount;
 
@@ -43,9 +40,7 @@ class _CustomerTileShimmer extends StatelessWidget {
         children: [
           SizedBox.square(
             dimension: 26,
-            child: ShimmerBox(
-              borderRadius: BorderRadius.circular(13),
-            ),
+            child: ShimmerBox(borderRadius: BorderRadius.circular(13)),
           ),
           const SizedBox(width: 8),
           const Expanded(
@@ -79,10 +74,7 @@ class _CustomerTileShimmer extends StatelessWidget {
 
 /// Shimmer de carga para los horarios y tarjetas de canchas en Crear Reserva.
 class CourtSchedulesShimmer extends StatelessWidget {
-  const CourtSchedulesShimmer({
-    super.key,
-    this.courtCount = 2,
-  });
+  const CourtSchedulesShimmer({super.key, this.courtCount = 2});
 
   final int courtCount;
 
@@ -150,9 +142,7 @@ class _CourtCardShimmer extends StatelessWidget {
             children: [
               SizedBox.square(
                 dimension: 34,
-                child: ShimmerBox(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                child: ShimmerBox(borderRadius: BorderRadius.circular(10)),
               ),
               const SizedBox(width: 10),
               const Expanded(
@@ -192,8 +182,7 @@ class _CourtCardShimmer extends StatelessWidget {
             builder: (context, constraints) {
               final width = constraints.maxWidth;
               final columns = (width / 92).floor().clamp(3, 6);
-              final itemWidth =
-                  (width - (columns - 1) * 6) / columns;
+              final itemWidth = (width - (columns - 1) * 6) / columns;
 
               return Wrap(
                 spacing: 6,

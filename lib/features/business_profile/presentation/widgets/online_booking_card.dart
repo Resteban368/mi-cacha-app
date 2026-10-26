@@ -86,11 +86,7 @@ class OnlineBookingCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.link_rounded,
-                size: 20,
-                color: AppColors.brandTeal,
-              ),
+              Icon(Icons.link_rounded, size: 20, color: AppColors.brandTeal),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

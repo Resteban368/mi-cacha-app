@@ -43,7 +43,11 @@ class ReservationSectionCard extends StatelessWidget {
             color: AppColors.brandTealLight,
             borderRadius: BorderRadius.circular(compact ? 8 : 10),
           ),
-          child: Icon(icon, size: compact ? 18 : 20, color: AppColors.brandTeal),
+          child: Icon(
+            icon,
+            size: compact ? 18 : 20,
+            color: AppColors.brandTeal,
+          ),
         ),
         const SizedBox(width: 8),
         Expanded(

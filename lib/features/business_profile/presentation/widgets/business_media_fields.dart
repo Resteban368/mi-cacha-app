@@ -802,11 +802,7 @@ class _LocationPreview extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
             child: Row(
               children: [
-                Icon(
-                  Icons.place_rounded,
-                  size: 18,
-                  color: AppColors.brandTeal,
-                ),
+                Icon(Icons.place_rounded, size: 18, color: AppColors.brandTeal),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(

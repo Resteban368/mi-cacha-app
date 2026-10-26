@@ -8,11 +8,7 @@ import '../../domain/entities/customer_overview.dart';
 
 /// Fila/Grid responsiva de tarjetas métricas (KPIs) de clientes para la versión web y móvil.
 class ClientsMetricCards extends StatelessWidget {
-  const ClientsMetricCards({
-    super.key,
-    this.overview,
-    this.clients = const [],
-  });
+  const ClientsMetricCards({super.key, this.overview, this.clients = const []});
 
   final CustomerOverview? overview;
   final List<ClientProfile> clients;
@@ -36,8 +32,8 @@ class ClientsMetricCards extends StatelessWidget {
     final trendLoyal = overview?.loyalPct != null
         ? '${overview!.loyalPct!.toStringAsFixed(0)}% de cartera'
         : (totalClients > 0
-            ? '${((vipClients / totalClients) * 100).toStringAsFixed(0)}% de cartera'
-            : null);
+              ? '${((vipClients / totalClients) * 100).toStringAsFixed(0)}% de cartera'
+              : null);
 
     return LayoutBuilder(
       builder: (context, constraints) {

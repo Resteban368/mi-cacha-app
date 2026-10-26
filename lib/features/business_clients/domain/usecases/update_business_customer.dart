@@ -6,10 +6,7 @@ import '../entities/customer_payload.dart';
 import '../repositories/business_customers_repository.dart';
 
 class UpdateCustomerParams extends Equatable {
-  const UpdateCustomerParams({
-    required this.id,
-    required this.payload,
-  });
+  const UpdateCustomerParams({required this.id, required this.payload});
 
   final String id;
   final CustomerPayload payload;
