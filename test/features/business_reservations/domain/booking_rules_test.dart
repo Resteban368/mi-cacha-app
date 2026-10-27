@@ -104,6 +104,50 @@ void main() {
     });
   });
 
+  group('turnos vencidos (15 min de gracia)', () {
+    // Turno de 6:00 a 7:00 p. m.
+    final slot = slotAt(18);
+    DateTime clock(int hour, int minute) =>
+        DateTime(2026, 10, 15, hour, minute);
+
+    test('la gracia es de 15 minutos', () {
+      expect(kLateBookingGrace, const Duration(minutes: 15));
+    });
+
+    test('5:50 p. m.: se puede reservar', () {
+      expect(slot.isExpiredAt(clock(17, 50)), isFalse);
+    });
+
+    test('6:05 p. m.: se puede reservar', () {
+      expect(slot.isExpiredAt(clock(18, 5)), isFalse);
+    });
+
+    test('6:15 p. m.: último momento para reservar', () {
+      expect(slot.isExpiredAt(clock(18, 15)), isFalse);
+    });
+
+    test('6:16 p. m.: vencido, se oculta como los pasados', () {
+      expect(slot.isExpiredAt(clock(18, 16)), isTrue);
+    });
+
+    test('un turno que ya terminó siempre está vencido', () {
+      expect(
+        slotAt(8, status: SlotStatus.past).isExpiredAt(clock(7, 0)),
+        isTrue,
+      );
+    });
+
+    test('cualquier cancha aplica la misma regla', () {
+      final any = availability.anyCourtSlots.firstWhere(
+        (s) => s.start.hour == 18,
+      );
+      expect(any.isExpiredAt(clock(17, 50)), isFalse);
+      expect(any.isExpiredAt(clock(18, 5)), isFalse);
+      expect(any.isExpiredAt(clock(18, 15)), isFalse);
+      expect(any.isExpiredAt(clock(18, 16)), isTrue);
+    });
+  });
+
   group('NewCustomer', () {
     test('valida como la API', () {
       expect(NewCustomer.validateName('L'), isNotNull);

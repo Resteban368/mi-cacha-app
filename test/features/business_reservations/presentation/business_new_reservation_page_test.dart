@@ -29,6 +29,7 @@ void main() {
 
   final ready = NewReservationState(
     day: DateTime(2026, 10, 15),
+    now: DateTime(2026, 10, 15, 10),
     load: NewReservationLoad.ready,
     courts: [
       court('c1'),
@@ -321,6 +322,7 @@ void main() {
       tester,
       NewReservationState(
         day: DateTime(2026, 10, 15),
+        now: DateTime(2026, 10, 15, 10),
         load: NewReservationLoad.ready,
         courts: [court('c0', complete: false)],
       ),

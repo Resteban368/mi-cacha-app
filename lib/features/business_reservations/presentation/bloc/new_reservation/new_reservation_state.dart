@@ -11,6 +11,7 @@ enum NewReservationSubmit { idle, submitting, success, failure }
 final class NewReservationState extends Equatable {
   const NewReservationState({
     required this.day,
+    required this.now,
     this.load = NewReservationLoad.loading,
     this.courts = const [],
     this.paymentMethods = const [],
@@ -50,6 +51,10 @@ final class NewReservationState extends Equatable {
 
   /// Día local elegido (mínimo hoy).
   final DateTime day;
+
+  /// Hora con la que se ocultan los turnos vencidos (se toma al cargar los
+  /// turnos y al tocar uno).
+  final DateTime now;
 
   final AvailabilityLoad availabilityLoad;
   final SportAvailability? availability;
@@ -222,6 +227,7 @@ final class NewReservationState extends Equatable {
     Sport? Function()? sport,
     String? Function()? focusCourtId,
     DateTime? day,
+    DateTime? now,
     AvailabilityLoad? availabilityLoad,
     SportAvailability? Function()? availability,
     bool? anyCourt,
@@ -245,6 +251,7 @@ final class NewReservationState extends Equatable {
     sport: sport != null ? sport() : this.sport,
     focusCourtId: focusCourtId != null ? focusCourtId() : this.focusCourtId,
     day: day ?? this.day,
+    now: now ?? this.now,
     availabilityLoad: availabilityLoad ?? this.availabilityLoad,
     availability: availability != null ? availability() : this.availability,
     anyCourt: anyCourt ?? this.anyCourt,
@@ -275,6 +282,7 @@ final class NewReservationState extends Equatable {
     sport,
     focusCourtId,
     day,
+    now,
     availabilityLoad,
     availability,
     anyCourt,

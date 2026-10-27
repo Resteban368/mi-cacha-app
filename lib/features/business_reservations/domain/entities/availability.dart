@@ -2,6 +2,15 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/domain/entities/sport.dart';
 
+/// Un turno se puede reservar hasta este tiempo después de su inicio (la
+/// misma regla de la API y de la reserva web de jugadores).
+const kLateBookingGrace = Duration(minutes: 15);
+
+/// Si un turno que empieza en [start] ya no se puede reservar a la hora
+/// [now]: empezó hace más de [kLateBookingGrace].
+bool _startExpiredAt(DateTime start, DateTime now) =>
+    start.isBefore(now.subtract(kLateBookingGrace));
+
 enum SlotStatus {
   /// Se puede elegir (incluye el turno en curso).
   available('AVAILABLE'),
@@ -45,6 +54,11 @@ class Slot extends Equatable {
   final int price;
 
   bool get isAvailable => status == SlotStatus.available;
+
+  /// Ya no se puede reservar a la hora [now] (y no se muestra): terminó o
+  /// empezó hace más de [kLateBookingGrace].
+  bool isExpiredAt(DateTime now) =>
+      status == SlotStatus.past || _startExpiredAt(start, now);
 
   @override
   List<Object?> get props => [startIso, start, end, status, price];
@@ -164,6 +178,10 @@ class AnyCourtSlot extends Equatable {
   final bool priceVaries;
 
   bool get isAvailable => status == SlotStatus.available;
+
+  /// La misma regla que [Slot.isExpiredAt].
+  bool isExpiredAt(DateTime now) =>
+      status == SlotStatus.past || _startExpiredAt(start, now);
 
   @override
   List<Object?> get props => [

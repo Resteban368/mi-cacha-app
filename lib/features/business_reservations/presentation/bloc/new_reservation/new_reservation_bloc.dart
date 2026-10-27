@@ -37,7 +37,9 @@ class NewReservationBloc
        _searchCustomers = searchCustomers,
        _createReservation = createReservation,
        _clock = clock,
-       super(NewReservationState(day: _dateOnly(clock.now()))) {
+       super(
+         NewReservationState(day: _dateOnly(clock.now()), now: clock.now()),
+       ) {
     on<NewReservationStarted>(_onStarted, transformer: restartable());
     // Cambiar de deporte o día cancela la carga anterior de turnos.
     on<NewReservationAvailabilityEvent>(
@@ -152,6 +154,7 @@ class NewReservationBloc
         state.copyWith(
           availabilityLoad: AvailabilityLoad.ready,
           availability: () => availability,
+          now: _clock.now(),
         ),
       );
     } catch (_) {
@@ -202,6 +205,9 @@ class NewReservationBloc
   ) {
     final availability = state.availability;
     if (availability == null) return;
+    // Los turnos que se vencen en pantalla se ocultan al tocar otro.
+    final now = _clock.now();
+    emit(state.copyWith(now: now));
     final tapped = event.start;
     final current = state.selectedStart;
     final sameTarget = state.anyCourt || event.courtId == state.selectedCourtId;
@@ -223,6 +229,8 @@ class NewReservationBloc
         emit(state.copyWith(selectedStart: () => null, slotCount: 1));
         return;
       }
+      final slot = slots.where((s) => s.start == tapped).firstOrNull;
+      if (slot == null || slot.isExpiredAt(now)) return;
       // Si a esa hora hay menos canchas libres que las pedidas, se ajusta.
       final free = availability.courtsFreeAt(tapped, 1).length;
       if (free == 0) return;
@@ -262,10 +270,9 @@ class NewReservationBloc
       );
       return;
     }
-    final max = court.consecutiveFrom(
-      court.indexOf(tapped),
-      availability.maxSlots,
-    );
+    final index = court.indexOf(tapped);
+    if (index < 0 || court.slots[index].isExpiredAt(now)) return;
+    final max = court.consecutiveFrom(index, availability.maxSlots);
     if (max == 0) return;
     emit(
       state.copyWith(
@@ -401,9 +408,10 @@ class NewReservationBloc
           failureMessage: () => error.message,
         ),
       );
-      // Otro tomó el turno (o todas las canchas): se recargan los turnos
-      // para elegir de nuevo.
-      if (error.failure == ReservationFailure.slotTaken) {
+      // Otro tomó el turno (o todas las canchas), o se venció mientras se
+      // elegía: se recargan los turnos para elegir de nuevo.
+      if (error.failure
+          case ReservationFailure.slotTaken || ReservationFailure.slotExpired) {
         add(const NewReservationAvailabilityReloaded());
       }
     } catch (_) {

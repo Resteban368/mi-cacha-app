@@ -21,6 +21,7 @@ class CreateReservationScheduleCard extends StatefulWidget {
     super.key,
     required this.load,
     required this.availability,
+    required this.now,
     required this.hiddenCourtCount,
     required this.anyCourt,
     required this.selectedCourtId,
@@ -41,6 +42,9 @@ class CreateReservationScheduleCard extends StatefulWidget {
 
   final AvailabilityLoad load;
   final SportAvailability? availability;
+
+  /// Hora con la que se ocultan los turnos vencidos ([Slot.isExpiredAt]).
+  final DateTime now;
 
   /// Canchas del deporte que no aparecen (inactivas o sin fotos).
   final int hiddenCourtCount;
@@ -114,7 +118,9 @@ class _CreateReservationScheduleCardState
     final availability = widget.availability;
     final ready = widget.load == AvailabilityLoad.ready && availability != null;
     final freeTimes = ready && widget.anyCourt
-        ? availability.anyCourtSlots.where((s) => s.isAvailable).length
+        ? availability.anyCourtSlots
+              .where((s) => s.isAvailable && !s.isExpiredAt(widget.now))
+              .length
         : null;
     final firstCourt = ready ? availability.courts.firstOrNull : null;
     return ReservationSectionCard(
@@ -218,10 +224,10 @@ class _CreateReservationScheduleCardState
         text: 'Ninguna cancha abre este día. Elige otra fecha.',
       );
     }
-    // Los horarios que ya pasaron no se muestran (se conserva su índice).
+    // Los horarios vencidos no se muestran (se conserva su índice).
     final visible = [
       for (final (i, slot) in all.indexed)
-        if (slot.status != SlotStatus.past) (i, slot),
+        if (!slot.isExpiredAt(widget.now)) (i, slot),
     ];
     if (visible.isEmpty) return const _AllPast();
     final start = widget.selectedStart;
@@ -272,6 +278,7 @@ class _CreateReservationScheduleCardState
               key: _courtKeys.putIfAbsent(court.court.id, GlobalKey.new),
               court: court,
               isSelectedCourt: court.court.id == widget.selectedCourtId,
+              now: widget.now,
               selectedStart: widget.selectedStart,
               selectedEnd: _selectedEnd,
               onSlotTap: (start) => widget.onSlotTap(court.court.id, start),
@@ -436,6 +443,7 @@ class _CourtSlotsCard extends StatelessWidget {
     super.key,
     required this.court,
     required this.isSelectedCourt,
+    required this.now,
     required this.selectedStart,
     required this.selectedEnd,
     required this.onSlotTap,
@@ -443,6 +451,7 @@ class _CourtSlotsCard extends StatelessWidget {
 
   final CourtSlots court;
   final bool isSelectedCourt;
+  final DateTime now;
   final DateTime? selectedStart;
   final DateTime? selectedEnd;
   final ValueChanged<DateTime> onSlotTap;
@@ -456,10 +465,10 @@ class _CourtSlotsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final info = court.court;
     final photo = info.photoUrl;
-    // Los turnos que ya pasaron no se muestran (se conserva su índice).
+    // Los turnos vencidos no se muestran (se conserva su índice).
     final visible = [
       for (final (i, slot) in court.slots.indexed)
-        if (slot.status != SlotStatus.past) (i, slot),
+        if (!slot.isExpiredAt(now)) (i, slot),
     ];
     return Container(
       padding: const EdgeInsets.all(10),

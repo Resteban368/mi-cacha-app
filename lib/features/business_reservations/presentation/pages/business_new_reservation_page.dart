@@ -269,6 +269,9 @@ class _ReservationFormState extends State<_ReservationForm> {
             'elige otro.',
       ReservationFailure.slotTaken =>
         'Ese horario se acaba de ocupar. Actualizamos los turnos: elige otro.',
+      ReservationFailure.slotExpired =>
+        '${_sentence(message ?? 'Ese turno empezó hace más de 15 minutos')} '
+            'Actualizamos los turnos: elige otro.',
       ReservationFailure.subscriptionInactive =>
         'Tu plan no está activo: no puedes crear reservas.',
       ReservationFailure.network =>
@@ -277,6 +280,12 @@ class _ReservationFormState extends State<_ReservationForm> {
       null => 'No pudimos crear la reserva. Intenta de nuevo.',
       _ => message ?? 'Revisa los datos de la reserva.',
     };
+  }
+
+  /// [text] terminado en punto.
+  static String _sentence(String text) {
+    final trimmed = text.trim();
+    return trimmed.endsWith('.') ? trimmed : '$trimmed.';
   }
 
   String _summary(NewReservationState state) {
@@ -377,6 +386,7 @@ class _ReservationFormState extends State<_ReservationForm> {
         final scheduleCard = CreateReservationScheduleCard(
           load: state.availabilityLoad,
           availability: state.availability,
+          now: state.now,
           hiddenCourtCount: state.hiddenCourtCount,
           anyCourt: state.anyCourt,
           selectedCourtId: state.selectedCourtId,

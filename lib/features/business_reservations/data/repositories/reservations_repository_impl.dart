@@ -75,6 +75,9 @@ class ReservationsRepositoryImpl implements ReservationsRepository {
       ApiErrorKind.conflict when message.startsWith('El teléfono es de') =>
         ReservationFailure.customerConflict,
       ApiErrorKind.conflict => ReservationFailure.notCancellable,
+      // "Ese turno empezó hace más de 15 minutos".
+      ApiErrorKind.badRequest when message.contains('empezó hace más de') =>
+        ReservationFailure.slotExpired,
       ApiErrorKind.badRequest => ReservationFailure.invalid,
       ApiErrorKind.notFound => ReservationFailure.notFound,
       ApiErrorKind.network => ReservationFailure.network,

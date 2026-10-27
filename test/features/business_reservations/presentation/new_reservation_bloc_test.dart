@@ -83,6 +83,7 @@ void main() {
 
   final ready = NewReservationState(
     day: DateTime(2026, 10, 15),
+    now: DateTime(2026, 10, 15, 10),
     load: NewReservationLoad.ready,
     courts: [court('c0', complete: false), court('c1'), court('c2')],
     paymentMethods: const [efectivo, nequi],
@@ -415,6 +416,25 @@ void main() {
       wait: const Duration(milliseconds: 10),
       verify: (bloc) {
         expect(bloc.state.failure, ReservationFailure.slotTaken);
+        expect(bloc.state.selectedStart, isNull);
+        verify(() => getAvailability(any())).called(1);
+      },
+    );
+
+    blocTest<NewReservationBloc, NewReservationState>(
+      'turno vencido mientras se elegía: avisa y recarga la disponibilidad',
+      setUp: () => when(() => create(any())).thenThrow(
+        const ReservationException(
+          ReservationFailure.slotExpired,
+          message: 'Ese turno empezó hace más de 15 minutos',
+        ),
+      ),
+      build: build,
+      seed: () => chosen,
+      act: (bloc) => bloc.add(const NewReservationSubmitted(request)),
+      wait: const Duration(milliseconds: 10),
+      verify: (bloc) {
+        expect(bloc.state.failure, ReservationFailure.slotExpired);
         expect(bloc.state.selectedStart, isNull);
         verify(() => getAvailability(any())).called(1);
       },

@@ -14,6 +14,9 @@ enum ReservationFailure {
   /// 403 SUBSCRIPTION_INACTIVE: el negocio está en solo lectura.
   subscriptionInactive,
 
+  /// 400: el turno empezó hace más de 15 minutos mientras se elegía.
+  slotExpired,
+
   /// 400: algún dato no cumple las reglas (el mensaje lo explica).
   invalid,
 

@@ -447,6 +447,15 @@ void main() {
       expect(e.failure, ReservationFailure.slotTaken);
     });
 
+    test('400 turno que empezó hace más de 15 minutos', () async {
+      final e = await failWith(400, {
+        'statusCode': 400,
+        'message': 'Ese turno empezó hace más de 15 minutos',
+      });
+      expect(e.failure, ReservationFailure.slotExpired);
+      expect(e.message, 'Ese turno empezó hace más de 15 minutos');
+    });
+
     test('409 cualquier cancha: todas ocupadas a esa hora', () async {
       final e = await failWith(409, {
         'message': 'No hay canchas de fútbol libres en ese horario',
