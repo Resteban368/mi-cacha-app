@@ -56,7 +56,6 @@ class BusinessAccountApiDataSource implements BusinessAccountDataSource {
       ),
       subscription: subscription == null ? null : _subscription(subscription),
       salesModule: _module(json['modules'], 'sales'),
-      inventoryModule: _module(json['modules'], 'inventory'),
     );
   }
 

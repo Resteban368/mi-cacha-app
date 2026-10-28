@@ -82,7 +82,13 @@ class BusinessHomeShell extends StatelessWidget {
           if (!step.allows(section.path)) section,
       },
       hidden: {
-        if (!BusinessModulesScope.salesOf(context)) BusinessSection.ventas,
+        if (!BusinessModulesScope.salesOf(context)) ...[
+          BusinessSection.ventas,
+          BusinessSection.inventario,
+        ],
+      },
+      badges: {
+        BusinessSection.inventario: BusinessModulesScope.stockAlertsOf(context),
       },
       onSelected: (section) => _select(context, section, step),
       onLogout: () => confirmBusinessLogout(context, signOut: onSignOut),

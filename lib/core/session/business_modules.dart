@@ -4,18 +4,25 @@ import 'package:flutter/material.dart';
 /// panel. Se actualiza con la cuenta (`/business/account`) al entrar al home.
 class BusinessModules extends ChangeNotifier {
   var _sales = false;
-  var _inventory = false;
+  var _stockAlerts = 0;
 
-  /// Ventas: productos, consumos en reservas, ventas sueltas y caja.
+  /// Ventas e inventario: productos, consumos en reservas, ventas sueltas,
+  /// caja y stock.
   bool get sales => _sales;
 
-  /// Inventario: stock de productos (requiere Ventas).
-  bool get inventory => _inventory;
+  /// Productos agotados o con stock bajo (contador del menú Inventario).
+  int get stockAlerts => _stockAlerts;
 
-  void update({required bool sales, bool inventory = false}) {
-    if (_sales == sales && _inventory == inventory) return;
+  void update({required bool sales}) {
+    if (_sales == sales) return;
     _sales = sales;
-    _inventory = inventory;
+    if (!sales) _stockAlerts = 0;
+    notifyListeners();
+  }
+
+  void updateStockAlerts(int count) {
+    if (_stockAlerts == count) return;
+    _stockAlerts = count;
     notifyListeners();
   }
 }
@@ -29,22 +36,6 @@ class BusinessModulesScope extends InheritedNotifier<BusinessModules> {
     required super.child,
   });
 
-  /// Como [inventoryOf] pero sin suscribirse (para callbacks).
-  static bool readInventory(BuildContext context) =>
-      context
-          .getInheritedWidgetOfExactType<BusinessModulesScope>()
-          ?.notifier
-          ?.inventory ??
-      false;
-
-  /// `false` si no hay [BusinessModulesScope] arriba.
-  static bool inventoryOf(BuildContext context) =>
-      context
-          .dependOnInheritedWidgetOfExactType<BusinessModulesScope>()
-          ?.notifier
-          ?.inventory ??
-      false;
-
   /// `true` si no hay [BusinessModulesScope] arriba (p. ej. en tests).
   static bool salesOf(BuildContext context) =>
       context
@@ -52,4 +43,12 @@ class BusinessModulesScope extends InheritedNotifier<BusinessModules> {
           ?.notifier
           ?.sales ??
       true;
+
+  /// `0` si no hay [BusinessModulesScope] arriba.
+  static int stockAlertsOf(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<BusinessModulesScope>()
+          ?.notifier
+          ?.stockAlerts ??
+      0;
 }

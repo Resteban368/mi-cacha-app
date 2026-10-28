@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../core/router/app_routes.dart';
 import '../../../../core/session/business_modules.dart';
 import '../../../../core/session/write_access.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -25,18 +23,13 @@ class InventoryPage extends StatelessWidget {
     final topBar = AppTopBar(
       title: 'Inventario',
       subtitle: 'Stock de tus productos',
-      icon: Icons.inventory_rounded,
-      onBack: () => context.go(AppRoutes.businessSales),
+      icon: Icons.inventory_2_rounded,
     );
-    if (!BusinessModulesScope.inventoryOf(context)) {
+    if (!BusinessModulesScope.salesOf(context)) {
       return Column(
         children: [
           topBar,
-          Expanded(
-            child: BusinessModulesScope.salesOf(context)
-                ? const SalesModuleLocked.inventory()
-                : const SalesModuleLocked(),
-          ),
+          const Expanded(child: SalesModuleLocked()),
         ],
       );
     }

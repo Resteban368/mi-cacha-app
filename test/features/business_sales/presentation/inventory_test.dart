@@ -275,7 +275,7 @@ void main() {
     });
   });
 
-  group('SaleCartCubit con Inventario', () {
+  group('SaleCartCubit con stock', () {
     late _MockGetProducts getProducts;
 
     setUp(() {
@@ -289,7 +289,7 @@ void main() {
         SaleCartCubit(getProducts: getProducts, createSale: _MockCreateSale());
 
     test('no deja pasar del stock ni vender agotados', () async {
-      final cubit = build()..limitToStock(true);
+      final cubit = build();
       await cubit.load();
       cubit
         ..setQuantity('p-gato', 10)
@@ -299,14 +299,6 @@ void main() {
       expect(cubit.state.quantityOf('p-hielo'), 0);
       expect(cubit.state.quantityOf('p-petos'), 50);
       expect(cubit.state.availableOf(_bibs), isNull);
-    });
-
-    test('sin el módulo no limita', () async {
-      final cubit = build();
-      await cubit.load();
-      cubit.setQuantity('p-gato', 10);
-      expect(cubit.state.quantityOf('p-gato'), 10);
-      expect(cubit.state.availableOf(_ice), isNull);
     });
   });
 
@@ -320,7 +312,7 @@ void main() {
 
     Future<void> pump(
       WidgetTester tester, {
-      bool inventory = true,
+      bool sales = true,
       Size size = const Size(1280, 900),
     }) async {
       tester.view.physicalSize = size;
@@ -332,8 +324,7 @@ void main() {
       ).thenAnswer((_) async => const <Supplier>[]);
       await tester.pumpWidget(
         BusinessModulesScope(
-          notifier: BusinessModules()
-            ..update(sales: true, inventory: inventory),
+          notifier: BusinessModules()..update(sales: sales),
           child: WriteAccessScope(
             notifier: WriteAccess()..update(canWrite: true),
             child: MaterialApp(
@@ -358,8 +349,11 @@ void main() {
     }
 
     testWidgets('sin el módulo muestra el aviso', (tester) async {
-      await pump(tester, inventory: false);
-      expect(find.text('El módulo de Inventario no está activo'), findsOne);
+      await pump(tester, sales: false);
+      expect(
+        find.text('El módulo de Ventas e inventario no está activo'),
+        findsOne,
+      );
       verifyNever(() => repository.overview());
     });
 

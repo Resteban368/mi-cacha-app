@@ -494,7 +494,10 @@ void main() {
     );
     await tester.pump();
     expect(find.byKey(const Key('sales-module-locked')), findsOneWidget);
-    expect(find.text('El módulo de Ventas no está activo'), findsOneWidget);
+    expect(
+      find.text('El módulo de Ventas e inventario no está activo'),
+      findsOneWidget,
+    );
     verifyNever(() => getSales(any()));
   });
 

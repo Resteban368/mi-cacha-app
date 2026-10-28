@@ -19,6 +19,9 @@ class InventoryOverview extends Equatable {
   final int low;
   final int out;
 
+  /// Productos que piden atención: agotados más los de stock bajo.
+  int get alerts => low + out;
+
   @override
   List<Object?> get props => [items, tracked, low, out];
 }

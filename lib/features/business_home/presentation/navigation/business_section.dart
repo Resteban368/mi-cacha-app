@@ -56,6 +56,14 @@ enum BusinessSection {
     activeIcon: Icons.point_of_sale,
     fullWidth: true,
   ),
+  inventario(
+    group: BusinessSectionGroup.gestion,
+    path: AppRoutes.businessInventory,
+    label: 'Inventario',
+    icon: Icons.inventory_2_outlined,
+    activeIcon: Icons.inventory_2,
+    fullWidth: true,
+  ),
   canchas(
     group: BusinessSectionGroup.gestion,
     path: AppRoutes.businessCourts,

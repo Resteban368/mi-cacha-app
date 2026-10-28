@@ -35,6 +35,7 @@ import '../../features/business_payments/presentation/pages/payments_page.dart';
 import '../../features/business_sales/presentation/bloc/cash_cubit.dart';
 import '../../features/business_sales/presentation/bloc/products_cubit.dart';
 import '../../features/business_sales/presentation/bloc/suppliers_cubit.dart';
+import '../../features/business_sales/domain/usecases/inventory_usecases.dart';
 import '../../features/business_sales/presentation/bloc/inventory_cubit.dart';
 import '../../features/business_sales/presentation/pages/inventory_page.dart';
 import '../../features/business_sales/presentation/pages/suppliers_page.dart';
@@ -128,10 +129,14 @@ DateTime? _dayParam(String? value) {
 /// Carga la cuenta: si se puede escribir y, de paso, los módulos activos.
 Future<bool> _loadCanWrite() async {
   final account = await sl<GetBusinessAccount>()(const NoParams());
-  sl<BusinessModules>().update(
-    sales: account.salesModule.enabled,
-    inventory: account.inventoryModule.enabled,
-  );
+  final modules = sl<BusinessModules>()
+    ..update(sales: account.salesModule.enabled);
+  if (modules.sales) {
+    // Contador del menú Inventario; si falla, se queda como estaba.
+    sl<GetInventory>()(
+      const NoParams(),
+    ).then((inventory) => modules.updateStockAlerts(inventory.alerts)).ignore();
+  }
   return account.subscription?.isActive ?? false;
 }
 

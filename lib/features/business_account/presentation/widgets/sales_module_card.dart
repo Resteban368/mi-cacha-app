@@ -6,70 +6,43 @@ import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/business_account.dart';
 import 'account_card.dart';
 
-/// Detalle de un módulo activo (Ventas o Inventario), debajo del plan.
+/// Detalle del módulo de Ventas e inventario, debajo del plan (solo si está
+/// activo).
 class SalesModuleCard extends StatelessWidget {
-  const SalesModuleCard({super.key, required this.module, this.onOpen})
-    : title = 'Módulo de Ventas',
-      icon = Icons.point_of_sale_rounded,
-      features = _salesFeatures,
-      openLabel = 'Ir a Ventas',
-      _id = 'sales';
-
-  const SalesModuleCard.inventory({
-    super.key,
-    required this.module,
-    this.onOpen,
-  }) : title = 'Módulo de Inventario',
-       icon = Icons.inventory_rounded,
-       features = _inventoryFeatures,
-       openLabel = 'Ir a Inventario',
-       _id = 'inventory';
+  const SalesModuleCard({super.key, required this.module, this.onOpen});
 
   final SalesModule module;
-  final String title;
-  final IconData icon;
-  final List<(IconData, String)> features;
-  final String openLabel;
-  final String _id;
 
-  /// Ir a la sección del módulo.
+  /// Ir a la sección Ventas.
   final VoidCallback? onOpen;
 
-  static const _inventoryFeatures = [
-    (Icons.inventory_2_outlined, 'Stock por producto, se descuenta al vender'),
-    (
-      Icons.move_to_inbox_outlined,
-      'Entradas de mercancía con costo y proveedor',
-    ),
-    (Icons.fact_check_outlined, 'Ajustes por conteo físico con motivo'),
-    (Icons.notification_important_outlined, 'Alertas de stock bajo y agotados'),
-  ];
-
-  static const _salesFeatures = [
+  static const _features = [
     (Icons.inventory_2_outlined, 'Catálogo de productos con categorías'),
     (Icons.add_shopping_cart_rounded, 'Consumos cargados a las reservas'),
     (Icons.shopping_bag_outlined, 'Ventas sueltas de mostrador'),
     (Icons.fact_check_outlined, 'Caja del día: apertura, arqueo y cierre'),
     (Icons.insights_outlined, 'Ventas y más vendidos en el dashboard'),
+    (Icons.inventory_rounded, 'Inventario: stock por producto y entradas'),
+    (Icons.notification_important_outlined, 'Alertas de stock bajo y agotados'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return AccountCard(
-      key: Key('$_id-module-card'),
+      key: const Key('sales-module-card'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              AccountIconBox(icon: icon),
+              const AccountIconBox(icon: Icons.point_of_sale_rounded),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      'Módulo de Ventas e inventario',
                       style: AppTypography.labelLg.copyWith(
                         color: AppColors.onSurface,
                         fontWeight: FontWeight.w800,
@@ -102,7 +75,7 @@ class SalesModuleCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          for (final (icon, text) in features)
+          for (final (icon, text) in _features)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Row(
@@ -125,10 +98,10 @@ class SalesModuleCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
-                key: Key('open-$_id'),
+                key: const Key('open-sales'),
                 onPressed: onOpen,
                 icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                label: Text(openLabel),
+                label: const Text('Ir a Ventas'),
               ),
             ),
           ],

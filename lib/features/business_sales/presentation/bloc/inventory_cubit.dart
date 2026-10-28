@@ -89,7 +89,9 @@ class InventoryCubit extends Cubit<InventoryState> {
     required ConfigureStock configureStock,
     required GetStockMovements getMovements,
     required GetSuppliers getSuppliers,
+    void Function(int alerts)? onAlerts,
   }) : _get = getInventory,
+       _onAlerts = onAlerts,
        _addEntry = addEntry,
        _adjust = adjustStock,
        _configure = configureStock,
@@ -104,6 +106,9 @@ class InventoryCubit extends Cubit<InventoryState> {
   final GetStockMovements _movements;
   final GetSuppliers _suppliers;
 
+  /// Avisa cuántos productos están agotados o con stock bajo (menú).
+  final void Function(int alerts)? _onAlerts;
+
   static const historyPageSize = 20;
 
   Future<void> load() async {
@@ -111,6 +116,7 @@ class InventoryCubit extends Cubit<InventoryState> {
       final overview = await _get(const NoParams());
       if (isClosed) return;
       emit(state.copyWith(load: InventoryLoad.ready, overview: overview));
+      _onAlerts?.call(overview.alerts);
     } catch (_) {
       if (isClosed) return;
       emit(state.copyWith(load: InventoryLoad.failure));

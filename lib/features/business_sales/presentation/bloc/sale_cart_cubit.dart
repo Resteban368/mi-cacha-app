@@ -33,18 +33,14 @@ final class SaleCartState extends Equatable {
     this.submit = SaleCartSubmit.idle,
     this.message,
     this.sale,
-    this.limitStock = false,
   });
 
   final SaleCartLoad load;
 
-  /// Con el módulo de Inventario: no se vende más de lo que hay en stock.
-  final bool limitStock;
-
-  /// Unidades disponibles para vender de [product] (`null` = sin límite).
-  int? availableOf(Product product) => limitStock && product.trackStock
-      ? (product.stock < 0 ? 0 : product.stock)
-      : null;
+  /// Unidades disponibles para vender de [product]: su stock si lo
+  /// controla, `null` (sin límite) si no.
+  int? availableOf(Product product) =>
+      product.trackStock ? (product.stock < 0 ? 0 : product.stock) : null;
 
   /// Productos activos, por nombre.
   final List<Product> products;
@@ -128,7 +124,6 @@ final class SaleCartState extends Equatable {
     SaleCartSubmit? submit,
     String? Function()? message,
     Sale? sale,
-    bool? limitStock,
   }) => SaleCartState(
     load: load ?? this.load,
     products: products ?? this.products,
@@ -145,7 +140,6 @@ final class SaleCartState extends Equatable {
     submit: submit ?? this.submit,
     message: message != null ? message() : this.message,
     sale: sale ?? this.sale,
-    limitStock: limitStock ?? this.limitStock,
   );
 
   @override
@@ -165,7 +159,6 @@ final class SaleCartState extends Equatable {
     submit,
     message,
     sale,
-    limitStock,
   ];
 }
 
@@ -237,9 +230,6 @@ class SaleCartCubit extends Cubit<SaleCartState> {
       emit(state.copyWith(load: SaleCartLoad.failure));
     }
   }
-
-  /// Con Inventario, el carrito no deja pasar del stock de cada producto.
-  void limitToStock(bool limit) => emit(state.copyWith(limitStock: limit));
 
   void add(String productId) =>
       setQuantity(productId, state.quantityOf(productId) + 1);

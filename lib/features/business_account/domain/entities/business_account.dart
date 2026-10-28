@@ -115,7 +115,6 @@ final class BusinessAccount extends Equatable {
     required this.admin,
     required this.subscription,
     this.salesModule = const SalesModule(),
-    this.inventoryModule = const SalesModule(),
   });
 
   final AdminProfile admin;
@@ -124,14 +123,6 @@ final class BusinessAccount extends Equatable {
   final Subscription? subscription;
   final SalesModule salesModule;
 
-  /// Inventario (stock de productos); mismo formato que [salesModule].
-  final SalesModule inventoryModule;
-
   @override
-  List<Object?> get props => [
-    admin,
-    subscription,
-    salesModule,
-    inventoryModule,
-  ];
+  List<Object?> get props => [admin, subscription, salesModule];
 }

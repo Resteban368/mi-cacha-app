@@ -232,7 +232,7 @@ void main() {
     );
     final card = find.byKey(const Key('sales-module-card'));
     expect(card, findsOneWidget);
-    expect(find.text('Módulo de Ventas'), findsOneWidget);
+    expect(find.text('Módulo de Ventas e inventario'), findsOneWidget);
     // Debajo del plan.
     expect(
       tester.getTopLeft(card).dy,

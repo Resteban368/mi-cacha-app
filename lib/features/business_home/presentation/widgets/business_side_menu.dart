@@ -15,6 +15,7 @@ class BusinessSideMenu extends StatelessWidget {
     required this.onLogout,
     this.locked = const {},
     this.hidden = const {},
+    this.badges = const {},
   });
 
   final BusinessSection current;
@@ -24,6 +25,9 @@ class BusinessSideMenu extends StatelessWidget {
 
   /// Secciones que no se muestran (módulos no activos).
   final Set<BusinessSection> hidden;
+
+  /// Contador junto a la sección (p. ej. alertas de stock); 0 = sin contador.
+  final Map<BusinessSection, int> badges;
   final ValueChanged<BusinessSection> onSelected;
   final VoidCallback onLogout;
 
@@ -58,6 +62,7 @@ class BusinessSideMenu extends StatelessWidget {
                       label: section.label,
                       selected: section == current,
                       locked: locked.contains(section),
+                      badge: badges[section] ?? 0,
                       onTap: () => _run(context, () {
                         if (section != current) onSelected(section);
                       }),
@@ -185,12 +190,14 @@ class _MenuItem extends StatelessWidget {
     required this.onTap,
     this.foreground,
     this.locked = false,
+    this.badge = 0,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
   final bool locked;
+  final int badge;
   final VoidCallback onTap;
   final Color? foreground;
 
@@ -212,7 +219,11 @@ class _MenuItem extends StatelessWidget {
       child: Semantics(
         button: true,
         selected: selected,
-        label: locked ? '$label (bloqueado)' : label,
+        label: locked
+            ? '$label (bloqueado)'
+            : badge > 0
+            ? '$label ($badge alertas)'
+            : label,
         excludeSemantics: true,
         child: Material(
           color: selected ? AppColors.brandTealLight : Colors.transparent,
@@ -251,6 +262,27 @@ class _MenuItem extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (badge > 0 && !locked)
+                    Container(
+                      key: Key('menu-badge-$label'),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusDue,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        badge > 99 ? '99+' : '$badge',
+                        style: AppTypography.labelSm.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
                   if (locked && !selected)
                     Padding(
                       padding: const EdgeInsets.only(right: 12),

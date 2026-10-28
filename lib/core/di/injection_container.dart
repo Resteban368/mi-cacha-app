@@ -309,6 +309,7 @@ void _initBusinessSales() {
         configureStock: sl(),
         getMovements: sl(),
         getSuppliers: sl(),
+        onAlerts: sl<BusinessModules>().updateStockAlerts,
       ),
     )
     ..registerFactory(
