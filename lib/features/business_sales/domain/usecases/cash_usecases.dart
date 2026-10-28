@@ -87,6 +87,46 @@ class VoidCashExpense implements UseCase<CashExpense, VoidExpenseParams> {
   }
 }
 
+typedef CashMovementParams = ({
+  CashMovementType type,
+  int amount,
+  String reason,
+});
+
+/// Ingreso o retiro manual de efectivo en la caja abierta.
+class AddCashMovement implements UseCase<CashMovement, CashMovementParams> {
+  const AddCashMovement(this._repository);
+
+  final CashRepository _repository;
+
+  @override
+  Future<CashMovement> call(CashMovementParams params) {
+    if (params.amount <= 0) throw ArgumentError('Escribe el valor.');
+    if (params.reason.trim().length < 2) {
+      throw ArgumentError('Escribe el motivo.');
+    }
+    return _repository.addMovement(
+      type: params.type,
+      amount: params.amount,
+      reason: params.reason,
+    );
+  }
+}
+
+class VoidCashMovement implements UseCase<CashMovement, VoidExpenseParams> {
+  const VoidCashMovement(this._repository);
+
+  final CashRepository _repository;
+
+  @override
+  Future<CashMovement> call(VoidExpenseParams params) {
+    if (params.reason.trim().length < 3) {
+      throw ArgumentError('Escribe el motivo.');
+    }
+    return _repository.voidMovement(params.id, params.reason);
+  }
+}
+
 /// Proveedores: solo activos (para pagar) o todos (para administrarlos).
 class GetSuppliers implements UseCase<List<Supplier>, bool> {
   const GetSuppliers(this._repository);

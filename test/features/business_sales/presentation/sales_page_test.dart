@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +13,7 @@ import 'package:mi_cancha/features/business_sales/domain/usecases/sales_usecases
 import 'package:mi_cancha/features/business_sales/presentation/bloc/cash_cubit.dart';
 import 'package:mi_cancha/features/business_sales/presentation/bloc/sales_cubit.dart';
 import 'package:mi_cancha/features/business_sales/presentation/pages/sales_page.dart';
+import 'package:mi_cancha/features/business_sales/presentation/widgets/cash_receipt.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockGetSales extends Mock implements GetSales {}
@@ -27,6 +29,8 @@ class _MockCloseCash extends Mock implements CloseCash {}
 class _MockCashHistory extends Mock implements GetCashHistory {}
 
 class _MockAddExpense extends Mock implements AddCashExpense {}
+
+class _MockAddMovement extends Mock implements AddCashMovement {}
 
 class _MockGetSuppliers extends Mock implements GetSuppliers {}
 
@@ -110,6 +114,11 @@ void main() {
     registerFallbackValue((amount: 0, note: null as String?));
     registerFallbackValue((supplierId: '', amount: 0, method: '', concept: ''));
     registerFallbackValue((
+      type: CashMovementType.retiro,
+      amount: 0,
+      reason: '',
+    ));
+    registerFallbackValue((
       id: null as String?,
       name: '',
       documentId: null as String?,
@@ -126,8 +135,10 @@ void main() {
   late _MockAddExpense addExpense;
   late _MockGetSuppliers getSuppliers;
   late _MockSaveSupplier saveSupplier;
+  late _MockAddMovement addMovement;
 
   setUp(() {
+    addMovement = _MockAddMovement();
     addExpense = _MockAddExpense();
     getSuppliers = _MockGetSuppliers();
     saveSupplier = _MockSaveSupplier();
@@ -184,6 +195,7 @@ void main() {
                     addExpense: addExpense,
                     getSuppliers: getSuppliers,
                     saveSupplier: saveSupplier,
+                    addMovement: addMovement,
                   )..load(),
                 ),
               ],
@@ -331,6 +343,116 @@ void main() {
     await tester.enterText(find.byKey(const Key('cash-counted')), '92500');
     await tester.pump();
     expect(find.text('Cuadra'), findsOneWidget);
+  });
+
+  testWidgets('retiro de efectivo con motivo sugerido', (tester) async {
+    when(() => addMovement(any())).thenAnswer(
+      (_) async => CashMovement(
+        id: 'mv-1',
+        type: CashMovementType.retiro,
+        amount: 100000,
+        reason: 'Consignación al banco',
+        createdAt: _now,
+      ),
+    );
+    await pump(tester, const Size(1440, 2000));
+
+    await tester.tap(find.byKey(const Key('cash-movement')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('movement-amount')), '100000');
+    await tester.tap(find.text('Consignación al banco'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('movement-save')));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => addMovement((
+        type: CashMovementType.retiro,
+        amount: 100000,
+        reason: 'Consignación al banco',
+      )),
+    ).called(1);
+    expect(find.text('Retiro registrado.'), findsOneWidget);
+  });
+
+  testWidgets('al cerrar muestra el comprobante y copia el resumen', (
+    tester,
+  ) async {
+    final closed = CashSession(
+      id: 'abcdef12-3456',
+      openingCash: 50000,
+      openedAt: _now,
+      closedAt: _now,
+      closedByName: 'Esteban',
+      expectedCash: 122500,
+      countedCash: 120000,
+      difference: -2500,
+      methods: _cash().methods,
+      collected: 77500,
+      businessName: 'El Golazo',
+      movements: [
+        CashMovement(
+          id: 'mv-1',
+          type: CashMovementType.retiro,
+          amount: 30000,
+          reason: 'Consignación',
+          createdAt: _now,
+        ),
+      ],
+      cashOutTotal: 30000,
+    );
+    when(() => closeCash(any())).thenAnswer((_) async => closed);
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    await pump(tester, const Size(1440, 2000));
+
+    await tester.tap(find.byKey(const Key('cash-close')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('cash-counted')), '120000');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('cash-close-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('COMPROBANTE DE CIERRE DE CAJA'), findsOneWidget);
+    expect(find.text('El Golazo'), findsOneWidget);
+    expect(find.text('FALTANTE'), findsOneWidget);
+    expect(find.text('CC-ABCDEF12'), findsOneWidget);
+    expect(find.text('Consignación'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const Key('receipt-copy')));
+    await tester.pump();
+    expect(copied, contains('CIERRE DE CAJA · El Golazo'));
+    expect(copied, contains(r'Retiros: −$30.000'));
+    expect(copied, contains('FALTANTE'));
+  });
+
+  testWidgets('el comprobante cabe en un celular angosto', (tester) async {
+    tester.view.physicalSize = const Size(340, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showCashReceipt(context, _cash(counted: 122500)),
+            child: const Text('ver'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('ver'));
+    await tester.pumpAndSettle();
+    expect(find.text('CAJA CUADRADA'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('abrir caja con la base', (tester) async {

@@ -11,6 +11,7 @@ import '../../../business_payments/domain/entities/payment.dart';
 import '../../../business_payments/presentation/widgets/payment_styles.dart';
 import '../../domain/entities/cash_session.dart';
 import '../bloc/cash_cubit.dart';
+import 'cash_receipt.dart';
 import 'supplier_dialog.dart';
 
 /// Fondo oscuro de la franja de caja (como en el diseño de Stitch).
@@ -67,6 +68,8 @@ class CashBanner extends StatelessWidget {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text('Caja cerrada · $label.')));
+    // El comprobante, listo para compartir.
+    await showCashReceipt(context, closed);
   }
 
   @override
@@ -219,6 +222,22 @@ class CashBanner extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.local_shipping_outlined, size: 18),
                       label: const Text('Pago a proveedor'),
+                    ),
+                  if (session != null && canWrite)
+                    OutlinedButton.icon(
+                      key: const Key('cash-movement'),
+                      onPressed: () => showCashMovementDialog(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        backgroundColor: const Color(0xFF1E293B),
+                        minimumSize: const Size(0, 44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.swap_vert_rounded, size: 18),
+                      label: const Text('Ingreso / retiro'),
                     ),
                   ?primary,
                 ],
@@ -435,6 +454,27 @@ class _CloseCashDialogState extends State<_CloseCashDialog> {
       );
   }
 
+  Future<void> _voidMovement(CashMovement movement) async {
+    final cubit = context.read<CashCubit>();
+    final messenger = ScaffoldMessenger.of(context);
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (_) => _ReasonDialog(
+        title: '¿Anular este ${movement.type.label.toLowerCase()}?',
+      ),
+    );
+    if (reason == null) return;
+    final error = await cubit.voidMovement(movement.id, reason);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(error ?? '${movement.type.label} anulado.'),
+          backgroundColor: error == null ? null : AppColors.statusDue,
+        ),
+      );
+  }
+
   Widget _build(BuildContext context, CashSession s) {
     final row = AppTypography.bodySm.copyWith(color: AppColors.slate600);
     final value = AppTypography.bodySm.copyWith(
@@ -523,6 +563,34 @@ class _CloseCashDialogState extends State<_CloseCashDialog> {
                       ],
                     ),
                   ],
+                  if (s.cashInTotal > 0) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text('Ingresos de efectivo', style: row),
+                        ),
+                        Text(
+                          '+${AppFormatters.cop(s.cashInTotal)}',
+                          style: value.copyWith(color: AppColors.emerald600),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (s.cashOutTotal > 0) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text('Retiros de efectivo', style: row),
+                        ),
+                        Text(
+                          '−${AppFormatters.cop(s.cashOutTotal)}',
+                          style: value.copyWith(color: AppColors.statusDue),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -549,14 +617,26 @@ class _CloseCashDialogState extends State<_CloseCashDialog> {
               expenses: s.expenses,
               onVoid: s.isOpen ? _voidExpense : null,
             ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                key: const Key('close-add-expense'),
-                onPressed: () => showCashExpenseDialog(context),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Pago a proveedor'),
-              ),
+            _MovementsList(
+              movements: s.movements,
+              onVoid: s.isOpen ? _voidMovement : null,
+            ),
+            Wrap(
+              spacing: 4,
+              children: [
+                TextButton.icon(
+                  key: const Key('close-add-expense'),
+                  onPressed: () => showCashExpenseDialog(context),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Pago a proveedor'),
+                ),
+                TextButton.icon(
+                  key: const Key('close-add-movement'),
+                  onPressed: () => showCashMovementDialog(context),
+                  icon: const Icon(Icons.swap_vert_rounded, size: 18),
+                  label: const Text('Ingreso / retiro'),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             _MoneyField(
@@ -839,7 +919,26 @@ class _ClosedSessionTile extends StatelessWidget {
                   'Pagos a proveedores ${AppFormatters.cop(s.expensesTotal)}',
                   style: muted,
                 ),
+              if (s.cashInTotal > 0)
+                Text(
+                  'Ingresos ${AppFormatters.cop(s.cashInTotal)}',
+                  style: muted,
+                ),
+              if (s.cashOutTotal > 0)
+                Text(
+                  'Retiros ${AppFormatters.cop(s.cashOutTotal)}',
+                  style: muted,
+                ),
             ],
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: Key('receipt-${s.id}'),
+              onPressed: () => showCashReceipt(context, s),
+              icon: const Icon(Icons.receipt_long_rounded, size: 18),
+              label: const Text('Ver comprobante'),
+            ),
           ),
           if (s.closingNote case final note?) ...[
             const SizedBox(height: 4),
@@ -1249,6 +1348,351 @@ class _ExpenseDialogState extends State<_ExpenseDialog> {
           key: const Key('expense-save'),
           onPressed: _saving || (suppliers?.isEmpty ?? true) ? null : _submit,
           child: Text(_saving ? 'Registrando…' : 'Registrar pago'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Ingresos y retiros manuales del turno, con opción de anular los vigentes.
+class _MovementsList extends StatelessWidget {
+  const _MovementsList({required this.movements, this.onVoid});
+
+  final List<CashMovement> movements;
+  final ValueChanged<CashMovement>? onVoid;
+
+  @override
+  Widget build(BuildContext context) {
+    if (movements.isEmpty) return const SizedBox.shrink();
+    final muted = AppTypography.bodySm.copyWith(
+      color: AppColors.slate500,
+      fontSize: 11,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 4),
+        Text(
+          'INGRESOS Y RETIROS',
+          style: AppTypography.labelSm.copyWith(
+            color: AppColors.slate500,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        for (final m in movements)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Container(
+              key: Key('movement-${m.id}'),
+              padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
+              decoration: BoxDecoration(
+                color: m.isVoided
+                    ? AppColors.dangerTint.withValues(alpha: 0.4)
+                    : AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.slate200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    m.type == CashMovementType.ingreso
+                        ? Icons.south_west_rounded
+                        : Icons.north_east_rounded,
+                    size: 18,
+                    color: m.isVoided
+                        ? AppColors.slate400
+                        : m.type == CashMovementType.ingreso
+                        ? AppColors.emerald600
+                        : AppColors.statusDue,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${m.type.label} · ${m.reason}',
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.bodySm.copyWith(
+                            color: m.isVoided
+                                ? AppColors.slate400
+                                : AppColors.onSurface,
+                            fontWeight: FontWeight.w700,
+                            decoration: m.isVoided
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        Text(
+                          [
+                            AppFormatters.time(m.createdAt),
+                            ?m.createdByName,
+                            if (m.isVoided)
+                              'Anulado${m.voidReason == null ? '' : ': ${m.voidReason}'}',
+                          ].join(' · '),
+                          style: m.isVoided
+                              ? muted.copyWith(color: AppColors.statusDue)
+                              : muted,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '${m.type == CashMovementType.ingreso ? '+' : '−'}'
+                    '${AppFormatters.cop(m.amount)}',
+                    style: AppTypography.bodySm.copyWith(
+                      color: m.isVoided
+                          ? AppColors.slate400
+                          : m.type == CashMovementType.ingreso
+                          ? AppColors.emerald600
+                          : AppColors.statusDue,
+                      fontWeight: FontWeight.w800,
+                      decoration: m.isVoided
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
+                  ),
+                  if (onVoid != null && !m.isVoided)
+                    IconButton(
+                      key: Key('void-movement-${m.id}'),
+                      tooltip: 'Anular',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => onVoid!(m),
+                      icon: Icon(
+                        Icons.block_rounded,
+                        size: 16,
+                        color: AppColors.slate400,
+                      ),
+                    )
+                  else
+                    const SizedBox(width: 8),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Ingreso o retiro manual de efectivo en la caja abierta. Devuelve `true`
+/// si se registró.
+Future<bool> showCashMovementDialog(
+  BuildContext context, {
+  CashMovementType initial = CashMovementType.retiro,
+}) async {
+  if (!ensureCanWrite(context)) return false;
+  final cubit = context.read<CashCubit>();
+  final messenger = ScaffoldMessenger.of(context);
+  final type = await showDialog<CashMovementType>(
+    context: context,
+    builder: (_) => BlocProvider.value(
+      value: cubit,
+      child: _MovementDialog(initial: initial),
+    ),
+  );
+  if (type != null) {
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('${type.label} registrado.')));
+  }
+  return type != null;
+}
+
+class _MovementDialog extends StatefulWidget {
+  const _MovementDialog({required this.initial});
+
+  final CashMovementType initial;
+
+  @override
+  State<_MovementDialog> createState() => _MovementDialogState();
+}
+
+class _MovementDialogState extends State<_MovementDialog> {
+  late var _type = widget.initial;
+  final _amount = TextEditingController();
+  final _reason = TextEditingController();
+  bool _saving = false;
+  String? _error;
+
+  static const _suggestions = {
+    CashMovementType.retiro: [
+      'Consignación al banco',
+      'Retiro del dueño',
+      'Pago de nómina',
+    ],
+    CashMovementType.ingreso: [
+      'Monedas para cambio',
+      'Base adicional',
+      'Devolución de un retiro',
+    ],
+  };
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _reason.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_saving) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final error = await context.read<CashCubit>().addMovement((
+      type: _type,
+      amount: CopInputFormatter.parse(_amount.text),
+      reason: _reason.text,
+    ));
+    if (!mounted) return;
+    if (error == null) {
+      Navigator.of(context).pop(_type);
+    } else {
+      setState(() {
+        _saving = false;
+        _error = error;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isIn = _type == CashMovementType.ingreso;
+    Widget option(CashMovementType type, IconData icon, Color color) {
+      final selected = _type == type;
+      return Expanded(
+        child: Material(
+          color: selected
+              ? AppColors.surfaceContainerLowest
+              : Colors.transparent,
+          elevation: selected ? 1 : 0,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            key: Key('movement-type-${type.apiCode}'),
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => setState(() => _type = type),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: selected ? color : AppColors.slate500,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    type.label,
+                    style: AppTypography.labelLg.copyWith(
+                      color: selected ? color : AppColors.slate600,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      scrollable: true,
+      title: const Text('Ingreso o retiro de efectivo'),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppColors.slate100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  option(
+                    CashMovementType.retiro,
+                    Icons.north_east_rounded,
+                    AppColors.statusDue,
+                  ),
+                  option(
+                    CashMovementType.ingreso,
+                    Icons.south_west_rounded,
+                    AppColors.emerald600,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              isIn
+                  ? 'Efectivo que entra a la caja (p. ej. monedas para dar '
+                        'cambio). Suma al efectivo esperado.'
+                  : 'Efectivo que sale de la caja (el dueño lo retira o lo '
+                        'consigna). Resta al efectivo esperado.',
+              style: AppTypography.bodySm.copyWith(color: AppColors.slate600),
+            ),
+            const SizedBox(height: 10),
+            _MoneyField(
+              fieldKey: const Key('movement-amount'),
+              controller: _amount,
+              label: isIn ? 'Valor que entra' : 'Valor que sale',
+              autofocus: true,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('movement-reason'),
+              controller: _reason,
+              maxLength: 200,
+              decoration: const InputDecoration(labelText: 'Motivo'),
+            ),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final text in _suggestions[_type]!)
+                  ActionChip(
+                    label: Text(text),
+                    onPressed: () => setState(() => _reason.text = text),
+                  ),
+              ],
+            ),
+            if (_error case final error?) ...[
+              const SizedBox(height: 10),
+              Text(
+                error,
+                style: AppTypography.bodySm.copyWith(
+                  color: AppColors.statusDue,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          key: const Key('movement-save'),
+          onPressed: _saving ? null : _submit,
+          style: FilledButton.styleFrom(
+            backgroundColor: isIn ? AppColors.emerald600 : AppColors.statusDue,
+          ),
+          child: Text(
+            _saving ? 'Registrando…' : 'Registrar ${_type.label.toLowerCase()}',
+          ),
         ),
       ],
     );

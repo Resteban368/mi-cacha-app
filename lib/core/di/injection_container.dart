@@ -284,6 +284,8 @@ void _initBusinessSales() {
     ..registerLazySingleton(() => GetCashHistory(sl()))
     ..registerLazySingleton(() => AddCashExpense(sl()))
     ..registerLazySingleton(() => VoidCashExpense(sl()))
+    ..registerLazySingleton(() => AddCashMovement(sl()))
+    ..registerLazySingleton(() => VoidCashMovement(sl()))
     ..registerLazySingleton(() => GetSuppliers(sl()))
     ..registerLazySingleton(() => SaveSupplier(sl()))
     ..registerLazySingleton(() => SetSupplierActive(sl()))
@@ -297,6 +299,8 @@ void _initBusinessSales() {
         voidExpense: sl(),
         getSuppliers: sl(),
         saveSupplier: sl(),
+        addMovement: sl(),
+        voidMovement: sl(),
       ),
     )
     ..registerFactory(

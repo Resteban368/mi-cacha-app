@@ -94,6 +94,60 @@ class CashExpense extends Equatable {
   ];
 }
 
+/// Tipo de movimiento manual de efectivo.
+enum CashMovementType {
+  /// Se agrega efectivo (p. ej. monedas para tener cambio).
+  ingreso('INGRESO', 'Ingreso'),
+
+  /// Se saca efectivo (el dueño lo retira o lo consigna).
+  retiro('RETIRO', 'Retiro');
+
+  const CashMovementType(this.apiCode, this.label);
+
+  final String apiCode;
+  final String label;
+
+  static CashMovementType fromApi(String? code) =>
+      code == 'INGRESO' ? ingreso : retiro;
+}
+
+/// Ingreso o retiro manual de efectivo durante el turno.
+class CashMovement extends Equatable {
+  const CashMovement({
+    required this.id,
+    required this.type,
+    required this.amount,
+    required this.reason,
+    required this.createdAt,
+    this.createdByName,
+    this.voidedAt,
+    this.voidReason,
+  });
+
+  final String id;
+  final CashMovementType type;
+  final int amount;
+  final String reason;
+  final DateTime createdAt;
+  final String? createdByName;
+  final DateTime? voidedAt;
+  final String? voidReason;
+
+  bool get isVoided => voidedAt != null;
+
+  @override
+  List<Object?> get props => [
+    id,
+    type,
+    amount,
+    reason,
+    createdAt,
+    createdByName,
+    voidedAt,
+    voidReason,
+  ];
+}
+
 /// Turno de caja: se abre con una base de efectivo y se cierra contando el
 /// efectivo real (arqueo).
 class CashSession extends Equatable {
@@ -114,6 +168,10 @@ class CashSession extends Equatable {
     this.expenses = const [],
     this.expensesTotal = 0,
     this.cashExpensesTotal = 0,
+    this.movements = const [],
+    this.cashInTotal = 0,
+    this.cashOutTotal = 0,
+    this.businessName = '',
   });
 
   final String id;
@@ -125,8 +183,8 @@ class CashSession extends Equatable {
   final String? closedByName;
   final String? closingNote;
 
-  /// Base + cobros en efectivo − pagos a proveedores en efectivo (hasta
-  /// ahora si sigue abierta).
+  /// Base + cobros en efectivo + ingresos − pagos a proveedores en
+  /// efectivo − retiros (hasta ahora si sigue abierta).
   final int expectedCash;
 
   /// `null` mientras la caja está abierta.
@@ -149,6 +207,20 @@ class CashSession extends Equatable {
   final int expensesTotal;
   final int cashExpensesTotal;
 
+  /// Ingresos y retiros manuales (también los anulados), más recientes
+  /// primero, y sus totales sin anular.
+  final List<CashMovement> movements;
+  final int cashInTotal;
+  final int cashOutTotal;
+
+  /// Nombre del negocio (para el comprobante).
+  final String businessName;
+
+  /// Cobros en efectivo del turno.
+  int get cashCollected => methods
+      .where((m) => m.code == 'EFECTIVO')
+      .fold(0, (s, m) => s + m.amount);
+
   bool get isOpen => closedAt == null;
 
   @override
@@ -169,6 +241,10 @@ class CashSession extends Equatable {
     expenses,
     expensesTotal,
     cashExpensesTotal,
+    movements,
+    cashInTotal,
+    cashOutTotal,
+    businessName,
   ];
 }
 

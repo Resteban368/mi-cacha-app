@@ -92,6 +92,32 @@ class CashApiDataSource implements CashRepository {
     return expenseFromJson(response.data!);
   }
 
+  @override
+  Future<CashMovement> addMovement({
+    required CashMovementType type,
+    required int amount,
+    required String reason,
+  }) async {
+    final response = await apiCall(
+      () => _dio.post<Map<String, dynamic>>(
+        '$_path/movements',
+        data: {'type': type.apiCode, 'amount': amount, 'reason': reason.trim()},
+      ),
+    );
+    return movementFromJson(response.data!);
+  }
+
+  @override
+  Future<CashMovement> voidMovement(String id, String reason) async {
+    final response = await apiCall(
+      () => _dio.post<Map<String, dynamic>>(
+        '$_path/movements/$id/void',
+        data: {'reason': reason.trim()},
+      ),
+    );
+    return movementFromJson(response.data!);
+  }
+
   static const _suppliers = '/business/suppliers';
 
   @override
@@ -197,6 +223,18 @@ class CashApiDataSource implements CashRepository {
     voidReason: json['voidReason'] as String?,
   );
 
+  static CashMovement movementFromJson(Map<String, dynamic> json) =>
+      CashMovement(
+        id: json['id'] as String,
+        type: CashMovementType.fromApi(json['type'] as String?),
+        amount: _money(json['amount']),
+        reason: json['reason'] as String? ?? '',
+        createdAt: _date(json['createdAt'])!,
+        createdByName: json['createdByName'] as String?,
+        voidedAt: _date(json['voidedAt']),
+        voidReason: json['voidReason'] as String?,
+      );
+
   static CashSession sessionFromJson(Map<String, dynamic> json) => CashSession(
     id: json['id'] as String,
     openingCash: _money(json['openingCash']),
@@ -228,5 +266,12 @@ class CashApiDataSource implements CashRepository {
     ],
     expensesTotal: _money(json['expensesTotal']),
     cashExpensesTotal: _money(json['cashExpensesTotal']),
+    movements: [
+      for (final m in (json['movements'] as List<dynamic>? ?? const []))
+        if (m case final Map<String, dynamic> m) movementFromJson(m),
+    ],
+    cashInTotal: _money(json['cashInTotal']),
+    cashOutTotal: _money(json['cashOutTotal']),
+    businessName: json['businessName'] as String? ?? '',
   );
 }

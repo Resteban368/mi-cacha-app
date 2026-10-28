@@ -39,6 +39,8 @@ class CashCubit extends Cubit<CashState> {
     VoidCashExpense? voidExpense,
     GetSuppliers? getSuppliers,
     SaveSupplier? saveSupplier,
+    AddCashMovement? addMovement,
+    VoidCashMovement? voidMovement,
   }) : _getStatus = getStatus,
        _open = openCash,
        _close = closeCash,
@@ -47,6 +49,8 @@ class CashCubit extends Cubit<CashState> {
        _voidExpense = voidExpense,
        _getSuppliers = getSuppliers,
        _saveSupplier = saveSupplier,
+       _addMovement = addMovement,
+       _voidMovement = voidMovement,
        super(const CashState());
 
   final GetCashStatus _getStatus;
@@ -57,6 +61,25 @@ class CashCubit extends Cubit<CashState> {
   final VoidCashExpense? _voidExpense;
   final GetSuppliers? _getSuppliers;
   final SaveSupplier? _saveSupplier;
+  final AddCashMovement? _addMovement;
+  final VoidCashMovement? _voidMovement;
+
+  /// Ingreso o retiro de efectivo. Devuelve el error, o `null`.
+  Future<String?> addMovement(CashMovementParams params) async {
+    final add = _addMovement;
+    if (add == null) return 'No disponible.';
+    final error = await _message(() => add(params));
+    if (error == null) await load();
+    return error;
+  }
+
+  Future<String?> voidMovement(String id, String reason) async {
+    final cancel = _voidMovement;
+    if (cancel == null) return 'No disponible.';
+    final error = await _message(() => cancel((id: id, reason: reason)));
+    if (error == null) await load();
+    return error;
+  }
 
   /// Pago a un proveedor en la caja abierta. Devuelve el error, o `null`.
   Future<String?> addExpense(CashExpenseParams params) async {

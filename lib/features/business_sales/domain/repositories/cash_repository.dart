@@ -25,6 +25,14 @@ abstract interface class CashRepository {
 
   Future<CashExpense> voidExpense(String id, String reason);
 
+  Future<CashMovement> addMovement({
+    required CashMovementType type,
+    required int amount,
+    required String reason,
+  });
+
+  Future<CashMovement> voidMovement(String id, String reason);
+
   /// Activos por nombre; con [includeInactive] también los desactivados.
   Future<List<Supplier>> suppliers({bool includeInactive = false});
 
