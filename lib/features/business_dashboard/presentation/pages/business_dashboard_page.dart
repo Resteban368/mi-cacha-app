@@ -14,9 +14,11 @@ import '../bloc/dashboard_bloc.dart';
 import '../widgets/dashboard_cards.dart';
 import '../widgets/dashboard_charts.dart';
 import '../widgets/dashboard_filters_bar.dart';
+import '../widgets/dashboard_sales.dart';
 
 /// Dashboard analítico del negocio: reservas, cobros, ocupación, días y
-/// horas con más movimiento, clientes frecuentes y métodos de pago.
+/// horas con más movimiento, clientes frecuentes, métodos de pago y ventas
+/// de productos.
 class BusinessDashboardPage extends StatelessWidget {
   const BusinessDashboardPage({super.key});
 
@@ -168,6 +170,14 @@ class _Metrics extends StatelessWidget {
   Widget _heatmap() => ActivityHeatmap(dashboard: dashboard);
   Widget _courts() => CourtOccupancyList(courts: dashboard.occupancyByCourt);
   Widget _sports() => SportsBreakdown(sports: dashboard.bySport);
+  Widget _sales() =>
+      SalesOverview(sales: dashboard.sales, booked: dashboard.summary.booked);
+  Widget _topProducts() =>
+      TopProductsList(products: dashboard.sales.topProducts);
+  Widget _salesByDay() => SalesByDayBars(days: dashboard.sales.byDay);
+
+  /// Con un solo día la gráfica por día no aporta.
+  bool get _showSalesByDay => dashboard.sales.byDay.length > 1;
   Widget _customers(BuildContext context) => TopCustomersList(
     customers: dashboard.topCustomers,
     onTap: (c) =>
@@ -181,6 +191,12 @@ class _Metrics extends StatelessWidget {
     _row([(_weekdays(), 1), (_heatmap(), 2)]),
     const SizedBox(height: _gap),
     _row([(_courts(), 2), (_sports(), 1)]),
+    const SizedBox(height: _gap),
+    _row([
+      (_sales(), 1),
+      (_topProducts(), 1),
+      if (_showSalesByDay) (_salesByDay(), 1),
+    ]),
   ];
 
   /// Ventanas medianas: de a dos (móvil: una debajo de otra).
@@ -192,6 +208,9 @@ class _Metrics extends StatelessWidget {
     _heatmap(),
     const SizedBox(height: _gap),
     _row([(_courts(), 1), (_sports(), 1)]),
+    const SizedBox(height: _gap),
+    _row([(_sales(), 1), (_topProducts(), 1)]),
+    if (_showSalesByDay) ...[const SizedBox(height: _gap), _salesByDay()],
   ];
 
   static String _pct(num value) {
@@ -259,7 +278,10 @@ class _Metrics extends StatelessWidget {
         label: 'Por cobrar',
         value: AppFormatters.cop(s.pendingBalance),
         accent: AppColors.statusDeposit,
-        detail: 'Saldo de las reservas del período',
+        detail: dashboard.sales.pendingConsumptions > 0
+            ? 'Incluye ${AppFormatters.cop(dashboard.sales.pendingConsumptions)} '
+                  'de consumos'
+            : 'Saldo de las reservas del período',
       ),
       KpiCard(
         key: const Key('kpi-pending-payments'),

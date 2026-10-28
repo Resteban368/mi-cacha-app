@@ -316,6 +316,91 @@ class SportStat extends Equatable {
   List<Object?> get props => [sport, reservations, booked];
 }
 
+class TopProduct extends Equatable {
+  const TopProduct({
+    required this.name,
+    this.productId,
+    this.units = 0,
+    this.amount = 0,
+  });
+
+  /// `null` si el producto ya no existe.
+  final String? productId;
+  final String name;
+  final int units;
+  final int amount;
+
+  @override
+  List<Object?> get props => [productId, name, units, amount];
+}
+
+class SalesDay extends Equatable {
+  const SalesDay({required this.date, this.walkIn = 0, this.consumptions = 0});
+
+  final DateTime date;
+  final int walkIn;
+  final int consumptions;
+
+  int get total => walkIn + consumptions;
+
+  @override
+  List<Object?> get props => [date, walkIn, consumptions];
+}
+
+/// Ventas de productos del período (sin anuladas). Con filtro de deporte o
+/// cancha solo cuentan los consumos de esas canchas.
+class DashboardSales extends Equatable {
+  const DashboardSales({
+    this.total = const Trend(value: 0),
+    this.walkIn = 0,
+    this.consumptions = 0,
+    this.count = 0,
+    this.units = 0,
+    this.averageConsumption = 0,
+    this.pendingConsumptions = 0,
+    this.topProducts = const [],
+    this.byDay = const [],
+  });
+
+  /// Ventas sueltas + consumos cargados a reservas.
+  final Trend total;
+
+  /// Ventas sueltas, cobradas en el momento.
+  final int walkIn;
+
+  /// Consumos cargados a reservas (se cobran con la reserva).
+  final int consumptions;
+  final int count;
+  final int units;
+
+  /// Consumo promedio por reserva confirmada o jugada del período.
+  final int averageConsumption;
+
+  /// Parte del saldo pendiente que son consumos.
+  final int pendingConsumptions;
+
+  /// Los 5 que más dinero dejaron.
+  final List<TopProduct> topProducts;
+
+  /// Todos los días del período.
+  final List<SalesDay> byDay;
+
+  bool get isEmpty => count == 0 && pendingConsumptions == 0;
+
+  @override
+  List<Object?> get props => [
+    total,
+    walkIn,
+    consumptions,
+    count,
+    units,
+    averageConsumption,
+    pendingConsumptions,
+    topProducts,
+    byDay,
+  ];
+}
+
 /// `GET /business/dashboard`: todas las métricas del negocio en un período.
 class BusinessDashboard extends Equatable {
   const BusinessDashboard({
@@ -329,6 +414,7 @@ class BusinessDashboard extends Equatable {
     this.topCustomers = const [],
     this.paymentMethods = const [],
     this.bySport = const [],
+    this.sales = const DashboardSales(),
   });
 
   final DashboardPeriodInfo period;
@@ -347,6 +433,9 @@ class BusinessDashboard extends Equatable {
   /// De mayor a menor monto.
   final List<PaymentMethodStat> paymentMethods;
   final List<SportStat> bySport;
+
+  /// Bebidas, snacks… vendidos en el período.
+  final DashboardSales sales;
 
   /// Día con más reservas (`null` si no hubo ninguna).
   WeekdayStat? get busiestDay {
@@ -397,5 +486,6 @@ class BusinessDashboard extends Equatable {
     topCustomers,
     paymentMethods,
     bySport,
+    sales,
   ];
 }

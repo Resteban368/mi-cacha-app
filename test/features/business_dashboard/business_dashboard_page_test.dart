@@ -102,6 +102,20 @@ void main() {
     );
     expect(find.text('Sintética 1'), findsOneWidget);
     expect(find.text('Reservas por deporte'), findsOneWidget);
+    // Ventas de productos.
+    expect(find.text('Ventas de productos'), findsOneWidget);
+    expect(find.text(r'$200.000'), findsWidgets);
+    expect(
+      find.text('Son el 20 % de lo generado (canchas + ventas)'),
+      findsOneWidget,
+    );
+    expect(find.text(r'Sueltas $50.000'), findsOneWidget);
+    expect(find.text(r'$18.750'), findsOneWidget);
+    expect(find.text(r'Incluye $40.000 de consumos'), findsOneWidget);
+    expect(find.text('Gatorade: 24 unidades'), findsOneWidget);
+    expect(find.text('Agua · 20 u.'), findsOneWidget);
+    expect(find.byKey(const Key('dashboard-sales-by-day')), findsOneWidget);
+    expect(find.textContaining('El mejor día fue el'), findsOneWidget);
   });
 
   testWidgets('elegir un período lo pide al bloc', (tester) async {

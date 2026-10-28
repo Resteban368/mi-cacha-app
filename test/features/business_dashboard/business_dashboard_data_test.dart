@@ -81,6 +81,19 @@ void main() {
     expect(d.summary.reservations.value, 0);
     expect(d.busiestDay, isNull);
     expect(d.heatmapHours, isNull);
+    expect(d.sales.isEmpty, isTrue);
+    expect(d.sales.byDay, isEmpty);
+  });
+
+  test('lee las ventas de productos', () {
+    final d = BusinessDashboardApiDataSource.fromJson(dashboardJson());
+    expect(d.sales.total.value, 200000);
+    expect(d.sales.consumptions, 150000);
+    expect(d.sales.pendingConsumptions, 40000);
+    expect(d.sales.topProducts.last.productId, isNull);
+    expect(d.sales.byDay, hasLength(7));
+    expect(d.sales.byDay[5].date, DateTime(2026, 10, 14));
+    expect(d.sales.byDay[5].total, 120000);
   });
 
   group('errores', () {

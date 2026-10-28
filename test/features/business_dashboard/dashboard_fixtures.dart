@@ -86,4 +86,25 @@ Map<String, dynamic> dashboardJson() => {
     {'sport': 'FUTBOL', 'reservations': 9, 'booked': 800000},
     {'sport': 'PADEL', 'reservations': 1, 'booked': 0},
   ],
+  'sales': {
+    'total': {'value': 200000, 'previous': 150000, 'changePct': 33},
+    'walkIn': 50000,
+    'consumptions': 150000,
+    'count': 9,
+    'units': 52,
+    'averageConsumption': 18750,
+    'pendingConsumptions': 40000,
+    'topProducts': [
+      {'productId': 'p1', 'name': 'Gatorade', 'units': 24, 'amount': 120000},
+      {'productId': null, 'name': 'Agua', 'units': 20, 'amount': 50000},
+    ],
+    'byDay': [
+      for (var d = 9; d <= 15; d++)
+        {
+          'date': '2026-10-$d',
+          'walkIn': d == 14 ? 30000 : 0,
+          'consumptions': d == 14 ? 90000 : (d == 11 ? 60000 : 0),
+        },
+    ],
+  },
 };

@@ -78,6 +78,37 @@ class BusinessDashboardApiDataSource implements BusinessDashboardDataSource {
     );
   }
 
+  /// Sin `sales` (API anterior a las ventas) queda todo en cero.
+  static DashboardSales _sales(Object? value) {
+    final json = _map(value);
+    return DashboardSales(
+      total: _trend(json['total']),
+      walkIn: _int(json['walkIn']),
+      consumptions: _int(json['consumptions']),
+      count: _int(json['count']),
+      units: _int(json['units']),
+      averageConsumption: _int(json['averageConsumption']),
+      pendingConsumptions: _int(json['pendingConsumptions']),
+      topProducts: [
+        for (final p in _list(json['topProducts']))
+          TopProduct(
+            productId: p['productId'] as String?,
+            name: p['name'] as String? ?? '',
+            units: _int(p['units']),
+            amount: _int(p['amount']),
+          ),
+      ],
+      byDay: [
+        for (final d in _list(json['byDay']))
+          SalesDay(
+            date: _date(d['date']),
+            walkIn: _int(d['walkIn']),
+            consumptions: _int(d['consumptions']),
+          ),
+      ],
+    );
+  }
+
   static BusinessDashboard fromJson(Map<String, dynamic> json) {
     final period = _map(json['period']);
     final summary = _map(json['summary']);
@@ -172,6 +203,7 @@ class BusinessDashboardApiDataSource implements BusinessDashboardDataSource {
               booked: _int(s['booked']),
             ),
       ],
+      sales: _sales(json['sales']),
     );
   }
 }
