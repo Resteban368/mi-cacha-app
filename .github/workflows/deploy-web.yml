@@ -41,6 +41,11 @@ jobs:
       - run: npm install --global vercel@54.1.0
 
       - name: Publicar en producción
-        run: vercel deploy build/web --prod --yes --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::El secreto VERCEL_TOKEN no está configurado en GitHub Secrets (Settings -> Secrets and variables -> Actions -> Repository secrets -> VERCEL_TOKEN)."
+            exit 1
+          fi
+          vercel deploy build/web --prod --yes --token="$VERCEL_TOKEN"
