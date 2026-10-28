@@ -4,13 +4,18 @@ import 'package:flutter/material.dart';
 /// panel. Se actualiza con la cuenta (`/business/account`) al entrar al home.
 class BusinessModules extends ChangeNotifier {
   var _sales = false;
+  var _inventory = false;
 
   /// Ventas: productos, consumos en reservas, ventas sueltas y caja.
   bool get sales => _sales;
 
-  void update({required bool sales}) {
-    if (_sales == sales) return;
+  /// Inventario: stock de productos (requiere Ventas).
+  bool get inventory => _inventory;
+
+  void update({required bool sales, bool inventory = false}) {
+    if (_sales == sales && _inventory == inventory) return;
     _sales = sales;
+    _inventory = inventory;
     notifyListeners();
   }
 }
@@ -23,6 +28,22 @@ class BusinessModulesScope extends InheritedNotifier<BusinessModules> {
     required BusinessModules super.notifier,
     required super.child,
   });
+
+  /// Como [inventoryOf] pero sin suscribirse (para callbacks).
+  static bool readInventory(BuildContext context) =>
+      context
+          .getInheritedWidgetOfExactType<BusinessModulesScope>()
+          ?.notifier
+          ?.inventory ??
+      false;
+
+  /// `false` si no hay [BusinessModulesScope] arriba.
+  static bool inventoryOf(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<BusinessModulesScope>()
+          ?.notifier
+          ?.inventory ??
+      false;
 
   /// `true` si no hay [BusinessModulesScope] arriba (p. ej. en tests).
   static bool salesOf(BuildContext context) =>

@@ -55,15 +55,19 @@ class BusinessAccountApiDataSource implements BusinessAccountDataSource {
         verified: admin['verified'] as bool? ?? false,
       ),
       subscription: subscription == null ? null : _subscription(subscription),
-      salesModule: switch (json['modules']) {
-        {'sales': final Map<String, dynamic> sales} => SalesModule(
-          enabled: sales['enabled'] as bool? ?? false,
-          enabledAt: switch (sales['enabledAt']) {
-            final String at => DateTime.parse(at).toLocal(),
-            _ => null,
-          },
-        ),
-        _ => const SalesModule(),
+      salesModule: _module(json['modules'], 'sales'),
+      inventoryModule: _module(json['modules'], 'inventory'),
+    );
+  }
+
+  static SalesModule _module(Object? modules, String key) {
+    final module = modules is Map<String, dynamic> ? modules[key] : null;
+    if (module is! Map<String, dynamic>) return const SalesModule();
+    return SalesModule(
+      enabled: module['enabled'] as bool? ?? false,
+      enabledAt: switch (module['enabledAt']) {
+        final String at => DateTime.parse(at).toLocal(),
+        _ => null,
       },
     );
   }

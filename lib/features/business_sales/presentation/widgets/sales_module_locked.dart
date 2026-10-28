@@ -3,9 +3,25 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 
-/// Aviso cuando el negocio no tiene activo el módulo de Ventas.
+/// Aviso cuando el negocio no tiene activo el módulo de Ventas (o el de
+/// Inventario, con [SalesModuleLocked.inventory]).
 class SalesModuleLocked extends StatelessWidget {
-  const SalesModuleLocked({super.key});
+  const SalesModuleLocked({super.key})
+    : title = 'El módulo de Ventas no está activo',
+      message =
+          'Con él registras productos, consumos de las reservas, '
+          'ventas sueltas y el cierre de caja. Pídele a Mi Cancha que '
+          'lo active para tu negocio.';
+
+  const SalesModuleLocked.inventory({super.key})
+    : title = 'El módulo de Inventario no está activo',
+      message =
+          'Con él llevas el stock de tus productos: se descuenta al '
+          'vender, registras entradas de mercancía y recibes alertas de '
+          'stock bajo. Pídele a Mi Cancha que lo active para tu negocio.';
+
+  final String title;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +49,7 @@ class SalesModuleLocked extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'El módulo de Ventas no está activo',
+                title,
                 textAlign: TextAlign.center,
                 style: AppTypography.headlineSm.copyWith(
                   color: AppColors.onSurface,
@@ -42,9 +58,7 @@ class SalesModuleLocked extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Con él registras productos, consumos de las reservas, '
-                'ventas sueltas y el cierre de caja. Pídele a Mi Cancha que '
-                'lo active para tu negocio.',
+                message,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodyMd.copyWith(color: AppColors.slate600),
               ),

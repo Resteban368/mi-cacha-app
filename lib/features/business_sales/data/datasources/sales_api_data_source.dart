@@ -136,6 +136,9 @@ class SalesApiDataSource implements SalesDataSource {
     price: _money(json['price']),
     isActive: json['isActive'] as bool? ?? true,
     sold: (json['sold'] as num? ?? 0).toInt(),
+    trackStock: json['trackStock'] as bool? ?? false,
+    stock: (json['stock'] as num? ?? 0).toInt(),
+    minStock: (json['minStock'] as num?)?.toInt(),
   );
 
   /// También lo usan las reservas para sus consumos.

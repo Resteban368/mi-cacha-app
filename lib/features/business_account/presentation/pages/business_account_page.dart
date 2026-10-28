@@ -153,9 +153,21 @@ class _AccountContent extends StatelessWidget {
           );
     // Detalle del módulo de Ventas, debajo del plan, solo si está activo.
     final salesModule = account.salesModule.enabled
-        ? SalesModuleCard(
-            module: account.salesModule,
-            onOpen: () => context.go(AppRoutes.businessSales),
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SalesModuleCard(
+                module: account.salesModule,
+                onOpen: () => context.go(AppRoutes.businessSales),
+              ),
+              if (account.inventoryModule.enabled) ...[
+                const SizedBox(height: 16),
+                SalesModuleCard.inventory(
+                  module: account.inventoryModule,
+                  onOpen: () => context.go(AppRoutes.businessInventory),
+                ),
+              ],
+            ],
           )
         : null;
     final create = createNotificationsCubit;

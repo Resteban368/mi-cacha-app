@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/session/business_modules.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
@@ -47,8 +48,11 @@ Future<Sale?> showSaleSheet(
   SaleReservationInfo? reservation,
   SaleCartCubit Function()? createCubit,
 }) {
+  final limitStock = BusinessModulesScope.readInventory(context);
   Widget body(BuildContext _) => BlocProvider(
-    create: (_) => (createCubit?.call() ?? sl<SaleCartCubit>())..load(),
+    create: (_) => (createCubit?.call() ?? sl<SaleCartCubit>())
+      ..limitToStock(limitStock)
+      ..load(),
     child: SaleSheetView(
       reservationId: reservationId,
       reservation: reservation,
@@ -663,17 +667,23 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<SaleCartCubit>();
     final category = product.category;
-    return BlocSelector<SaleCartCubit, SaleCartState, int>(
-      selector: (state) => state.quantityOf(product.id),
-      builder: (context, quantity) {
+    return BlocSelector<SaleCartCubit, SaleCartState, (int, int?)>(
+      selector: (state) =>
+          (state.quantityOf(product.id), state.availableOf(product)),
+      builder: (context, data) {
+        final (quantity, available) = data;
         final selected = quantity > 0;
+        final soldOut = available == 0;
+        final canAdd = available == null || quantity < available;
         return Material(
-          color: AppColors.surfaceContainerLowest,
+          color: soldOut
+              ? AppColors.slate100
+              : AppColors.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
             key: Key('product-${product.id}'),
             borderRadius: BorderRadius.circular(14),
-            onTap: () => cubit.add(product.id),
+            onTap: canAdd ? () => cubit.add(product.id) : null,
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
@@ -727,6 +737,18 @@ class _ProductCard extends StatelessWidget {
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
+                            if (available != null && !soldOut)
+                              Text(
+                                'Quedan $available',
+                                key: Key('stock-${product.id}'),
+                                style: AppTypography.labelSm.copyWith(
+                                  fontSize: 10,
+                                  color: product.isLow
+                                      ? AppColors.statusDue
+                                      : AppColors.slate500,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -766,7 +788,23 @@ class _ProductCard extends StatelessWidget {
                   const Spacer(),
                   SizedBox(
                     height: 30,
-                    child: selected
+                    child: soldOut
+                        ? Container(
+                            key: Key('soldout-${product.id}'),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: AppColors.dangerTint,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Agotado',
+                              style: AppTypography.labelMd.copyWith(
+                                color: AppColors.statusDue,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          )
+                        : selected
                         ? Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -786,9 +824,13 @@ class _ProductCard extends StatelessWidget {
                               _RoundButton(
                                 key: Key('add-${product.id}'),
                                 icon: Icons.add_rounded,
-                                tooltip: 'Agregar uno',
+                                tooltip: canAdd
+                                    ? 'Agregar uno'
+                                    : 'No hay más en stock',
                                 filled: true,
-                                onTap: () => cubit.add(product.id),
+                                onTap: canAdd
+                                    ? () => cubit.add(product.id)
+                                    : null,
                               ),
                             ],
                           )
@@ -831,7 +873,7 @@ class _RoundButton extends StatelessWidget {
 
   final IconData icon;
   final String tooltip;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool filled;
 
   @override
@@ -839,7 +881,9 @@ class _RoundButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: filled ? AppColors.brandTeal : AppColors.slate100,
+        color: filled
+            ? (onTap == null ? AppColors.slate300 : AppColors.brandTeal)
+            : AppColors.slate100,
         shape: const CircleBorder(),
         child: InkWell(
           customBorder: const CircleBorder(),

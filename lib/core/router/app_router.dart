@@ -35,6 +35,8 @@ import '../../features/business_payments/presentation/pages/payments_page.dart';
 import '../../features/business_sales/presentation/bloc/cash_cubit.dart';
 import '../../features/business_sales/presentation/bloc/products_cubit.dart';
 import '../../features/business_sales/presentation/bloc/suppliers_cubit.dart';
+import '../../features/business_sales/presentation/bloc/inventory_cubit.dart';
+import '../../features/business_sales/presentation/pages/inventory_page.dart';
 import '../../features/business_sales/presentation/pages/suppliers_page.dart';
 import '../../features/business_sales/presentation/bloc/sales_cubit.dart';
 import '../../features/business_sales/presentation/pages/products_page.dart';
@@ -126,7 +128,10 @@ DateTime? _dayParam(String? value) {
 /// Carga la cuenta: si se puede escribir y, de paso, los módulos activos.
 Future<bool> _loadCanWrite() async {
   final account = await sl<GetBusinessAccount>()(const NoParams());
-  sl<BusinessModules>().update(sales: account.salesModule.enabled);
+  sl<BusinessModules>().update(
+    sales: account.salesModule.enabled,
+    inventory: account.inventoryModule.enabled,
+  );
   return account.subscription?.isActive ?? false;
 }
 
@@ -318,6 +323,16 @@ GoRouter _buildRouter(
             child: BlocProvider(
               create: (_) => sl<ProductsCubit>()..load(),
               child: const ProductsPage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.businessInventory,
+          pageBuilder: (_, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: BlocProvider(
+              create: (_) => sl<InventoryCubit>()..load(),
+              child: const InventoryPage(),
             ),
           ),
         ),

@@ -65,6 +65,10 @@ import '../../features/business_payments/domain/usecases/get_payments.dart';
 import '../../features/business_payments/domain/usecases/validate_payment.dart';
 import '../../features/business_payments/presentation/bloc/new_payment/new_payment_bloc.dart';
 import '../../features/business_payments/presentation/bloc/payments/payments_bloc.dart';
+import '../../features/business_sales/data/datasources/inventory_api_data_source.dart';
+import '../../features/business_sales/domain/repositories/inventory_repository.dart';
+import '../../features/business_sales/domain/usecases/inventory_usecases.dart';
+import '../../features/business_sales/presentation/bloc/inventory_cubit.dart';
 import '../../features/business_sales/data/datasources/cash_api_data_source.dart';
 import '../../features/business_sales/data/datasources/sales_api_data_source.dart';
 import '../../features/business_sales/data/datasources/sales_data_source.dart';
@@ -289,6 +293,24 @@ void _initBusinessSales() {
     ..registerLazySingleton(() => GetSuppliers(sl()))
     ..registerLazySingleton(() => SaveSupplier(sl()))
     ..registerLazySingleton(() => SetSupplierActive(sl()))
+    ..registerLazySingleton<InventoryRepository>(
+      () => InventoryApiDataSource(sl()),
+    )
+    ..registerLazySingleton(() => GetInventory(sl()))
+    ..registerLazySingleton(() => AddStockEntry(sl()))
+    ..registerLazySingleton(() => AdjustStock(sl()))
+    ..registerLazySingleton(() => ConfigureStock(sl()))
+    ..registerLazySingleton(() => GetStockMovements(sl()))
+    ..registerFactory(
+      () => InventoryCubit(
+        getInventory: sl(),
+        addEntry: sl(),
+        adjustStock: sl(),
+        configureStock: sl(),
+        getMovements: sl(),
+        getSuppliers: sl(),
+      ),
+    )
     ..registerFactory(
       () => CashCubit(
         getStatus: sl(),

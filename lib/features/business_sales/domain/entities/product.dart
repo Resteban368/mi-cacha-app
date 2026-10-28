@@ -74,6 +74,9 @@ class Product extends Equatable {
     this.category = ProductCategory.otro,
     this.isActive = true,
     this.sold = 0,
+    this.trackStock = false,
+    this.stock = 0,
+    this.minStock,
   });
 
   static const maxName = 60;
@@ -89,6 +92,28 @@ class Product extends Equatable {
   /// Unidades vendidas en los últimos 30 días.
   final int sold;
 
+  /// Inventario: si se controlan sus existencias, cuántas hay y el mínimo
+  /// para la alerta (`null` = sin alerta).
+  final bool trackStock;
+  final int stock;
+  final int? minStock;
+
+  bool get isOut => trackStock && stock <= 0;
+
+  /// Sin unidades o en el mínimo.
+  bool get isLow =>
+      trackStock && (stock <= 0 || (minStock != null && stock <= minStock!));
+
   @override
-  List<Object?> get props => [id, name, category, price, isActive, sold];
+  List<Object?> get props => [
+    id,
+    name,
+    category,
+    price,
+    isActive,
+    sold,
+    trackStock,
+    stock,
+    minStock,
+  ];
 }

@@ -363,6 +363,19 @@ class _HeaderCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (BusinessModulesScope.inventoryOf(context))
+                OutlinedButton.icon(
+                  key: const Key('open-inventory'),
+                  onPressed: () => context.go(AppRoutes.businessInventory),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.inventory_rounded, size: 18),
+                  label: const Text('Inventario'),
+                ),
               OutlinedButton.icon(
                 key: const Key('open-suppliers'),
                 onPressed: () => context.go(AppRoutes.businessSuppliers),
