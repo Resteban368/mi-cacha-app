@@ -29,6 +29,7 @@ abstract final class AppColors {
   static Color get brandTealLight => _palette.brandTealLight;
 
   static Color get primary => _palette.primary;
+
   static Color get primaryContainer => _palette.primaryContainer;
   static const onPrimary = Color(0xFFFFFFFF);
 

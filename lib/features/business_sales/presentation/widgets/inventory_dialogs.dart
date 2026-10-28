@@ -43,6 +43,25 @@ Future<bool> showStockEntryDialog(BuildContext context, {Product? product}) =>
 Future<bool> showStockAdjustDialog(BuildContext context, Product product) =>
     _open(context, _AdjustDialog(product: product), 'Stock ajustado.');
 
+/// Ajuste rápido: si no hay producto seleccionado, permite elegirlo.
+Future<bool> showQuickAdjustDialog(
+  BuildContext context, {
+  Product? product,
+}) async {
+  if (product != null) {
+    return showStockAdjustDialog(context, product);
+  }
+  if (!ensureCanWrite(context)) return false;
+  final products = context.read<InventoryCubit>().state.overview.items;
+  if (products.isEmpty) return false;
+  final chosen = await showDialog<Product>(
+    context: context,
+    builder: (ctx) => _SelectProductForAdjustDialog(products: products),
+  );
+  if (chosen == null || !context.mounted) return false;
+  return showStockAdjustDialog(context, chosen);
+}
+
 /// Control de stock y alerta de stock bajo de [product].
 Future<bool> showStockAlertDialog(BuildContext context, Product product) =>
     _open(context, _AlertDialog(product: product), 'Alerta guardada.');
@@ -776,6 +795,129 @@ class _MovementTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SelectProductForAdjustDialog extends StatefulWidget {
+  const _SelectProductForAdjustDialog({required this.products});
+
+  final List<Product> products;
+
+  @override
+  State<_SelectProductForAdjustDialog> createState() =>
+      _SelectProductForAdjustDialogState();
+}
+
+class _SelectProductForAdjustDialogState
+    extends State<_SelectProductForAdjustDialog> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.products.where((p) {
+      if (_query.isEmpty) return true;
+      return p.name.toLowerCase().contains(_query.toLowerCase());
+    }).toList();
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('Ajuste Rápido de Stock'),
+      content: SizedBox(
+        width: 440,
+        height: 380,
+        child: Column(
+          children: [
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Buscar producto a ajustar…',
+                prefixIcon: const Icon(Icons.search_rounded),
+                isDense: true,
+                suffixIcon: _query.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _query = '');
+                        },
+                      )
+                    : null,
+              ),
+              onChanged: (q) => setState(() => _query = q.trim()),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No se encontraron productos.',
+                        style: AppTypography.bodySm.copyWith(
+                          color: AppColors.slate500,
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 6),
+                      itemBuilder: (context, i) {
+                        final p = filtered[i];
+                        return ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: AppColors.slate200),
+                          ),
+                          tileColor: AppColors.surfaceContainerLowest,
+                          leading: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.brandTealLight,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.tune_rounded,
+                              color: AppColors.brandTeal,
+                              size: 18,
+                            ),
+                          ),
+                          title: Text(
+                            p.name,
+                            style: AppTypography.bodyMd.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            p.trackStock
+                                ? 'Stock actual: ${p.stock} und'
+                                : 'Sin control de stock',
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 11,
+                              color: AppColors.slate500,
+                            ),
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () => Navigator.of(context).pop(p),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+      ],
     );
   }
 }
