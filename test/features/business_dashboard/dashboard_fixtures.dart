@@ -86,6 +86,7 @@ Map<String, dynamic> dashboardJson() => {
     {'sport': 'FUTBOL', 'reservations': 9, 'booked': 800000},
     {'sport': 'PADEL', 'reservations': 1, 'booked': 0},
   ],
+  'salesEnabled': true,
   'sales': {
     'total': {'value': 200000, 'previous': 150000, 'changePct': 33},
     'walkIn': 50000,

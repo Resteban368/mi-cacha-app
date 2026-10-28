@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/session/business_modules.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/session/write_access.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -14,6 +15,7 @@ import '../../../../core/widgets/app_top_bar.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/usecases/sales_usecases.dart';
 import '../bloc/products_cubit.dart';
+import '../widgets/sales_module_locked.dart';
 import '../widgets/product_category_style.dart';
 
 /// Catálogo de lo que vende el negocio por unidad. Los productos no se
@@ -64,6 +66,19 @@ class ProductsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!BusinessModulesScope.salesOf(context)) {
+      return Column(
+        children: [
+          AppTopBar(
+            title: 'Productos',
+            subtitle: 'Lo que vendes por unidad',
+            icon: Icons.inventory_2_rounded,
+            onBack: () => context.go(AppRoutes.businessSales),
+          ),
+          const Expanded(child: SalesModuleLocked()),
+        ],
+      );
+    }
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final canWrite = WriteAccessScope.canWrite(context);
 

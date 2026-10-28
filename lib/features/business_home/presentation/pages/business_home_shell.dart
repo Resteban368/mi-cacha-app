@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/session/business_modules.dart';
 import '../../../../core/session/write_access.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../business_setup/domain/entities/setup_progress.dart';
@@ -79,6 +80,9 @@ class BusinessHomeShell extends StatelessWidget {
       locked: {
         for (final section in BusinessSection.values)
           if (!step.allows(section.path)) section,
+      },
+      hidden: {
+        if (!BusinessModulesScope.salesOf(context)) BusinessSection.ventas,
       },
       onSelected: (section) => _select(context, section, step),
       onLogout: () => confirmBusinessLogout(context, signOut: onSignOut),

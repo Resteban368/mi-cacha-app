@@ -14,6 +14,7 @@ import '../../../business_profile/domain/entities/business.dart';
 import '../../domain/entities/business_account.dart';
 import '../bloc/business_account_bloc.dart';
 import '../bloc/change_password_cubit.dart';
+import '../widgets/sales_module_card.dart';
 import '../widgets/account_profile_card.dart';
 import '../widgets/account_settings_card.dart';
 import '../widgets/appearance_setting_row.dart';
@@ -150,6 +151,13 @@ class _AccountContent extends StatelessWidget {
             onBillingHistory: () =>
                 _comingSoon(context, 'Historial de facturación'),
           );
+    // Detalle del módulo de Ventas, debajo del plan, solo si está activo.
+    final salesModule = account.salesModule.enabled
+        ? SalesModuleCard(
+            module: account.salesModule,
+            onOpen: () => context.go(AppRoutes.businessSales),
+          )
+        : null;
     final create = createNotificationsCubit;
     final settings = AccountSettingsCard(
       onChangePassword: switch (createChangePasswordCubit) {
@@ -184,6 +192,10 @@ class _AccountContent extends StatelessWidget {
               profile,
               const SizedBox(height: 16),
               subscription,
+              if (salesModule != null) ...[
+                const SizedBox(height: 16),
+                salesModule,
+              ],
               const SizedBox(height: 16),
               settings,
               const SizedBox(height: 16),
@@ -213,7 +225,18 @@ class _AccountContent extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 24),
-                      Expanded(child: subscription),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            subscription,
+                            if (salesModule != null) ...[
+                              const SizedBox(height: 24),
+                              salesModule,
+                            ],
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),

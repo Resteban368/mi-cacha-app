@@ -208,6 +208,39 @@ void main() {
     expect(find.text('Cambiar contraseña: próximamente'), findsOneWidget);
   });
 
+  testWidgets('el detalle del módulo de Ventas solo aparece si está activo', (
+    tester,
+  ) async {
+    await pumpPage(tester);
+    expect(find.byKey(const Key('sales-module-card')), findsNothing);
+
+    await pumpPage(
+      tester,
+      size: const Size(1280, 1400),
+      state: BusinessAccountState(
+        status: BusinessAccountStatus.ready,
+        account: BusinessAccount(
+          admin: account.admin,
+          subscription: account.subscription,
+          salesModule: SalesModule(
+            enabled: true,
+            enabledAt: DateTime(2026, 10, 28),
+          ),
+        ),
+        venue: venue,
+      ),
+    );
+    final card = find.byKey(const Key('sales-module-card'));
+    expect(card, findsOneWidget);
+    expect(find.text('Módulo de Ventas'), findsOneWidget);
+    // Debajo del plan.
+    expect(
+      tester.getTopLeft(card).dy,
+      greaterThan(tester.getTopLeft(find.text('Plan Básico')).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('ofrece cambiar al plan siguiente', (tester) async {
     await pumpPage(tester);
     expect(find.text('Cambiar al plan Pro'), findsOneWidget);

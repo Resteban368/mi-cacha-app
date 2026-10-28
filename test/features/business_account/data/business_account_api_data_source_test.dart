@@ -53,6 +53,34 @@ void main() {
     expect(plan.benefits.single.title, 'Agenda digital');
   });
 
+  test('lee el módulo de Ventas; sin `modules` queda inactivo', () async {
+    final adapter = FakeHttpAdapter(
+      (_) => (
+        200,
+        {
+          ...accountJson,
+          'modules': {
+            'sales': {'enabled': true, 'enabledAt': '2026-10-28T17:00:00.000Z'},
+          },
+        },
+      ),
+    );
+    final account = await BusinessAccountApiDataSource(
+      apiDio(adapter),
+    ).getAccount();
+    expect(account.salesModule.enabled, isTrue);
+    expect(
+      account.salesModule.enabledAt,
+      DateTime.parse('2026-10-28T17:00:00.000Z').toLocal(),
+    );
+
+    adapter.handler = (_) => (200, accountJson);
+    final old = await BusinessAccountApiDataSource(
+      apiDio(adapter),
+    ).getAccount();
+    expect(old.salesModule.enabled, isFalse);
+  });
+
   test('sin plan y con contacto vacío', () async {
     final adapter = FakeHttpAdapter(
       (_) => (

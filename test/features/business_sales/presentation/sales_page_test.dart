@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mi_cancha/core/session/business_modules.dart';
 import 'package:mi_cancha/core/session/write_access.dart';
 import 'package:mi_cancha/core/usecase/usecase.dart';
 import 'package:mi_cancha/features/business_sales/domain/entities/cash_session.dart';
@@ -228,6 +229,29 @@ void main() {
     verify(() => openCash((amount: 50000, note: ''))).called(1);
     expect(find.text('Caja abierta.'), findsOneWidget);
     expect(find.byKey(const Key('cash-close')), findsOneWidget);
+  });
+
+  testWidgets('sin el módulo de Ventas muestra el aviso', (tester) async {
+    tester.view.physicalSize = const Size(1440, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      BusinessModulesScope(
+        notifier: BusinessModules(),
+        child: MaterialApp(
+          home: Scaffold(
+            body: BlocProvider(
+              create: (_) => SalesCubit(getSales: getSales, voidSale: voidSale),
+              child: const SalesPage(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('sales-module-locked')), findsOneWidget);
+    expect(find.text('El módulo de Ventas no está activo'), findsOneWidget);
+    verifyNever(() => getSales(any()));
   });
 
   testWidgets('pestaña de anuladas y anular desde el menú', (tester) async {

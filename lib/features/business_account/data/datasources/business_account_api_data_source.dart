@@ -55,6 +55,16 @@ class BusinessAccountApiDataSource implements BusinessAccountDataSource {
         verified: admin['verified'] as bool? ?? false,
       ),
       subscription: subscription == null ? null : _subscription(subscription),
+      salesModule: switch (json['modules']) {
+        {'sales': final Map<String, dynamic> sales} => SalesModule(
+          enabled: sales['enabled'] as bool? ?? false,
+          enabledAt: switch (sales['enabledAt']) {
+            final String at => DateTime.parse(at).toLocal(),
+            _ => null,
+          },
+        ),
+        _ => const SalesModule(),
+      },
     );
   }
 

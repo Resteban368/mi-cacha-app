@@ -118,6 +118,20 @@ void main() {
     expect(find.textContaining('El mejor día fue el'), findsOneWidget);
   });
 
+  testWidgets('sin el módulo de Ventas no muestra las ventas', (tester) async {
+    await pump(
+      tester,
+      DashboardState(
+        status: DashboardStatus.success,
+        dashboard: BusinessDashboardApiDataSource.fromJson(
+          dashboardJson()..['salesEnabled'] = false,
+        ),
+      ),
+    );
+    expect(find.text('Ventas de productos'), findsNothing);
+    expect(find.text(r'Incluye $40.000 de consumos'), findsNothing);
+  });
+
   testWidgets('elegir un período lo pide al bloc', (tester) async {
     await pump(tester, ready);
     await tester.tap(find.byKey(const Key('period-THIS_MONTH')));

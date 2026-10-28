@@ -14,12 +14,16 @@ class BusinessSideMenu extends StatelessWidget {
     required this.onSelected,
     required this.onLogout,
     this.locked = const {},
+    this.hidden = const {},
   });
 
   final BusinessSection current;
 
   /// Secciones bloqueadas hasta terminar la configuración inicial.
   final Set<BusinessSection> locked;
+
+  /// Secciones que no se muestran (módulos no activos).
+  final Set<BusinessSection> hidden;
   final ValueChanged<BusinessSection> onSelected;
   final VoidCallback onLogout;
 
@@ -45,7 +49,7 @@ class BusinessSideMenu extends StatelessWidget {
                 for (final group in BusinessSectionGroup.values) ...[
                   _GroupLabel(group.label),
                   for (final section in BusinessSection.values.where(
-                    (s) => s.group == group,
+                    (s) => s.group == group && !hidden.contains(s),
                   ))
                     _MenuItem(
                       icon: section == current

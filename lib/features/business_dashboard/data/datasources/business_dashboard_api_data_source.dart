@@ -204,6 +204,7 @@ class BusinessDashboardApiDataSource implements BusinessDashboardDataSource {
             ),
       ],
       sales: _sales(json['sales']),
+      salesEnabled: json['salesEnabled'] as bool? ?? false,
     );
   }
 }

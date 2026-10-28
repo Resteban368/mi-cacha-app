@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/session/business_modules.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/session/write_access.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -17,6 +18,7 @@ import '../bloc/sale_cart_cubit.dart';
 import '../bloc/sales_cubit.dart';
 import '../widgets/cash_widgets.dart';
 import '../widgets/sale_sheet.dart';
+import '../widgets/sales_module_locked.dart';
 import '../widgets/sale_tile.dart';
 
 /// Color de los consumos de reservas (como en el diseño de Stitch).
@@ -51,6 +53,18 @@ class SalesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!BusinessModulesScope.salesOf(context)) {
+      return const Column(
+        children: [
+          AppTopBar(
+            title: 'Ventas',
+            subtitle: 'Bebidas, snacks y consumos de las reservas',
+            icon: Icons.point_of_sale_rounded,
+          ),
+          Expanded(child: SalesModuleLocked()),
+        ],
+      );
+    }
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final canWrite = WriteAccessScope.canWrite(context);
 

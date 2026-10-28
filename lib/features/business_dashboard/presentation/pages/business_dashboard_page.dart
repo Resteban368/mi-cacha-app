@@ -178,6 +178,9 @@ class _Metrics extends StatelessWidget {
 
   /// Con un solo día la gráfica por día no aporta.
   bool get _showSalesByDay => dashboard.sales.byDay.length > 1;
+
+  /// Las ventas solo se ven con el módulo de Ventas activo.
+  bool get _showSales => dashboard.salesEnabled;
   Widget _customers(BuildContext context) => TopCustomersList(
     customers: dashboard.topCustomers,
     onTap: (c) =>
@@ -191,12 +194,14 @@ class _Metrics extends StatelessWidget {
     _row([(_weekdays(), 1), (_heatmap(), 2)]),
     const SizedBox(height: _gap),
     _row([(_courts(), 2), (_sports(), 1)]),
-    const SizedBox(height: _gap),
-    _row([
-      (_sales(), 1),
-      (_topProducts(), 1),
-      if (_showSalesByDay) (_salesByDay(), 1),
-    ]),
+    if (_showSales) ...[
+      const SizedBox(height: _gap),
+      _row([
+        (_sales(), 1),
+        (_topProducts(), 1),
+        if (_showSalesByDay) (_salesByDay(), 1),
+      ]),
+    ],
   ];
 
   /// Ventanas medianas: de a dos (móvil: una debajo de otra).
@@ -208,9 +213,11 @@ class _Metrics extends StatelessWidget {
     _heatmap(),
     const SizedBox(height: _gap),
     _row([(_courts(), 1), (_sports(), 1)]),
-    const SizedBox(height: _gap),
-    _row([(_sales(), 1), (_topProducts(), 1)]),
-    if (_showSalesByDay) ...[const SizedBox(height: _gap), _salesByDay()],
+    if (_showSales) ...[
+      const SizedBox(height: _gap),
+      _row([(_sales(), 1), (_topProducts(), 1)]),
+      if (_showSalesByDay) ...[const SizedBox(height: _gap), _salesByDay()],
+    ],
   ];
 
   static String _pct(num value) {
@@ -278,7 +285,7 @@ class _Metrics extends StatelessWidget {
         label: 'Por cobrar',
         value: AppFormatters.cop(s.pendingBalance),
         accent: AppColors.statusDeposit,
-        detail: dashboard.sales.pendingConsumptions > 0
+        detail: _showSales && dashboard.sales.pendingConsumptions > 0
             ? 'Incluye ${AppFormatters.cop(dashboard.sales.pendingConsumptions)} '
                   'de consumos'
             : 'Saldo de las reservas del período',

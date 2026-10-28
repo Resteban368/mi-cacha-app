@@ -9,6 +9,7 @@ import '../location/device_location.dart';
 import '../media/photo_picker.dart';
 import '../network/api_client.dart';
 import '../session/session_manager.dart';
+import '../session/business_modules.dart';
 import '../session/write_access.dart';
 import '../session/session_storage.dart';
 import '../catalogs/data/datasources/catalogs_api_data_source.dart';
@@ -139,6 +140,7 @@ Future<void> initDependencies() async {
     ..registerLazySingleton<SessionStorage>(() => SecureSessionStorage(sl()))
     ..registerLazySingleton(() => SessionManager(sl()))
     ..registerLazySingleton(WriteAccess.new)
+    ..registerLazySingleton(BusinessModules.new)
     ..registerLazySingleton<Dio>(() => buildApiClient(sl(), sl()));
 
   _initCatalogs();

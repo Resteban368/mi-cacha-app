@@ -96,14 +96,33 @@ final class Subscription extends Equatable {
 }
 
 /// Datos de la cuenta del administrador: perfil y suscripción.
+/// Módulo de Ventas (productos, consumos, ventas sueltas y caja). Lo activa
+/// el super admin desde el panel.
+final class SalesModule extends Equatable {
+  const SalesModule({this.enabled = false, this.enabledAt});
+
+  final bool enabled;
+
+  /// Desde cuándo está activo; `null` si nunca se activó.
+  final DateTime? enabledAt;
+
+  @override
+  List<Object?> get props => [enabled, enabledAt];
+}
+
 final class BusinessAccount extends Equatable {
-  const BusinessAccount({required this.admin, required this.subscription});
+  const BusinessAccount({
+    required this.admin,
+    required this.subscription,
+    this.salesModule = const SalesModule(),
+  });
 
   final AdminProfile admin;
 
   /// `null` si el negocio aún no tiene plan.
   final Subscription? subscription;
+  final SalesModule salesModule;
 
   @override
-  List<Object?> get props => [admin, subscription];
+  List<Object?> get props => [admin, subscription, salesModule];
 }

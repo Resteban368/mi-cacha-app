@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/session/business_modules.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/session/write_access.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -308,7 +309,10 @@ class ReservationDetailView extends StatelessWidget {
                   child: _Details(
                     reservation: r,
                     state: state,
-                    onAddConsumption: canAct && r.acceptsConsumptions
+                    onAddConsumption:
+                        canAct &&
+                            r.acceptsConsumptions &&
+                            BusinessModulesScope.salesOf(context)
                         ? () => _addConsumption(context, r)
                         : null,
                     onVoidConsumption: canAct

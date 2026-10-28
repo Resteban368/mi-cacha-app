@@ -57,6 +57,7 @@ import '../config/feature_flags.dart';
 import '../di/injection_container.dart';
 import '../location/device_location.dart';
 import '../media/photo_picker.dart';
+import '../session/business_modules.dart';
 import '../session/session_manager.dart';
 import '../session/write_access.dart';
 import '../usecase/usecase.dart';
@@ -120,8 +121,10 @@ DateTime? _dayParam(String? value) {
 }
 
 /// Solo lectura si no hay suscripción o no está activa.
+/// Carga la cuenta: si se puede escribir y, de paso, los módulos activos.
 Future<bool> _loadCanWrite() async {
   final account = await sl<GetBusinessAccount>()(const NoParams());
+  sl<BusinessModules>().update(sales: account.salesModule.enabled);
   return account.subscription?.isActive ?? false;
 }
 
@@ -166,18 +169,21 @@ GoRouter _buildRouter(
     // Home de negocio: ShellRoute (no stateful) para que solo la sección
     // visible esté montada; se cambia de sección con `go` (menú lateral).
     ShellRoute(
-      builder: (_, state, child) => WriteAccessRefresher(
-        writeAccess: sl<WriteAccess>(),
-        loadCanWrite: _loadCanWrite,
-        child: NotificationsInboxHost(
-          createCubit: () => sl<NotificationsInboxCubit>(),
-          createPushCubit: () => sl<BusinessNotificationsCubit>(),
-          notificationsChanged: sl<PushRepository>().notificationsChanged,
-          child: BusinessHomeShell(
-            location: state.uri.path,
-            onSignOut: _signOut,
-            setup: sl<BusinessSetupGate>(),
-            child: child,
+      builder: (_, state, child) => BusinessModulesScope(
+        notifier: sl<BusinessModules>(),
+        child: WriteAccessRefresher(
+          writeAccess: sl<WriteAccess>(),
+          loadCanWrite: _loadCanWrite,
+          child: NotificationsInboxHost(
+            createCubit: () => sl<NotificationsInboxCubit>(),
+            createPushCubit: () => sl<BusinessNotificationsCubit>(),
+            notificationsChanged: sl<PushRepository>().notificationsChanged,
+            child: BusinessHomeShell(
+              location: state.uri.path,
+              onSignOut: _signOut,
+              setup: sl<BusinessSetupGate>(),
+              child: child,
+            ),
           ),
         ),
       ),

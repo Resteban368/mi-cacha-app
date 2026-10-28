@@ -415,6 +415,7 @@ class BusinessDashboard extends Equatable {
     this.paymentMethods = const [],
     this.bySport = const [],
     this.sales = const DashboardSales(),
+    this.salesEnabled = false,
   });
 
   final DashboardPeriodInfo period;
@@ -436,6 +437,9 @@ class BusinessDashboard extends Equatable {
 
   /// Bebidas, snacks… vendidos en el período.
   final DashboardSales sales;
+
+  /// Si el negocio tiene el módulo de Ventas (si no, no se muestran).
+  final bool salesEnabled;
 
   /// Día con más reservas (`null` si no hubo ninguna).
   WeekdayStat? get busiestDay {
@@ -487,5 +491,6 @@ class BusinessDashboard extends Equatable {
     paymentMethods,
     bySport,
     sales,
+    salesEnabled,
   ];
 }
