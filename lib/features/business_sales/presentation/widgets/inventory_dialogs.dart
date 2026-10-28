@@ -11,6 +11,7 @@ import '../../domain/entities/cash_session.dart';
 import '../../domain/entities/inventory.dart';
 import '../../domain/entities/product.dart';
 import '../bloc/inventory_cubit.dart';
+import 'product_category_style.dart';
 
 /// Muestra el resultado de una acción de inventario.
 void _snack(ScaffoldMessengerState messenger, String text) => messenger
@@ -122,40 +123,123 @@ class _ErrorText extends StatelessWidget {
   );
 }
 
-/// Producto y stock actual, arriba de cada diálogo.
+/// Producto y stock actual, arriba de cada diálogo con diseño refinado.
 class _ProductHeader extends StatelessWidget {
-  const _ProductHeader(this.product);
+  const _ProductHeader(this.product, {this.onChange});
 
   final Product product;
+  final VoidCallback? onChange;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: AppColors.slate100,
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            product.name,
-            style: AppTypography.bodyMd.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+  Widget build(BuildContext context) {
+    final bool isOut = product.trackStock && product.isOut;
+    final bool isLow = product.trackStock && product.isLow && !product.isOut;
+
+    final badgeBg = !product.trackStock
+        ? AppColors.slate100
+        : isOut
+        ? const Color(0xFFFFE4E6)
+        : isLow
+        ? const Color(0xFFFEF3C7)
+        : const Color(0xFFD1FAE5);
+
+    final badgeColor = !product.trackStock
+        ? AppColors.slate600
+        : isOut
+        ? const Color(0xFFE11D48)
+        : isLow
+        ? const Color(0xFFB45309)
+        : const Color(0xFF059669);
+
+    final badgeText = !product.trackStock
+        ? 'Sin control'
+        : isOut
+        ? 'Agotado (0 und)'
+        : isLow
+        ? 'Stock bajo (${product.stock} und)'
+        : '${product.stock} und';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.slate50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.slate200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: product.category.tint,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: product.category.color.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Icon(
+              product.category.icon,
+              color: product.category.color,
+              size: 20,
             ),
           ),
-        ),
-        Text(
-          product.trackStock ? '${product.stock} und' : 'Sin control',
-          style: AppTypography.labelLg.copyWith(
-            fontWeight: FontWeight.w800,
-            color: product.isLow ? AppColors.statusDue : AppColors.slate700,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: AppTypography.bodyMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  product.category.label,
+                  style: AppTypography.bodySm.copyWith(
+                    fontSize: 11,
+                    color: AppColors.slate500,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: badgeBg,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              badgeText,
+              style: AppTypography.labelSm.copyWith(
+                fontWeight: FontWeight.w800,
+                color: badgeColor,
+                fontSize: 11,
+              ),
+            ),
+          ),
+          if (onChange != null) ...[
+            const SizedBox(width: 6),
+            IconButton(
+              icon: const Icon(Icons.swap_horiz_rounded, size: 20),
+              tooltip: 'Cambiar producto',
+              onPressed: onChange,
+              color: AppColors.slate500,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -175,11 +259,13 @@ class _EntryDialogState extends State<_EntryDialog> {
   final _quantity = TextEditingController();
   final _cost = TextEditingController();
   final _note = TextEditingController();
+  final _searchProductController = TextEditingController();
   late String? _productId = widget.product?.id;
   String? _supplierId;
   List<Supplier> _suppliers = const [];
   bool _saving = false;
   String? _error;
+  String _productQuery = '';
 
   @override
   void initState() {
@@ -198,6 +284,7 @@ class _EntryDialogState extends State<_EntryDialog> {
     _quantity.dispose();
     _cost.dispose();
     _note.dispose();
+    _searchProductController.dispose();
     super.dispose();
   }
 
@@ -236,50 +323,229 @@ class _EntryDialogState extends State<_EntryDialog> {
     final products = context.read<InventoryCubit>().state.overview.items;
     final units = int.tryParse(_quantity.text) ?? 0;
     final cost = CopInputFormatter.parse(_cost.text);
+
+    // Producto seleccionado actualmente
+    final selectedProduct = _productId != null
+        ? products.where((p) => p.id == _productId).firstOrNull ?? widget.product
+        : widget.product;
+
+    // Productos filtrados para el buscador
+    final filteredProducts = products.where((p) {
+      if (_productQuery.isEmpty) return true;
+      final q = _productQuery.toLowerCase();
+      return p.name.toLowerCase().contains(q) ||
+          p.category.label.toLowerCase().contains(q);
+    }).toList();
+
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       scrollable: true,
-      title: const Text('Entrada de mercancía'),
+      titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD1FAE5),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFA7F3D0)),
+            ),
+            child: const Icon(
+              Icons.move_to_inbox_rounded,
+              size: 20,
+              color: Color(0xFF059669),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Entrada de mercancía',
+                  style: AppTypography.headlineSm.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  'Suma existencias al inventario y registra costos.',
+                  style: AppTypography.bodySm.copyWith(
+                    color: AppColors.slate500,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
       content: SizedBox(
-        width: 440,
+        width: 460,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Lo que llega de tu proveedor se suma al stock.',
-              style: AppTypography.bodySm.copyWith(color: AppColors.slate600),
-            ),
-            const SizedBox(height: 12),
-            if (widget.product case final product?)
-              _ProductHeader(product)
-            else
-              DropdownButtonFormField<String>(
-                key: const Key('entry-product'),
-                initialValue: _productId,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Producto'),
-                items: [
-                  for (final p in products)
-                    DropdownMenuItem(
-                      value: p.id,
-                      child: Text(
-                        p.trackStock ? '${p.name} · ${p.stock} und' : p.name,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                ],
-                onChanged: (id) => setState(() => _productId = id),
+            // Sección de selección de producto
+            if (selectedProduct != null)
+              _ProductHeader(
+                selectedProduct,
+                onChange: widget.product == null
+                    ? () => setState(() {
+                        _productId = null;
+                        _productQuery = '';
+                        _searchProductController.clear();
+                      })
+                    : null,
+              )
+            else ...[
+              // Buscador de producto
+              Text(
+                'Selecciona el producto',
+                style: AppTypography.labelSm.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.slate700,
+                ),
               ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 6),
+              TextField(
+                key: const Key('entry-product-search'),
+                controller: _searchProductController,
+                decoration: InputDecoration(
+                  hintText: 'Buscar por nombre o categoría…',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  suffixIcon: _productQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18),
+                          onPressed: () {
+                            _searchProductController.clear();
+                            setState(() => _productQuery = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: AppColors.slate50,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.slate200),
+                  ),
+                ),
+                onChanged: (q) => setState(() => _productQuery = q.trim()),
+              ),
+              const SizedBox(height: 8),
+              // Lista de resultados filtrados
+              Container(
+                constraints: const BoxConstraints(maxHeight: 180),
+                decoration: BoxDecoration(
+                  color: AppColors.slate50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.slate200),
+                ),
+                child: filteredProducts.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Center(
+                          child: Text(
+                            'No se encontraron productos.',
+                            style: AppTypography.bodySm.copyWith(
+                              color: AppColors.slate400,
+                            ),
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: filteredProducts.length,
+                        separatorBuilder: (_, _) => Divider(
+                          height: 1,
+                          color: AppColors.slate200,
+                        ),
+                        itemBuilder: (context, i) {
+                          final p = filteredProducts[i];
+                          return ListTile(
+                            dense: true,
+                            leading: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: p.category.tint,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                p.category.icon,
+                                color: p.category.color,
+                                size: 16,
+                              ),
+                            ),
+                            title: Text(
+                              p.name,
+                              style: AppTypography.bodyMd.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            subtitle: Text(
+                              p.category.label,
+                              style: AppTypography.bodySm.copyWith(
+                                fontSize: 11,
+                                color: AppColors.slate500,
+                              ),
+                            ),
+                            trailing: Text(
+                              p.trackStock ? '${p.stock} und' : 'Sin control',
+                              style: AppTypography.labelSm.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: p.isOut
+                                    ? AppColors.statusDue
+                                    : p.isLow
+                                    ? const Color(0xFFB45309)
+                                    : AppColors.slate600,
+                              ),
+                            ),
+                            onTap: () {
+                              setState(() {
+                                _productId = p.id;
+                                _error = null;
+                              });
+                            },
+                          );
+                        },
+                      ),
+              ),
+              // Dropdown oculto o accesible para compatibilidad de clave si no hay producto
+              Opacity(
+                opacity: 0.0,
+                child: SizedBox(
+                  height: 0,
+                  child: DropdownButtonFormField<String>(
+                    key: const Key('entry-product'),
+                    initialValue: _productId,
+                    items: [
+                      for (final p in products)
+                        DropdownMenuItem(value: p.id, child: Text(p.name)),
+                    ],
+                    onChanged: (id) => setState(() => _productId = id),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 14),
+            // Unidades que entran
             _UnitsField(
               fieldKey: const Key('entry-quantity'),
               controller: _quantity,
               label: 'Unidades que entran',
-              autofocus: true,
+              autofocus: widget.product != null,
               onChanged: (_) => setState(() {}),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            // Costo por unidad
             TextField(
               key: const Key('entry-cost'),
               controller: _cost,
@@ -290,21 +556,103 @@ class _EntryDialogState extends State<_EntryDialog> {
               ],
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                labelText: 'Costo por unidad (opcional)',
+                labelText: 'Costo por unidad de compra (opcional)',
+                hintText: '0',
                 prefixText: r'$ ',
-                helperText: units > 0 && cost > 0
-                    ? 'Total de la compra: ${AppFormatters.cop(units * cost)}'
-                    : null,
+                helperText:
+                    'Costo pagado al proveedor para calcular el valor de compra y margen.',
+                helperMaxLines: 2,
+                filled: true,
+                fillColor: AppColors.slate50,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.slate200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.slate200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: AppColors.brandTeal,
+                    width: 1.5,
+                  ),
+                ),
               ),
             ),
+            // Card de Total de la compra
+            if (units > 0 && cost > 0) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD1FAE5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.receipt_long_rounded,
+                        size: 18,
+                        color: Color(0xFF059669),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Total de la compra: ${AppFormatters.cop(units * cost)}',
+                            style: AppTypography.labelMd.copyWith(
+                              color: const Color(0xFF065F46),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$units und × ${AppFormatters.cop(cost)} cada una',
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 11,
+                              color: const Color(0xFF047857),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (_suppliers.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
                 key: const Key('entry-supplier'),
                 initialValue: _supplierId,
                 isExpanded: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Proveedor (opcional)',
+                  filled: true,
+                  fillColor: AppColors.slate50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.slate200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.slate200),
+                  ),
                 ),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('Ninguno')),
@@ -317,14 +665,31 @@ class _EntryDialogState extends State<_EntryDialog> {
                 onChanged: (id) => setState(() => _supplierId = id),
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             TextField(
               key: const Key('entry-note'),
               controller: _note,
               maxLength: 200,
-              decoration: const InputDecoration(
-                labelText: 'Nota (opcional)',
-                hintText: 'Ej. Factura 1234',
+              decoration: InputDecoration(
+                labelText: 'Nota o referencia de factura (opcional)',
+                hintText: 'Ej. Factura #4582 / Distribuidor',
+                filled: true,
+                fillColor: AppColors.slate50,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.slate200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.slate200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: AppColors.brandTeal,
+                    width: 1.5,
+                  ),
+                ),
               ),
             ),
             if (_error case final error?) _ErrorText(error),
@@ -336,10 +701,31 @@ class _EntryDialogState extends State<_EntryDialog> {
           onPressed: _saving ? null : () => Navigator.of(context).pop(false),
           child: const Text('Cancelar'),
         ),
-        FilledButton(
+        FilledButton.icon(
           key: const Key('entry-save'),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF0B382D),
+            foregroundColor: const Color(0xFFA3E635),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
           onPressed: _saving || units <= 0 ? null : _submit,
-          child: Text(_saving ? 'Registrando…' : 'Registrar entrada'),
+          icon: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFFA3E635),
+                  ),
+                )
+              : const Icon(Icons.check_rounded, size: 18),
+          label: Text(
+            _saving ? 'Registrando…' : 'Registrar entrada',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
         ),
       ],
     );
