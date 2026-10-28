@@ -36,6 +36,39 @@ class SalesPage extends StatelessWidget {
 
   Future<void> _newSale(BuildContext context) async {
     if (!ensureCanWrite(context)) return;
+    // Sin caja abierta no se vende (la API también lo valida).
+    final cash = context.read<CashCubit>().state;
+    if (cash.load == CashLoad.ready && !cash.isOpen) {
+      final open = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          key: const Key('cash-closed-dialog'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          icon: Icon(Icons.lock_outline_rounded, color: AppColors.statusDue),
+          title: const Text('La caja está cerrada'),
+          content: const Text(
+            'Para registrar ventas primero abre la caja con la base de '
+            'efectivo. Así todo lo vendido queda en el cuadre del turno.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Ahora no'),
+            ),
+            FilledButton.icon(
+              key: const Key('cash-closed-open'),
+              onPressed: () => Navigator.of(context).pop(true),
+              icon: const Icon(Icons.lock_open_rounded, size: 18),
+              label: const Text('Abrir caja'),
+            ),
+          ],
+        ),
+      );
+      if (open != true || !context.mounted) return;
+      if (!await showOpenCashDialog(context) || !context.mounted) return;
+    }
     final cubit = context.read<SalesCubit>();
     final messenger = ScaffoldMessenger.of(context);
     final sale = await showSaleSheet(context, createCubit: createCartCubit);

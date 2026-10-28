@@ -30,6 +30,24 @@ String _signed(int value) => value > 0
     ? ('Sobrante ${_signed(difference)}', AppColors.statusDeposit)
     : ('Faltante ${_signed(difference)}', AppColors.statusDue);
 
+/// Abre la caja con la base de efectivo. Devuelve `true` si se abrió.
+Future<bool> showOpenCashDialog(BuildContext context) async {
+  if (!ensureCanWrite(context)) return false;
+  final messenger = ScaffoldMessenger.of(context);
+  final opened = await showDialog<bool>(
+    context: context,
+    builder: (_) => BlocProvider.value(
+      value: context.read<CashCubit>(),
+      child: const _OpenCashDialog(),
+    ),
+  );
+  if (opened != true) return false;
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(const SnackBar(content: Text('Caja abierta.')));
+  return true;
+}
+
 /// Franja de caja: abrir con base, cuadre (cierre) e historial de cierres.
 class CashBanner extends StatelessWidget {
   const CashBanner({super.key, this.onChanged});
@@ -38,19 +56,7 @@ class CashBanner extends StatelessWidget {
   final VoidCallback? onChanged;
 
   Future<void> _open(BuildContext context) async {
-    if (!ensureCanWrite(context)) return;
-    final opened = await showDialog<bool>(
-      context: context,
-      builder: (_) => BlocProvider.value(
-        value: context.read<CashCubit>(),
-        child: const _OpenCashDialog(),
-      ),
-    );
-    if (opened != true || !context.mounted) return;
-    onChanged?.call();
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Caja abierta.')));
+    if (await showOpenCashDialog(context)) onChanged?.call();
   }
 
   Future<void> _close(BuildContext context, CashSession session) async {

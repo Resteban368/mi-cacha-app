@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mi_cancha/core/widgets/app_add_fab.dart';
 import 'package:mi_cancha/core/session/business_modules.dart';
 import 'package:mi_cancha/core/session/write_access.dart';
 import 'package:mi_cancha/core/usecase/usecase.dart';
@@ -473,6 +474,30 @@ void main() {
     verify(() => openCash((amount: 50000, note: ''))).called(1);
     expect(find.text('Caja abierta.'), findsOneWidget);
     expect(find.byKey(const Key('cash-close')), findsOneWidget);
+  });
+
+  testWidgets('con la caja cerrada no deja vender: ofrece abrirla', (
+    tester,
+  ) async {
+    when(() => cashStatus(any())).thenAnswer((_) async => const CashStatus());
+    await pump(tester, const Size(1440, 2000));
+
+    await tester.tap(find.byType(AppAddFab));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('cash-closed-dialog')), findsOneWidget);
+    expect(find.text('La caja está cerrada'), findsOneWidget);
+
+    await tester.tap(find.text('Ahora no'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('cash-closed-dialog')), findsNothing);
+    expect(find.byKey(const Key('cash-opening')), findsNothing);
+
+    await tester.tap(find.byType(AppAddFab));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('cash-closed-open')));
+    await tester.pumpAndSettle();
+    // Sigue con la apertura de caja (base de efectivo).
+    expect(find.byKey(const Key('cash-opening')), findsOneWidget);
   });
 
   testWidgets('sin el módulo de Ventas muestra el aviso', (tester) async {
