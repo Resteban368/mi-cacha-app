@@ -17,6 +17,10 @@ final class SaleCartState extends Equatable {
     this.products = const [],
     this.quantities = const {},
     this.paymentMethod = 'EFECTIVO',
+    this.chargeNow = false,
+    this.query = '',
+    this.category,
+    this.note = '',
     this.submit = SaleCartSubmit.idle,
     this.message,
     this.sale,
@@ -30,8 +34,16 @@ final class SaleCartState extends Equatable {
   /// Unidades elegidas por id de producto (solo las mayores a cero).
   final Map<String, int> quantities;
 
-  /// `code` del método de pago de una venta suelta.
+  /// `code` del método de pago (venta suelta o consumo cobrado ya).
   final String paymentMethod;
+
+  /// En un consumo de reserva: cobrarlo ya en vez de sumarlo al saldo.
+  final bool chargeNow;
+
+  /// Búsqueda por nombre y filtro por categoría de la cuadrícula.
+  final String query;
+  final ProductCategory? category;
+  final String note;
   final SaleCartSubmit submit;
 
   /// Error para mostrar (validación o API).
@@ -41,6 +53,29 @@ final class SaleCartState extends Equatable {
   final Sale? sale;
 
   int quantityOf(String productId) => quantities[productId] ?? 0;
+
+  /// Productos que muestra la cuadrícula (mantiene el orden de más vendidos).
+  List<Product> get visibleProducts {
+    final text = query.trim().toLowerCase();
+    return [
+      for (final p in products)
+        if ((category == null || p.category == category) &&
+            (text.isEmpty || p.name.toLowerCase().contains(text)))
+          p,
+    ];
+  }
+
+  /// Categorías presentes en el catálogo, con cuántos productos tiene cada una.
+  Map<ProductCategory, int> get categoryCounts {
+    final counts = <ProductCategory, int>{};
+    for (final p in products) {
+      counts[p.category] = (counts[p.category] ?? 0) + 1;
+    }
+    return {
+      for (final c in ProductCategory.values)
+        if (counts.containsKey(c)) c: counts[c]!,
+    };
+  }
 
   int get units => quantities.values.fold(0, (sum, q) => sum + q);
 
@@ -54,6 +89,10 @@ final class SaleCartState extends Equatable {
     List<Product>? products,
     Map<String, int>? quantities,
     String? paymentMethod,
+    bool? chargeNow,
+    String? query,
+    ProductCategory? Function()? category,
+    String? note,
     SaleCartSubmit? submit,
     String? Function()? message,
     Sale? sale,
@@ -62,6 +101,10 @@ final class SaleCartState extends Equatable {
     products: products ?? this.products,
     quantities: quantities ?? this.quantities,
     paymentMethod: paymentMethod ?? this.paymentMethod,
+    chargeNow: chargeNow ?? this.chargeNow,
+    query: query ?? this.query,
+    category: category != null ? category() : this.category,
+    note: note ?? this.note,
     submit: submit ?? this.submit,
     message: message != null ? message() : this.message,
     sale: sale ?? this.sale,
@@ -73,6 +116,10 @@ final class SaleCartState extends Equatable {
     products,
     quantities,
     paymentMethod,
+    chargeNow,
+    query,
+    category,
+    note,
     submit,
     message,
     sale,
@@ -125,6 +172,22 @@ class SaleCartCubit extends Cubit<SaleCartState> {
   void selectPaymentMethod(String code) =>
       emit(state.copyWith(paymentMethod: code));
 
+  void setChargeNow(bool chargeNow) =>
+      emit(state.copyWith(chargeNow: chargeNow));
+
+  void search(String query) => emit(state.copyWith(query: query));
+
+  void filterCategory(ProductCategory? category) =>
+      emit(state.copyWith(category: () => category));
+
+  void setNote(String note) => emit(state.copyWith(note: note.trim()));
+
+  /// Vacía el carrito.
+  void clear() {
+    if (state.submit == SaleCartSubmit.sending) return;
+    emit(state.copyWith(quantities: const {}, message: () => null));
+  }
+
   Future<void> submit({String? reservationId, String? reference}) async {
     if (state.submit == SaleCartSubmit.sending) return;
     emit(state.copyWith(submit: SaleCartSubmit.sending, message: () => null));
@@ -133,8 +196,12 @@ class SaleCartCubit extends Cubit<SaleCartState> {
         NewSale(
           quantities: state.quantities,
           reservationId: reservationId,
-          paymentMethod: reservationId == null ? state.paymentMethod : null,
+          // Venta suelta o consumo cobrado ya: lleva su pago.
+          paymentMethod: reservationId == null || state.chargeNow
+              ? state.paymentMethod
+              : null,
           reference: reference,
+          note: state.note.isEmpty ? null : state.note,
         ),
       );
       if (isClosed) return;

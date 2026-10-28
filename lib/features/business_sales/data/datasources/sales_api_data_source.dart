@@ -86,6 +86,7 @@ class SalesApiDataSource implements SalesDataSource {
   @override
   Future<Sale> createSale(NewSale sale) async {
     final customer = sale.customerName?.trim();
+    final note = sale.note?.trim();
     final reference = sale.reference?.trim();
     final response = await apiCall(
       () => _dio.post<Map<String, dynamic>>(
@@ -103,6 +104,7 @@ class SalesApiDataSource implements SalesDataSource {
                 'reference': reference,
             },
           if (customer != null && customer.isNotEmpty) 'customerName': customer,
+          if (note != null && note.isNotEmpty) 'note': note,
         },
       ),
     );

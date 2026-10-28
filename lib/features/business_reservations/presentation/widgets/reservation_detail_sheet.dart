@@ -160,14 +160,24 @@ class ReservationDetailView extends StatelessWidget {
     final sale = await showSaleSheet(
       context,
       reservationId: r.id,
-      subtitle: '${r.customerName} · ${r.courtName}',
+      reservation: SaleReservationInfo(
+        customerName: r.customerName,
+        courtName: r.courtsLabel,
+        start: r.start,
+        end: r.end,
+        sportIcon: r.sport.icon,
+      ),
     );
     if (sale == null || !context.mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('Consumo agregado: ${AppFormatters.cop(sale.total)}.'),
+          content: Text(
+            sale.paymentMethod == null
+                ? 'Consumo agregado: ${AppFormatters.cop(sale.total)}.'
+                : 'Consumo cobrado: ${AppFormatters.cop(sale.total)}.',
+          ),
         ),
       );
     await cubit.refresh();

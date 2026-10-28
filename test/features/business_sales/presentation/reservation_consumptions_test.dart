@@ -173,7 +173,7 @@ void main() {
       await tester.tap(find.byKey(const Key('add-p2')));
     }
     await tester.pump();
-    expect(find.text(r'Agregar $75.000'), findsOneWidget);
+    expect(find.text(r'Cargar $75.000 a la cuenta'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('submit-sale')));
     await tester.pumpAndSettle();
@@ -200,13 +200,75 @@ void main() {
     // Solo Gatorade tiene ventas: es el único "Top".
     expect(find.byKey(const Key('top-p1')), findsOneWidget);
     expect(find.byKey(const Key('top-p2')), findsNothing);
-    expect(find.byIcon(Icons.bolt_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.water_drop_outlined), findsOneWidget);
+    // Ícono en la tarjeta y en el chip de su categoría.
+    expect(find.byIcon(Icons.bolt_rounded), findsNWidgets(2));
+    expect(find.byIcon(Icons.water_drop_outlined), findsNWidgets(2));
     // Resumen al costado en pantallas anchas.
     expect(find.text('Aún no has agregado productos.'), findsOneWidget);
     await tester.tap(find.byKey(const Key('product-p2')));
     await tester.pump();
     expect(find.text('1 × Agua'), findsOneWidget);
+  });
+
+  testWidgets('busca, filtra por categoría y vacía el carrito', (tester) async {
+    final r = _reservation();
+    when(() => get(any())).thenAnswer((_) async => r);
+    await pumpDetail(tester, r);
+    await tester.tap(find.byKey(const Key('add-consumption')));
+    await tester.pumpAndSettle();
+
+    // Encabezado con los datos del turno.
+    expect(find.text('Turno activo'), findsOneWidget);
+    expect(find.text('Juan'), findsWidgets);
+
+    await tester.tap(find.byKey(const Key('category-AGUA')));
+    await tester.pump();
+    expect(find.byKey(const Key('product-p1')), findsNothing);
+    expect(find.byKey(const Key('product-p2')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('category-all')));
+    await tester.pump();
+
+    await tester.enterText(find.byKey(const Key('product-search')), 'gato');
+    await tester.pump();
+    expect(find.byKey(const Key('product-p1')), findsOneWidget);
+    expect(find.byKey(const Key('product-p2')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('add-p1')));
+    await tester.pump();
+    expect(find.text('1 × Gatorade'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('clear-cart')));
+    await tester.pump();
+    expect(find.text('Aún no has agregado productos.'), findsOneWidget);
+  });
+
+  testWidgets('cobrar ya: envía el pago con el consumo y la nota', (
+    tester,
+  ) async {
+    final r = _reservation();
+    when(() => get(any())).thenAnswer((_) async => r);
+    when(() => createSale(any())).thenAnswer((_) async => _sale());
+    await pumpDetail(tester, r);
+    await tester.tap(find.byKey(const Key('add-consumption')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('add-p2')));
+    await tester.tap(find.byKey(const Key('mode-charge-now')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('method-NEQUI')));
+    await tester.tap(find.byKey(const Key('open-note')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('sale-note')), 'Bien fría');
+    await tester.tap(find.byKey(const Key('sale-note-save')));
+    await tester.pumpAndSettle();
+    expect(find.text(r'Cobrar $2.500'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('submit-sale')));
+    await tester.pumpAndSettle();
+    final sent =
+        verify(() => createSale(captureAny())).captured.single as NewSale;
+    expect(sent.reservationId, 'r1');
+    expect(sent.paymentMethod, 'NEQUI');
+    expect(sent.note, 'Bien fría');
   });
 
   for (final size in const [Size(320, 640), Size(390, 844)]) {
@@ -230,6 +292,7 @@ void main() {
       );
       await tester.tap(find.text('vender'));
       await tester.pumpAndSettle();
+      // El primer producto se ve completo sin desplazar.
       await tester.tap(find.byKey(const Key('add-p1')));
       await tester.pump();
       // Venta suelta: método de pago abajo y "Cobrar".
