@@ -364,6 +364,18 @@ class _HeaderCard extends StatelessWidget {
                 ),
               ),
               OutlinedButton.icon(
+                key: const Key('open-suppliers'),
+                onPressed: () => context.go(AppRoutes.businessSuppliers),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.local_shipping_outlined, size: 18),
+                label: const Text('Proveedores'),
+              ),
+              OutlinedButton.icon(
                 key: const Key('open-products'),
                 onPressed: () => context.go(AppRoutes.businessProducts),
                 style: OutlinedButton.styleFrom(

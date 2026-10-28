@@ -11,6 +11,7 @@ import '../../../business_payments/domain/entities/payment.dart';
 import '../../../business_payments/presentation/widgets/payment_styles.dart';
 import '../../domain/entities/cash_session.dart';
 import '../bloc/cash_cubit.dart';
+import 'supplier_dialog.dart';
 
 /// Fondo oscuro de la franja de caja (como en el diseño de Stitch).
 const _ink = Color(0xFF0F172A);
@@ -90,6 +91,7 @@ class CashBanner extends StatelessWidget {
             'Abierta desde las ${AppFormatters.time(session!.openedAt)}'
                 '${session.openedByName == null ? '' : ' por ${session.openedByName}'}'
                 ' · Base ${AppFormatters.cop(session.openingCash)} · '
+                '${session.expensesTotal > 0 ? 'Pagos a proveedores ${AppFormatters.cop(session.expensesTotal)} · ' : ''}'
                 'Efectivo esperado ${AppFormatters.cop(session.expectedCash)}',
           ),
         };
@@ -197,7 +199,30 @@ class CashBanner extends StatelessWidget {
                   ],
                 ),
               ),
-              Wrap(spacing: 10, runSpacing: 10, children: [history, ?primary]),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  history,
+                  if (session != null && canWrite)
+                    OutlinedButton.icon(
+                      key: const Key('cash-expense'),
+                      onPressed: () => showCashExpenseDialog(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        backgroundColor: const Color(0xFF1E293B),
+                        minimumSize: const Size(0, 44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.local_shipping_outlined, size: 18),
+                      label: const Text('Pago a proveedor'),
+                    ),
+                  ?primary,
+                ],
+              ),
             ],
           ),
         );
@@ -383,7 +408,34 @@ class _CloseCashDialogState extends State<_CloseCashDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final s = widget.session;
+    // Al pagar a un proveedor desde el cuadre, la caja se recarga.
+    return BlocBuilder<CashCubit, CashState>(
+      buildWhen: (prev, curr) => prev.session != curr.session,
+      builder: (context, state) =>
+          _build(context, state.session ?? widget.session),
+    );
+  }
+
+  Future<void> _voidExpense(CashExpense expense) async {
+    final cubit = context.read<CashCubit>();
+    final messenger = ScaffoldMessenger.of(context);
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (_) => const _ReasonDialog(title: '¿Anular este pago?'),
+    );
+    if (reason == null) return;
+    final error = await cubit.voidExpense(expense.id, reason);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Pago anulado.'),
+          backgroundColor: error == null ? null : AppColors.statusDue,
+        ),
+      );
+  }
+
+  Widget _build(BuildContext context, CashSession s) {
     final row = AppTypography.bodySm.copyWith(color: AppColors.slate600);
     final value = AppTypography.bodySm.copyWith(
       color: AppColors.onSurface,
@@ -454,6 +506,23 @@ class _CloseCashDialogState extends State<_CloseCashDialog> {
                       Text(AppFormatters.cop(s.openingCash), style: value),
                     ],
                   ),
+                  if (s.cashExpensesTotal > 0) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Pagos a proveedores en efectivo',
+                            style: row,
+                          ),
+                        ),
+                        Text(
+                          '−${AppFormatters.cop(s.cashExpensesTotal)}',
+                          style: value.copyWith(color: AppColors.statusDue),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -475,7 +544,21 @@ class _CloseCashDialogState extends State<_CloseCashDialog> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
+            _ExpensesList(
+              expenses: s.expenses,
+              onVoid: s.isOpen ? _voidExpense : null,
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const Key('close-add-expense'),
+                onPressed: () => showCashExpenseDialog(context),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Pago a proveedor'),
+              ),
+            ),
+            const SizedBox(height: 4),
             _MoneyField(
               fieldKey: const Key('cash-counted'),
               controller: _counted,
@@ -751,6 +834,11 @@ class _ClosedSessionTile extends StatelessWidget {
                 ),
               ),
               Text('Cobrado ${AppFormatters.cop(s.collected)}', style: muted),
+              if (s.expensesTotal > 0)
+                Text(
+                  'Pagos a proveedores ${AppFormatters.cop(s.expensesTotal)}',
+                  style: muted,
+                ),
             ],
           ),
           if (s.closingNote case final note?) ...[
@@ -759,6 +847,410 @@ class _ClosedSessionTile extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Pagos a proveedores del turno, con opción de anular los vigentes.
+class _ExpensesList extends StatelessWidget {
+  const _ExpensesList({required this.expenses, this.onVoid});
+
+  final List<CashExpense> expenses;
+  final ValueChanged<CashExpense>? onVoid;
+
+  @override
+  Widget build(BuildContext context) {
+    if (expenses.isEmpty) return const SizedBox.shrink();
+    final muted = AppTypography.bodySm.copyWith(
+      color: AppColors.slate500,
+      fontSize: 11,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'PAGOS A PROVEEDORES',
+          style: AppTypography.labelSm.copyWith(
+            color: AppColors.slate500,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        for (final e in expenses)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Container(
+              key: Key('expense-${e.id}'),
+              padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
+              decoration: BoxDecoration(
+                color: e.isVoided
+                    ? AppColors.dangerTint.withValues(alpha: 0.4)
+                    : AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.slate200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.local_shipping_outlined,
+                    size: 18,
+                    color: e.isVoided ? AppColors.slate400 : AppColors.slate600,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${e.supplierName} · ${e.concept}',
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.bodySm.copyWith(
+                            color: e.isVoided
+                                ? AppColors.slate400
+                                : AppColors.onSurface,
+                            fontWeight: FontWeight.w700,
+                            decoration: e.isVoided
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        Text(
+                          [
+                            AppFormatters.time(e.createdAt),
+                            PaymentMethod.fromApi(e.method).label,
+                            if (e.isVoided)
+                              'Anulado${e.voidReason == null ? '' : ': ${e.voidReason}'}',
+                          ].join(' · '),
+                          style: e.isVoided
+                              ? muted.copyWith(color: AppColors.statusDue)
+                              : muted,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '−${AppFormatters.cop(e.amount)}',
+                    style: AppTypography.bodySm.copyWith(
+                      color: e.isVoided
+                          ? AppColors.slate400
+                          : AppColors.statusDue,
+                      fontWeight: FontWeight.w800,
+                      decoration: e.isVoided
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
+                  ),
+                  if (onVoid != null && !e.isVoided)
+                    IconButton(
+                      key: Key('void-expense-${e.id}'),
+                      tooltip: 'Anular pago',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => onVoid!(e),
+                      icon: Icon(
+                        Icons.block_rounded,
+                        size: 16,
+                        color: AppColors.slate400,
+                      ),
+                    )
+                  else
+                    const SizedBox(width: 8),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Pide un motivo; `null` si se cancela.
+class _ReasonDialog extends StatefulWidget {
+  const _ReasonDialog({required this.title});
+
+  final String title;
+
+  @override
+  State<_ReasonDialog> createState() => _ReasonDialogState();
+}
+
+class _ReasonDialogState extends State<_ReasonDialog> {
+  final _reason = TextEditingController();
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(widget.title),
+      content: TextField(
+        key: const Key('expense-void-reason'),
+        controller: _reason,
+        autofocus: true,
+        maxLength: 300,
+        decoration: const InputDecoration(labelText: 'Motivo'),
+        onChanged: (_) => setState(() {}),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Volver'),
+        ),
+        FilledButton(
+          key: const Key('expense-void-confirm'),
+          onPressed: _reason.text.trim().length < 3
+              ? null
+              : () => Navigator.of(context).pop(_reason.text.trim()),
+          style: FilledButton.styleFrom(backgroundColor: AppColors.statusDue),
+          child: const Text('Anular'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Registra un pago a un proveedor en la caja abierta. Devuelve `true` si se
+/// registró.
+Future<bool> showCashExpenseDialog(BuildContext context) async {
+  if (!ensureCanWrite(context)) return false;
+  final cubit = context.read<CashCubit>();
+  final messenger = ScaffoldMessenger.of(context);
+  final saved =
+      await showDialog<bool>(
+        context: context,
+        builder: (_) =>
+            BlocProvider.value(value: cubit, child: const _ExpenseDialog()),
+      ) ??
+      false;
+  if (saved) {
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Pago a proveedor registrado.')),
+      );
+  }
+  return saved;
+}
+
+class _ExpenseDialog extends StatefulWidget {
+  const _ExpenseDialog();
+
+  @override
+  State<_ExpenseDialog> createState() => _ExpenseDialogState();
+}
+
+class _ExpenseDialogState extends State<_ExpenseDialog> {
+  final _amount = TextEditingController();
+  final _concept = TextEditingController();
+  List<Supplier>? _suppliers;
+  String? _supplierId;
+  String _method = 'EFECTIVO';
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSuppliers();
+  }
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _concept.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSuppliers({String? select}) async {
+    try {
+      final suppliers = await context.read<CashCubit>().activeSuppliers();
+      if (!mounted) return;
+      setState(() {
+        _suppliers = suppliers;
+        _supplierId =
+            select ??
+            _supplierId ??
+            (suppliers.length == 1 ? suppliers.single.id : null);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _suppliers = const [];
+        _error = 'No pudimos cargar los proveedores.';
+      });
+    }
+  }
+
+  /// Registrar un proveedor sin salir del pago.
+  Future<void> _newSupplier() async {
+    final cubit = context.read<CashCubit>();
+    Supplier? created;
+    await showSupplierDialog(
+      context,
+      onSave: (draft) async {
+        final result = await cubit.createSupplier(draft);
+        created = result.supplier;
+        return result.error;
+      },
+    );
+    if (created case final supplier?) {
+      await _loadSuppliers(select: supplier.id);
+    }
+  }
+
+  Future<void> _submit() async {
+    final supplierId = _supplierId;
+    if (_saving) return;
+    if (supplierId == null) {
+      setState(() => _error = 'Elige el proveedor.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final error = await context.read<CashCubit>().addExpense((
+      supplierId: supplierId,
+      amount: CopInputFormatter.parse(_amount.text),
+      method: _method,
+      concept: _concept.text,
+    ));
+    if (!mounted) return;
+    if (error == null) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _saving = false;
+        _error = error;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final suppliers = _suppliers;
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      scrollable: true,
+      title: const Text('Pago a proveedor'),
+      content: SizedBox(
+        width: 440,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Si lo pagas en efectivo, se descuenta del efectivo esperado '
+              'al cerrar la caja.',
+              style: AppTypography.bodySm.copyWith(color: AppColors.slate600),
+            ),
+            const SizedBox(height: 12),
+            if (suppliers == null)
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else ...[
+              if (suppliers.isEmpty)
+                Text(
+                  'Aún no tienes proveedores registrados.',
+                  style: AppTypography.bodySm.copyWith(
+                    color: AppColors.slate500,
+                  ),
+                )
+              else
+                DropdownButtonFormField<String>(
+                  key: const Key('expense-supplier'),
+                  initialValue: _supplierId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Proveedor'),
+                  items: [
+                    for (final s in suppliers)
+                      DropdownMenuItem(
+                        value: s.id,
+                        child: Text(s.name, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  onChanged: (id) => setState(() => _supplierId = id),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: const Key('expense-new-supplier'),
+                  onPressed: _saving ? null : _newSupplier,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Registrar proveedor'),
+                ),
+              ),
+            ],
+            _MoneyField(
+              fieldKey: const Key('expense-amount'),
+              controller: _amount,
+              label: 'Valor pagado',
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('expense-concept'),
+              controller: _concept,
+              maxLength: 200,
+              decoration: const InputDecoration(
+                labelText: 'Concepto',
+                hintText: 'Ej. Pedido de bebidas',
+              ),
+            ),
+            Text(
+              'MÉTODO DE PAGO',
+              style: AppTypography.labelSm.copyWith(
+                color: AppColors.slate500,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final method in PaymentMethod.selectable)
+                  ChoiceChip(
+                    key: Key('expense-method-${method.apiCode}'),
+                    avatar: Icon(method.icon, size: 16, color: method.color),
+                    label: Text(method.label),
+                    selected: _method == method.apiCode,
+                    onSelected: (_) =>
+                        setState(() => _method = method.apiCode!),
+                  ),
+              ],
+            ),
+            if (_error case final error?) ...[
+              const SizedBox(height: 10),
+              Text(
+                error,
+                style: AppTypography.bodySm.copyWith(
+                  color: AppColors.statusDue,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          key: const Key('expense-save'),
+          onPressed: _saving || (suppliers?.isEmpty ?? true) ? null : _submit,
+          child: Text(_saving ? 'Registrando…' : 'Registrar pago'),
+        ),
+      ],
     );
   }
 }

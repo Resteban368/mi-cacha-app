@@ -75,6 +75,7 @@ import '../../features/business_sales/domain/usecases/cash_usecases.dart';
 import '../../features/business_sales/domain/usecases/sales_usecases.dart';
 import '../../features/business_sales/presentation/bloc/cash_cubit.dart';
 import '../../features/business_sales/presentation/bloc/products_cubit.dart';
+import '../../features/business_sales/presentation/bloc/suppliers_cubit.dart';
 import '../../features/business_sales/presentation/bloc/sale_cart_cubit.dart';
 import '../../features/business_sales/presentation/bloc/sales_cubit.dart';
 import '../../features/business_setup/domain/usecases/get_setup_progress.dart';
@@ -281,12 +282,28 @@ void _initBusinessSales() {
     ..registerLazySingleton(() => OpenCash(sl()))
     ..registerLazySingleton(() => CloseCash(sl()))
     ..registerLazySingleton(() => GetCashHistory(sl()))
+    ..registerLazySingleton(() => AddCashExpense(sl()))
+    ..registerLazySingleton(() => VoidCashExpense(sl()))
+    ..registerLazySingleton(() => GetSuppliers(sl()))
+    ..registerLazySingleton(() => SaveSupplier(sl()))
+    ..registerLazySingleton(() => SetSupplierActive(sl()))
     ..registerFactory(
       () => CashCubit(
         getStatus: sl(),
         openCash: sl(),
         closeCash: sl(),
         getHistory: sl(),
+        addExpense: sl(),
+        voidExpense: sl(),
+        getSuppliers: sl(),
+        saveSupplier: sl(),
+      ),
+    )
+    ..registerFactory(
+      () => SuppliersCubit(
+        getSuppliers: sl(),
+        saveSupplier: sl(),
+        setSupplierActive: sl(),
       ),
     )
     ..registerFactory(

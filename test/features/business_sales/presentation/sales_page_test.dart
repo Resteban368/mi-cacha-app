@@ -26,6 +26,14 @@ class _MockCloseCash extends Mock implements CloseCash {}
 
 class _MockCashHistory extends Mock implements GetCashHistory {}
 
+class _MockAddExpense extends Mock implements AddCashExpense {}
+
+class _MockGetSuppliers extends Mock implements GetSuppliers {}
+
+class _MockSaveSupplier extends Mock implements SaveSupplier {}
+
+const _postobon = Supplier(id: 'sup-1', name: 'Postobón');
+
 CashSession _cash({int? counted}) => CashSession(
   id: 'cs-1',
   openingCash: 50000,
@@ -100,6 +108,14 @@ void main() {
     registerFallbackValue((id: 's1', reason: 'x'));
     registerFallbackValue(const NoParams());
     registerFallbackValue((amount: 0, note: null as String?));
+    registerFallbackValue((supplierId: '', amount: 0, method: '', concept: ''));
+    registerFallbackValue((
+      id: null as String?,
+      name: '',
+      documentId: null as String?,
+      phone: null as String?,
+      notes: null as String?,
+    ));
   });
 
   late _MockGetSales getSales;
@@ -107,8 +123,15 @@ void main() {
   late _MockCashStatus cashStatus;
   late _MockOpenCash openCash;
   late _MockCloseCash closeCash;
+  late _MockAddExpense addExpense;
+  late _MockGetSuppliers getSuppliers;
+  late _MockSaveSupplier saveSupplier;
 
   setUp(() {
+    addExpense = _MockAddExpense();
+    getSuppliers = _MockGetSuppliers();
+    saveSupplier = _MockSaveSupplier();
+    when(() => getSuppliers(false)).thenAnswer((_) async => [_postobon]);
     getSales = _MockGetSales();
     voidSale = _MockVoidSale();
     cashStatus = _MockCashStatus();
@@ -158,6 +181,9 @@ void main() {
                     openCash: openCash,
                     closeCash: closeCash,
                     getHistory: _MockCashHistory(),
+                    addExpense: addExpense,
+                    getSuppliers: getSuppliers,
+                    saveSupplier: saveSupplier,
                   )..load(),
                 ),
               ],
@@ -209,6 +235,102 @@ void main() {
     verify(() => closeCash((amount: 120000, note: ''))).called(1);
     expect(find.text(r'Caja cerrada · Faltante −$2.500.'), findsOneWidget);
     expect(find.byKey(const Key('cash-open')), findsOneWidget);
+  });
+
+  testWidgets('pago a proveedor desde la caja abierta', (tester) async {
+    when(() => addExpense(any())).thenAnswer(
+      (_) async => CashExpense(
+        id: 'ex-1',
+        supplierName: 'Postobón',
+        amount: 30000,
+        method: 'EFECTIVO',
+        concept: 'Bebidas',
+        createdAt: _now,
+      ),
+    );
+    await pump(tester, const Size(1440, 2000));
+
+    await tester.tap(find.byKey(const Key('cash-expense')));
+    await tester.pumpAndSettle();
+    // Un solo proveedor: queda elegido.
+    expect(find.text('Postobón'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('expense-amount')), '30000');
+    await tester.enterText(find.byKey(const Key('expense-concept')), 'Bebidas');
+    await tester.tap(find.byKey(const Key('expense-save')));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => addExpense((
+        supplierId: 'sup-1',
+        amount: 30000,
+        method: 'EFECTIVO',
+        concept: 'Bebidas',
+      )),
+    ).called(1);
+    expect(find.text('Pago a proveedor registrado.'), findsOneWidget);
+  });
+
+  testWidgets('registrar un proveedor sin salir del pago', (tester) async {
+    when(() => getSuppliers(false)).thenAnswer((_) async => []);
+    when(() => saveSupplier(any())).thenAnswer((_) async {
+      when(() => getSuppliers(false)).thenAnswer(
+        (_) async => [const Supplier(id: 'sup-9', name: 'Hielo Polar')],
+      );
+      return const Supplier(id: 'sup-9', name: 'Hielo Polar');
+    });
+    await pump(tester, const Size(1440, 2000));
+
+    await tester.tap(find.byKey(const Key('cash-expense')));
+    await tester.pumpAndSettle();
+    expect(find.text('Aún no tienes proveedores registrados.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('expense-new-supplier')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('supplier-name')),
+      'Hielo Polar',
+    );
+    await tester.tap(find.byKey(const Key('supplier-save')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hielo Polar'), findsOneWidget);
+    expect(find.byKey(const Key('expense-supplier')), findsOneWidget);
+  });
+
+  testWidgets('el cuadre descuenta los pagos en efectivo', (tester) async {
+    final withExpense = CashSession(
+      id: 'cs-1',
+      openingCash: 50000,
+      openedAt: _now,
+      expectedCash: 92500,
+      methods: _cash().methods,
+      collected: 77500,
+      expenses: [
+        CashExpense(
+          id: 'ex-1',
+          supplierName: 'Postobón',
+          amount: 30000,
+          method: 'EFECTIVO',
+          concept: 'Bebidas',
+          createdAt: _now,
+        ),
+      ],
+      expensesTotal: 30000,
+      cashExpensesTotal: 30000,
+    );
+    when(
+      () => cashStatus(any()),
+    ).thenAnswer((_) async => CashStatus(session: withExpense));
+    await pump(tester, const Size(1440, 2000));
+
+    await tester.tap(find.byKey(const Key('cash-close')));
+    await tester.pumpAndSettle();
+    expect(find.text('Pagos a proveedores en efectivo'), findsOneWidget);
+    expect(find.text(r'−$30.000'), findsWidgets);
+    expect(find.text('Postobón · Bebidas'), findsOneWidget);
+    expect(find.text(r'$92.500'), findsWidgets);
+    await tester.enterText(find.byKey(const Key('cash-counted')), '92500');
+    await tester.pump();
+    expect(find.text('Cuadra'), findsOneWidget);
   });
 
   testWidgets('abrir caja con la base', (tester) async {

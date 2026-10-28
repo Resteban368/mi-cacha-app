@@ -34,6 +34,8 @@ import '../../features/business_payments/presentation/pages/new_payment_page.dar
 import '../../features/business_payments/presentation/pages/payments_page.dart';
 import '../../features/business_sales/presentation/bloc/cash_cubit.dart';
 import '../../features/business_sales/presentation/bloc/products_cubit.dart';
+import '../../features/business_sales/presentation/bloc/suppliers_cubit.dart';
+import '../../features/business_sales/presentation/pages/suppliers_page.dart';
 import '../../features/business_sales/presentation/bloc/sales_cubit.dart';
 import '../../features/business_sales/presentation/pages/products_page.dart';
 import '../../features/business_sales/presentation/pages/sales_page.dart';
@@ -316,6 +318,16 @@ GoRouter _buildRouter(
             child: BlocProvider(
               create: (_) => sl<ProductsCubit>()..load(),
               child: const ProductsPage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.businessSuppliers,
+          pageBuilder: (_, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: BlocProvider(
+              create: (_) => sl<SuppliersCubit>()..load(),
+              child: const SuppliersPage(),
             ),
           ),
         ),

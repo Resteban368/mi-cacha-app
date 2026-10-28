@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/cash_session.dart';
+import '../../domain/repositories/cash_repository.dart';
 import '../../domain/usecases/cash_usecases.dart';
 
 enum CashLoad { loading, ready, failure }
@@ -34,16 +35,60 @@ class CashCubit extends Cubit<CashState> {
     required OpenCash openCash,
     required CloseCash closeCash,
     required GetCashHistory getHistory,
+    AddCashExpense? addExpense,
+    VoidCashExpense? voidExpense,
+    GetSuppliers? getSuppliers,
+    SaveSupplier? saveSupplier,
   }) : _getStatus = getStatus,
        _open = openCash,
        _close = closeCash,
        _history = getHistory,
+       _addExpense = addExpense,
+       _voidExpense = voidExpense,
+       _getSuppliers = getSuppliers,
+       _saveSupplier = saveSupplier,
        super(const CashState());
 
   final GetCashStatus _getStatus;
   final OpenCash _open;
   final CloseCash _close;
   final GetCashHistory _history;
+  final AddCashExpense? _addExpense;
+  final VoidCashExpense? _voidExpense;
+  final GetSuppliers? _getSuppliers;
+  final SaveSupplier? _saveSupplier;
+
+  /// Pago a un proveedor en la caja abierta. Devuelve el error, o `null`.
+  Future<String?> addExpense(CashExpenseParams params) async {
+    final add = _addExpense;
+    if (add == null) return 'No disponible.';
+    final error = await _message(() => add(params));
+    if (error == null) await load();
+    return error;
+  }
+
+  Future<String?> voidExpense(String id, String reason) async {
+    final cancel = _voidExpense;
+    if (cancel == null) return 'No disponible.';
+    final error = await _message(() => cancel((id: id, reason: reason)));
+    if (error == null) await load();
+    return error;
+  }
+
+  /// Proveedores activos para elegir en un pago.
+  Future<List<Supplier>> activeSuppliers() async =>
+      await _getSuppliers?.call(false) ?? const [];
+
+  /// Registra un proveedor desde el pago. Devuelve el creado o el error.
+  Future<({Supplier? supplier, String? error})> createSupplier(
+    SupplierDraft draft,
+  ) async {
+    final save = _saveSupplier;
+    if (save == null) return (supplier: null, error: 'No disponible.');
+    Supplier? created;
+    final error = await _message(() async => created = await save(draft));
+    return (supplier: created, error: error);
+  }
 
   static const historyPageSize = 20;
 
@@ -82,7 +127,11 @@ class CashCubit extends Cubit<CashState> {
   Future<({List<CashSession> items, int total})> history(int page) =>
       _history((page: page, pageSize: historyPageSize));
 
-  Future<String?> _guard(Future<CashSession> Function() request) async {
+  Future<String?> _guard(Future<CashSession> Function() request) =>
+      _message(request);
+
+  /// Ejecuta [request] y traduce el error a un mensaje para el usuario.
+  Future<String?> _message(Future<Object?> Function() request) async {
     try {
       await request();
       return null;

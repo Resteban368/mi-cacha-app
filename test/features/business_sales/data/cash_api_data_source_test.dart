@@ -24,6 +24,23 @@ Map<String, Object?> _session({bool closed = false}) => {
     {'code': 'EFECTIVO', 'name': 'Efectivo', 'count': 1, 'amount': 5000},
   ],
   'collected': 5000,
+  'expenses': [
+    {
+      'id': 'ex-1',
+      'supplierId': 'sup-1',
+      'supplierName': 'Postobón',
+      'amount': 30000,
+      'method': 'EFECTIVO',
+      'methodName': 'Efectivo',
+      'concept': 'Pedido de bebidas',
+      'createdAt': '2026-10-28T15:00:00.000Z',
+      'createdByName': 'Esteban',
+      'voidedAt': null,
+      'voidReason': null,
+    },
+  ],
+  'expensesTotal': 30000,
+  'cashExpensesTotal': 30000,
 };
 
 void main() {
@@ -43,6 +60,46 @@ void main() {
     expect(status.session!.expectedCash, 55000);
     expect(status.session!.methods.single.amount, 5000);
     expect(status.lastClosed!.difference, 4000);
+  });
+
+  test('lee los pagos a proveedores del turno', () async {
+    adapter.handler = (_) => (200, {'session': _session(), 'lastClosed': null});
+    final session = (await source.current()).session!;
+    expect(session.expenses.single.supplierName, 'Postobón');
+    expect(session.expenses.single.isVoided, isFalse);
+    expect(session.cashExpensesTotal, 30000);
+  });
+
+  test('pago a proveedor y proveedor nuevo envían sus datos', () async {
+    adapter.handler = (_) =>
+        (200, (_session()['expenses']! as List).single as Map<String, dynamic>);
+    await source.addExpense(
+      supplierId: 'sup-1',
+      amount: 30000,
+      method: 'EFECTIVO',
+      concept: ' Bebidas ',
+    );
+    expect(adapter.requests.last.path, endsWith('/business/cash/expenses'));
+    expect(_body(adapter.requests.last.data), {
+      'supplierId': 'sup-1',
+      'amount': 30000,
+      'method': 'EFECTIVO',
+      'concept': 'Bebidas',
+    });
+
+    adapter.handler = (_) => (200, {'id': 'sup-2', 'name': 'Hielo Polar'});
+    final supplier = await source.saveSupplier((
+      id: null,
+      name: ' Hielo Polar ',
+      documentId: '',
+      phone: '300',
+      notes: null,
+    ));
+    expect(_body(adapter.requests.last.data), {
+      'name': 'Hielo Polar',
+      'phone': '300',
+    });
+    expect(supplier.isActive, isTrue);
   });
 
   test('sin caja abierta', () async {
