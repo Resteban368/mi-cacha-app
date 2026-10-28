@@ -58,6 +58,8 @@ class Sale extends Equatable {
     this.voidReason,
     this.voidedAt,
     this.paymentMethod,
+    this.courtName,
+    this.reservationStart,
   });
 
   final String id;
@@ -73,11 +75,19 @@ class Sale extends Equatable {
   final DateTime createdAt;
   final List<SaleItem> items;
 
-  /// `code` del método con que se pagó una venta suelta.
+  /// `code` del método con que se pagó (venta suelta o consumo cobrado ya);
+  /// `null` si el consumo se cargó al saldo de la reserva.
   final String? paymentMethod;
+
+  /// Cancha e inicio de la reserva de un consumo.
+  final String? courtName;
+  final DateTime? reservationStart;
 
   bool get isVoided => status == SaleStatus.voided;
   bool get isWalkIn => reservationId == null;
+
+  /// Ya se cobró (venta suelta o consumo pagado en el momento).
+  bool get isPaid => paymentMethod != null;
 
   /// `12 × Gatorade · 6 × Agua`
   String get itemsLabel =>
@@ -96,5 +106,7 @@ class Sale extends Equatable {
     createdAt,
     items,
     paymentMethod,
+    courtName,
+    reservationStart,
   ];
 }

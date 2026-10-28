@@ -7,11 +7,20 @@ import '../../domain/usecases/sales_usecases.dart';
 
 enum SalesLoad { loading, ready, failure }
 
+/// Pestañas de la lista de ventas.
+enum SalesTab { all, walkIn, consumptions, voided }
+
+/// Filtro por método: un `code` del catálogo o los consumos sin cobrar.
+const chargedToReservation = 'RESERVA';
+
 final class SalesState extends Equatable {
   const SalesState({
     required this.day,
     this.load = SalesLoad.loading,
     this.sales = const [],
+    this.tab = SalesTab.all,
+    this.query = '',
+    this.method,
   });
 
   final DateTime day;
@@ -19,6 +28,11 @@ final class SalesState extends Equatable {
 
   /// Ventas del día, más recientes primero (también las anuladas).
   final List<Sale> sales;
+  final SalesTab tab;
+  final String query;
+
+  /// `code` del método, [chargedToReservation] o `null` (todos).
+  final String? method;
 
   Iterable<Sale> get _active => sales.where((s) => !s.isVoided);
 
@@ -29,20 +43,82 @@ final class SalesState extends Equatable {
   int get walkInTotal =>
       _active.where((s) => s.isWalkIn).fold(0, (sum, s) => sum + s.total);
 
-  /// Consumos cargados a reservas: se cobran con su saldo.
+  /// Consumos de reservas (cargados al saldo o cobrados ya).
   int get consumptionsTotal => total - walkInTotal;
 
   int get count => _active.length;
 
-  SalesState copyWith({DateTime? day, SalesLoad? load, List<Sale>? sales}) =>
-      SalesState(
-        day: day ?? this.day,
-        load: load ?? this.load,
-        sales: sales ?? this.sales,
-      );
+  Iterable<Sale> get _voided => sales.where((s) => s.isVoided);
+
+  int get voidedCount => _voided.length;
+  int get voidedTotal => _voided.fold(0, (sum, s) => sum + s.total);
+
+  /// Arqueo: lo cobrado por cada método (`code` → monto), de mayor a menor.
+  /// Los consumos cargados al saldo no entran: aún no se han cobrado.
+  List<MapEntry<String, int>> get byMethod {
+    final totals = <String, int>{};
+    for (final s in _active) {
+      if (s.paymentMethod case final code?) {
+        totals[code] = (totals[code] ?? 0) + s.total;
+      }
+    }
+    return totals.entries.toList()..sort((a, b) => b.value - a.value);
+  }
+
+  /// Consumos cargados al saldo de su reserva (por cobrar con la reserva).
+  int get chargedToReservations => _active
+      .where((s) => !s.isWalkIn && !s.isPaid)
+      .fold(0, (sum, s) => sum + s.total);
+
+  int countOf(SalesTab tab) => sales.where((s) => _inTab(s, tab)).length;
+
+  /// Métodos presentes en el día (para el filtro).
+  List<String> get methods =>
+      {for (final s in sales) ?s.paymentMethod}.toList();
+
+  static bool _inTab(Sale s, SalesTab tab) => switch (tab) {
+    SalesTab.all => true,
+    SalesTab.walkIn => s.isWalkIn && !s.isVoided,
+    SalesTab.consumptions => !s.isWalkIn && !s.isVoided,
+    SalesTab.voided => s.isVoided,
+  };
+
+  /// Ventas que muestra la lista con la pestaña, búsqueda y método elegidos.
+  List<Sale> get visible {
+    final text = query.trim().toLowerCase();
+    return [
+      for (final s in sales)
+        if (_inTab(s, tab) &&
+            switch (method) {
+              null => true,
+              chargedToReservation => !s.isWalkIn && !s.isPaid && !s.isVoided,
+              final code => s.paymentMethod == code,
+            } &&
+            (text.isEmpty ||
+                s.itemsLabel.toLowerCase().contains(text) ||
+                (s.customerName?.toLowerCase().contains(text) ?? false)))
+          s,
+    ];
+  }
+
+  SalesState copyWith({
+    DateTime? day,
+    SalesLoad? load,
+    List<Sale>? sales,
+    SalesTab? tab,
+    String? query,
+    String? Function()? method,
+  }) => SalesState(
+    day: day ?? this.day,
+    load: load ?? this.load,
+    sales: sales ?? this.sales,
+    tab: tab ?? this.tab,
+    query: query ?? this.query,
+    method: method != null ? method() : this.method,
+  );
 
   @override
-  List<Object?> get props => [day, load, sales];
+  List<Object?> get props => [day, load, sales, tab, query, method];
 }
 
 /// Ventas de un día: sueltas y consumos de reservas.
@@ -76,6 +152,13 @@ class SalesCubit extends Cubit<SalesState> {
       emit(state.copyWith(load: SalesLoad.failure, sales: const []));
     }
   }
+
+  void selectTab(SalesTab tab) => emit(state.copyWith(tab: tab));
+
+  void search(String query) => emit(state.copyWith(query: query));
+
+  void filterMethod(String? method) =>
+      emit(state.copyWith(method: () => method));
 
   Future<void> shiftDay(int days) =>
       load(DateTime(state.day.year, state.day.month, state.day.day + days));

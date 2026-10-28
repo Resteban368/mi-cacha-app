@@ -164,5 +164,10 @@ class SalesApiDataSource implements SalesDataSource {
           ),
     ],
     paymentMethod: json['paymentMethod'] as String?,
+    courtName: json['courtName'] as String?,
+    reservationStart: switch (json['reservationStart']) {
+      final String at => DateTime.parse(at).toLocal(),
+      _ => null,
+    },
   );
 }
