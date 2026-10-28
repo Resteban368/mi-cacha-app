@@ -64,11 +64,15 @@ import '../../features/business_payments/domain/usecases/get_payments.dart';
 import '../../features/business_payments/domain/usecases/validate_payment.dart';
 import '../../features/business_payments/presentation/bloc/new_payment/new_payment_bloc.dart';
 import '../../features/business_payments/presentation/bloc/payments/payments_bloc.dart';
+import '../../features/business_sales/data/datasources/cash_api_data_source.dart';
 import '../../features/business_sales/data/datasources/sales_api_data_source.dart';
 import '../../features/business_sales/data/datasources/sales_data_source.dart';
 import '../../features/business_sales/data/repositories/sales_repository_impl.dart';
+import '../../features/business_sales/domain/repositories/cash_repository.dart';
 import '../../features/business_sales/domain/repositories/sales_repository.dart';
+import '../../features/business_sales/domain/usecases/cash_usecases.dart';
 import '../../features/business_sales/domain/usecases/sales_usecases.dart';
+import '../../features/business_sales/presentation/bloc/cash_cubit.dart';
 import '../../features/business_sales/presentation/bloc/products_cubit.dart';
 import '../../features/business_sales/presentation/bloc/sale_cart_cubit.dart';
 import '../../features/business_sales/presentation/bloc/sales_cubit.dart';
@@ -270,6 +274,19 @@ void _initBusinessSales() {
       ),
     )
     ..registerFactory(() => SalesCubit(getSales: sl(), voidSale: sl()))
+    ..registerLazySingleton<CashRepository>(() => CashApiDataSource(sl()))
+    ..registerLazySingleton(() => GetCashStatus(sl()))
+    ..registerLazySingleton(() => OpenCash(sl()))
+    ..registerLazySingleton(() => CloseCash(sl()))
+    ..registerLazySingleton(() => GetCashHistory(sl()))
+    ..registerFactory(
+      () => CashCubit(
+        getStatus: sl(),
+        openCash: sl(),
+        closeCash: sl(),
+        getHistory: sl(),
+      ),
+    )
     ..registerFactory(
       () => ProductsCubit(
         getProducts: sl(),

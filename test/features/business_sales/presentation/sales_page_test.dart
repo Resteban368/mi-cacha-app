@@ -3,8 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mi_cancha/core/session/write_access.dart';
+import 'package:mi_cancha/core/usecase/usecase.dart';
+import 'package:mi_cancha/features/business_sales/domain/entities/cash_session.dart';
 import 'package:mi_cancha/features/business_sales/domain/entities/sale.dart';
+import 'package:mi_cancha/features/business_sales/domain/usecases/cash_usecases.dart';
 import 'package:mi_cancha/features/business_sales/domain/usecases/sales_usecases.dart';
+import 'package:mi_cancha/features/business_sales/presentation/bloc/cash_cubit.dart';
 import 'package:mi_cancha/features/business_sales/presentation/bloc/sales_cubit.dart';
 import 'package:mi_cancha/features/business_sales/presentation/pages/sales_page.dart';
 import 'package:mocktail/mocktail.dart';
@@ -12,6 +16,35 @@ import 'package:mocktail/mocktail.dart';
 class _MockGetSales extends Mock implements GetSales {}
 
 class _MockVoidSale extends Mock implements VoidSale {}
+
+class _MockCashStatus extends Mock implements GetCashStatus {}
+
+class _MockOpenCash extends Mock implements OpenCash {}
+
+class _MockCloseCash extends Mock implements CloseCash {}
+
+class _MockCashHistory extends Mock implements GetCashHistory {}
+
+CashSession _cash({int? counted}) => CashSession(
+  id: 'cs-1',
+  openingCash: 50000,
+  openedAt: _now,
+  openedByName: 'Esteban',
+  expectedCash: 122500,
+  closedAt: counted == null ? null : _now,
+  countedCash: counted,
+  difference: counted == null ? null : counted - 122500,
+  methods: const [
+    CashMethodTotal(
+      code: 'EFECTIVO',
+      name: 'Efectivo',
+      count: 4,
+      amount: 72500,
+    ),
+    CashMethodTotal(code: 'NEQUI', name: 'Nequi', count: 1, amount: 5000),
+  ],
+  collected: 77500,
+);
 
 final _now = DateTime.now();
 
@@ -64,14 +97,25 @@ void main() {
     GoogleFonts.config.allowRuntimeFetching = false;
     registerFallbackValue(DateTime(2026));
     registerFallbackValue((id: 's1', reason: 'x'));
+    registerFallbackValue(const NoParams());
+    registerFallbackValue((amount: 0, note: null as String?));
   });
 
   late _MockGetSales getSales;
   late _MockVoidSale voidSale;
+  late _MockCashStatus cashStatus;
+  late _MockOpenCash openCash;
+  late _MockCloseCash closeCash;
 
   setUp(() {
     getSales = _MockGetSales();
     voidSale = _MockVoidSale();
+    cashStatus = _MockCashStatus();
+    openCash = _MockOpenCash();
+    closeCash = _MockCloseCash();
+    when(
+      () => cashStatus(any()),
+    ).thenAnswer((_) async => CashStatus(session: _cash()));
     when(() => getSales(any())).thenAnswer((_) async => _sales);
   });
 
@@ -104,8 +148,18 @@ void main() {
         notifier: WriteAccess()..update(canWrite: true),
         child: MaterialApp(
           home: Scaffold(
-            body: BlocProvider.value(
-              value: cubit..load(),
+            body: MultiBlocProvider(
+              providers: [
+                BlocProvider.value(value: cubit..load()),
+                BlocProvider(
+                  create: (_) => CashCubit(
+                    getStatus: cashStatus,
+                    openCash: openCash,
+                    closeCash: closeCash,
+                    getHistory: _MockCashHistory(),
+                  )..load(),
+                ),
+              ],
               child: const SalesPage(),
             ),
           ),
@@ -130,6 +184,51 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('cuadre de caja: muestra el faltante y cierra', (tester) async {
+    when(
+      () => closeCash(any()),
+    ).thenAnswer((_) async => _cash(counted: 120000));
+    await pump(tester, const Size(1440, 2000));
+    expect(find.text('¿Listo para el cuadre de caja?'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('cash-close')));
+    await tester.pumpAndSettle();
+    expect(find.text(r'$122.500'), findsWidgets);
+    await tester.enterText(find.byKey(const Key('cash-counted')), '120000');
+    await tester.pump();
+    expect(find.text(r'Faltante −$2.500'), findsOneWidget);
+
+    when(
+      () => cashStatus(any()),
+    ).thenAnswer((_) async => CashStatus(lastClosed: _cash(counted: 120000)));
+    await tester.tap(find.byKey(const Key('cash-close-confirm')));
+    await tester.pumpAndSettle();
+
+    verify(() => closeCash((amount: 120000, note: ''))).called(1);
+    expect(find.text(r'Caja cerrada · Faltante −$2.500.'), findsOneWidget);
+    expect(find.byKey(const Key('cash-open')), findsOneWidget);
+  });
+
+  testWidgets('abrir caja con la base', (tester) async {
+    when(() => cashStatus(any())).thenAnswer((_) async => const CashStatus());
+    when(() => openCash(any())).thenAnswer((_) async => _cash());
+    await pump(tester, const Size(1440, 2000));
+    expect(find.text('Caja cerrada'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('cash-open')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('cash-opening')), '50000');
+    when(
+      () => cashStatus(any()),
+    ).thenAnswer((_) async => CashStatus(session: _cash()));
+    await tester.tap(find.byKey(const Key('cash-open-confirm')));
+    await tester.pumpAndSettle();
+
+    verify(() => openCash((amount: 50000, note: ''))).called(1);
+    expect(find.text('Caja abierta.'), findsOneWidget);
+    expect(find.byKey(const Key('cash-close')), findsOneWidget);
+  });
 
   testWidgets('pestaña de anuladas y anular desde el menú', (tester) async {
     when(() => voidSale(any())).thenAnswer(

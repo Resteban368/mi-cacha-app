@@ -32,6 +32,7 @@ import '../../features/business_payments/presentation/bloc/new_payment/new_payme
 import '../../features/business_payments/presentation/bloc/payments/payments_bloc.dart';
 import '../../features/business_payments/presentation/pages/new_payment_page.dart';
 import '../../features/business_payments/presentation/pages/payments_page.dart';
+import '../../features/business_sales/presentation/bloc/cash_cubit.dart';
 import '../../features/business_sales/presentation/bloc/products_cubit.dart';
 import '../../features/business_sales/presentation/bloc/sales_cubit.dart';
 import '../../features/business_sales/presentation/pages/products_page.dart';
@@ -292,8 +293,11 @@ GoRouter _buildRouter(
           path: AppRoutes.businessSales,
           pageBuilder: (_, state) => NoTransitionPage(
             key: state.pageKey,
-            child: BlocProvider(
-              create: (_) => sl<SalesCubit>()..load(),
+            child: MultiBlocProvider(
+              providers: [
+                BlocProvider(create: (_) => sl<SalesCubit>()..load()),
+                BlocProvider(create: (_) => sl<CashCubit>()..load()),
+              ],
               child: const SalesPage(),
             ),
           ),

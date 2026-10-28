@@ -12,8 +12,10 @@ import '../../../../core/widgets/app_top_bar.dart';
 import '../../../business_payments/domain/entities/payment.dart';
 import '../../../business_payments/presentation/widgets/payment_styles.dart';
 import '../../domain/entities/sale.dart';
+import '../bloc/cash_cubit.dart';
 import '../bloc/sale_cart_cubit.dart';
 import '../bloc/sales_cubit.dart';
+import '../widgets/cash_widgets.dart';
 import '../widgets/sale_sheet.dart';
 import '../widgets/sale_tile.dart';
 
@@ -44,6 +46,7 @@ class SalesPage extends StatelessWidget {
         ),
       );
     await cubit.load(DateTime.now());
+    if (context.mounted) await context.read<CashCubit>().load();
   }
 
   @override
@@ -67,7 +70,10 @@ class SalesPage extends StatelessWidget {
                 child: BlocBuilder<SalesCubit, SalesState>(
                   builder: (context, state) => RefreshIndicator(
                     color: AppColors.brandTeal,
-                    onRefresh: () => context.read<SalesCubit>().load(),
+                    onRefresh: () => Future.wait([
+                      context.read<SalesCubit>().load(),
+                      context.read<CashCubit>().load(),
+                    ]),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final gutter = constraints.maxWidth >= 680
@@ -155,6 +161,8 @@ class SalesPage extends StatelessWidget {
         final visible = state.visible;
         return [
           _KpiGrid(state: state, width: width),
+          const SizedBox(height: 16),
+          const CashBanner(),
           const SizedBox(height: 16),
           _FilterBar(state: state, wide: width >= 900),
           const SizedBox(height: 16),
@@ -789,7 +797,10 @@ class _FilterBar extends StatelessWidget {
     final refresh = IconButton.outlined(
       key: const Key('sales-refresh'),
       tooltip: 'Actualizar',
-      onPressed: () => cubit.load(),
+      onPressed: () {
+        cubit.load();
+        context.read<CashCubit>().load();
+      },
       style: IconButton.styleFrom(
         side: BorderSide(color: AppColors.slate200),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -908,6 +919,10 @@ class _SaleCard extends StatelessWidget {
     final reason = await showVoidSaleDialog(context);
     if (reason == null) return;
     final error = await cubit.voidSale(sale.id, reason);
+    // Anular devuelve el pago: cambia lo esperado en la caja.
+    if (error == null && context.mounted) {
+      await context.read<CashCubit>().load();
+    }
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
