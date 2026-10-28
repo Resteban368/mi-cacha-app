@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/network/api_exception.dart';
+import '../../../business_reservations/domain/entities/reservation.dart';
+import '../../../business_reservations/domain/usecases/get_day_reservations.dart';
 import '../../domain/entities/new_sale.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/sale.dart';
@@ -10,6 +12,9 @@ import '../../domain/usecases/sales_usecases.dart';
 enum SaleCartLoad { loading, ready, failure }
 
 enum SaleCartSubmit { idle, sending, done, failure }
+
+/// Reservas de hoy para asociarles la venta (se cargan al pedirlas).
+enum LinkLoad { idle, loading, ready, failure }
 
 final class SaleCartState extends Equatable {
   const SaleCartState({
@@ -21,6 +26,10 @@ final class SaleCartState extends Equatable {
     this.query = '',
     this.category,
     this.note = '',
+    this.linkToReservation = false,
+    this.linkLoad = LinkLoad.idle,
+    this.reservations = const [],
+    this.linked,
     this.submit = SaleCartSubmit.idle,
     this.message,
     this.sale,
@@ -44,6 +53,16 @@ final class SaleCartState extends Equatable {
   final String query;
   final ProductCategory? category;
   final String note;
+
+  /// Venta nueva: asociarla a una reserva en vez de dejarla suelta.
+  final bool linkToReservation;
+  final LinkLoad linkLoad;
+
+  /// Reservas de hoy a las que se les pueden cargar consumos.
+  final List<Reservation> reservations;
+
+  /// Reserva elegida para la venta (solo con [linkToReservation]).
+  final Reservation? linked;
   final SaleCartSubmit submit;
 
   /// Error para mostrar (validación o API).
@@ -93,6 +112,10 @@ final class SaleCartState extends Equatable {
     String? query,
     ProductCategory? Function()? category,
     String? note,
+    bool? linkToReservation,
+    LinkLoad? linkLoad,
+    List<Reservation>? reservations,
+    Reservation? Function()? linked,
     SaleCartSubmit? submit,
     String? Function()? message,
     Sale? sale,
@@ -105,6 +128,10 @@ final class SaleCartState extends Equatable {
     query: query ?? this.query,
     category: category != null ? category() : this.category,
     note: note ?? this.note,
+    linkToReservation: linkToReservation ?? this.linkToReservation,
+    linkLoad: linkLoad ?? this.linkLoad,
+    reservations: reservations ?? this.reservations,
+    linked: linked != null ? linked() : this.linked,
     submit: submit ?? this.submit,
     message: message != null ? message() : this.message,
     sale: sale ?? this.sale,
@@ -120,6 +147,10 @@ final class SaleCartState extends Equatable {
     query,
     category,
     note,
+    linkToReservation,
+    linkLoad,
+    reservations,
+    linked,
     submit,
     message,
     sale,
@@ -132,12 +163,56 @@ class SaleCartCubit extends Cubit<SaleCartState> {
   SaleCartCubit({
     required GetProducts getProducts,
     required CreateSale createSale,
+    GetDayReservations? getDayReservations,
+    DateTime Function() now = DateTime.now,
   }) : _getProducts = getProducts,
        _createSale = createSale,
+       _getDayReservations = getDayReservations,
+       _now = now,
        super(const SaleCartState());
 
   final GetProducts _getProducts;
   final CreateSale _createSale;
+  final GetDayReservations? _getDayReservations;
+  final DateTime Function() _now;
+
+  /// Elige el destino de una venta nueva: suelta o a una reserva de hoy.
+  Future<void> setLinkToReservation(bool link) async {
+    emit(
+      state.copyWith(
+        linkToReservation: link,
+        // Una venta suelta siempre se cobra; un consumo, según el modo.
+        chargeNow: link ? state.chargeNow : false,
+        message: () => null,
+      ),
+    );
+    if (link && state.linkLoad != LinkLoad.ready) await loadReservations();
+  }
+
+  Future<void> loadReservations() async {
+    final getDay = _getDayReservations;
+    if (getDay == null) return;
+    emit(state.copyWith(linkLoad: LinkLoad.loading));
+    try {
+      final all = await getDay(_now());
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          linkLoad: LinkLoad.ready,
+          reservations: [
+            for (final r in all)
+              if (r.acceptsConsumptions) r,
+          ],
+        ),
+      );
+    } catch (_) {
+      if (isClosed) return;
+      emit(state.copyWith(linkLoad: LinkLoad.failure));
+    }
+  }
+
+  void linkReservation(Reservation? reservation) =>
+      emit(state.copyWith(linked: () => reservation, message: () => null));
 
   Future<void> load() async {
     emit(state.copyWith(load: SaleCartLoad.loading));
@@ -190,6 +265,12 @@ class SaleCartCubit extends Cubit<SaleCartState> {
 
   Future<void> submit({String? reservationId, String? reference}) async {
     if (state.submit == SaleCartSubmit.sending) return;
+    // Venta nueva asociada a una reserva elegida en el carrito.
+    reservationId ??= state.linkToReservation ? state.linked?.id : null;
+    if (state.linkToReservation && reservationId == null) {
+      _fail('Elige la reserva a la que se asocia la venta.');
+      return;
+    }
     emit(state.copyWith(submit: SaleCartSubmit.sending, message: () => null));
     try {
       final sale = await _createSale(

@@ -262,7 +262,13 @@ void _initBusinessSales() {
     ..registerLazySingleton(() => GetSales(sl()))
     ..registerLazySingleton(() => CreateSale(sl()))
     ..registerLazySingleton(() => VoidSale(sl()))
-    ..registerFactory(() => SaleCartCubit(getProducts: sl(), createSale: sl()))
+    ..registerFactory(
+      () => SaleCartCubit(
+        getProducts: sl(),
+        createSale: sl(),
+        getDayReservations: sl(),
+      ),
+    )
     ..registerFactory(() => SalesCubit(getSales: sl(), voidSale: sl()))
     ..registerFactory(
       () => ProductsCubit(

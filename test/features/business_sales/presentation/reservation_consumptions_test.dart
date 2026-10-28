@@ -6,6 +6,7 @@ import 'package:mi_cancha/core/domain/entities/sport.dart';
 import 'package:mi_cancha/core/session/write_access.dart';
 import 'package:mi_cancha/features/business_reservations/domain/entities/reservation.dart';
 import 'package:mi_cancha/features/business_reservations/domain/usecases/booking_usecases.dart';
+import 'package:mi_cancha/features/business_reservations/domain/usecases/get_day_reservations.dart';
 import 'package:mi_cancha/features/business_reservations/presentation/bloc/reservation_detail/reservation_detail_cubit.dart';
 import 'package:mi_cancha/features/business_reservations/presentation/widgets/reservation_detail_sheet.dart';
 import 'package:mi_cancha/features/business_sales/domain/entities/new_sale.dart';
@@ -27,6 +28,8 @@ class _MockGetProducts extends Mock implements GetProducts {}
 class _MockCreateSale extends Mock implements CreateSale {}
 
 class _MockVoidSale extends Mock implements VoidSale {}
+
+class _MockGetDay extends Mock implements GetDayReservations {}
 
 final _start = DateTime.now().subtract(const Duration(minutes: 30));
 
@@ -75,14 +78,17 @@ void main() {
     GoogleFonts.config.allowRuntimeFetching = false;
     registerFallbackValue(const NewSale(quantities: {}));
     registerFallbackValue((id: 's1', reason: 'x'));
+    registerFallbackValue(DateTime(2026));
   });
 
   late _MockGet get;
   late _MockGetProducts getProducts;
   late _MockCreateSale createSale;
   late _MockVoidSale voidSale;
+  late _MockGetDay getDay;
 
   setUp(() {
+    getDay = _MockGetDay();
     get = _MockGet();
     getProducts = _MockGetProducts();
     createSale = _MockCreateSale();
@@ -105,7 +111,11 @@ void main() {
       ],
     );
     sl.registerFactory(
-      () => SaleCartCubit(getProducts: getProducts, createSale: createSale),
+      () => SaleCartCubit(
+        getProducts: getProducts,
+        createSale: createSale,
+        getDayReservations: getDay,
+      ),
     );
   });
 
@@ -301,6 +311,95 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  Future<void> openWalkIn(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1440, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showSaleSheet(context),
+              child: const Text('vender'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('vender'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('venta nueva asociada a una reserva de hoy', (tester) async {
+    final cancelled = Reservation(
+      id: 'r9',
+      courtName: 'Cancha 2',
+      sport: Sport.futbol,
+      start: _start,
+      end: _start.add(const Duration(hours: 1)),
+      customerName: 'Cancelado',
+      phone: '1',
+      totalPrice: 1,
+      amountPaid: 0,
+      status: ReservationStatus.cancelled,
+    );
+    when(
+      () => getDay(any()),
+    ).thenAnswer((_) async => [_reservation(), cancelled]);
+    when(() => createSale(any())).thenAnswer((_) async => _sale());
+    await openWalkIn(tester);
+
+    await tester.tap(find.byKey(const Key('add-p2')));
+    await tester.tap(find.byKey(const Key('destination-reservation')));
+    await tester.pumpAndSettle();
+    // Sin reserva elegida no se envía.
+    await tester.tap(find.byKey(const Key('submit-sale')));
+    await tester.pump();
+    expect(
+      find.text('Elige la reserva a la que se asocia la venta.'),
+      findsOneWidget,
+    );
+    verifyNever(() => createSale(any()));
+
+    await tester.tap(find.byKey(const Key('choose-reservation')));
+    await tester.pumpAndSettle();
+    // Solo las reservas que aceptan consumos.
+    expect(find.byKey(const Key('pick-r9')), findsNothing);
+    await tester.tap(find.byKey(const Key('pick-r1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('linked-reservation')), findsOneWidget);
+    expect(find.text('RESUMEN DE CONSUMO'), findsOneWidget);
+    expect(find.text(r'Cargar $2.500 a la cuenta'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('submit-sale')));
+    await tester.pumpAndSettle();
+    final sent =
+        verify(() => createSale(captureAny())).captured.single as NewSale;
+    expect(sent.reservationId, 'r1');
+    expect(sent.paymentMethod, isNull);
+  });
+
+  testWidgets('volver a venta suelta la cobra en el momento', (tester) async {
+    when(() => getDay(any())).thenAnswer((_) async => [_reservation()]);
+    when(() => createSale(any())).thenAnswer((_) async => _sale());
+    await openWalkIn(tester);
+
+    await tester.tap(find.byKey(const Key('add-p2')));
+    await tester.tap(find.byKey(const Key('destination-reservation')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('destination-walk-in')));
+    await tester.pumpAndSettle();
+    expect(find.text(r'Cobrar $2.500'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('submit-sale')));
+    await tester.pumpAndSettle();
+    final sent =
+        verify(() => createSale(captureAny())).captured.single as NewSale;
+    expect(sent.reservationId, isNull);
+    expect(sent.paymentMethod, 'EFECTIVO');
+  });
 
   testWidgets('anular un consumo pide el motivo', (tester) async {
     final withSale = _reservation(consumptions: [_sale()]);

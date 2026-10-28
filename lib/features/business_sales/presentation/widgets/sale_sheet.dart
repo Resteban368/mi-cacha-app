@@ -7,6 +7,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../business_payments/domain/entities/payment.dart';
 import '../../../business_payments/presentation/widgets/payment_styles.dart';
+import '../../../business_reservations/domain/entities/reservation.dart';
+import '../../../business_reservations/presentation/widgets/sport_style.dart';
 import '../../domain/entities/new_sale.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/sale.dart';
@@ -103,6 +105,8 @@ class SaleSheetView extends StatelessWidget {
             reservation: reservation,
             compact: !wide,
           );
+          // Venta nueva: puede quedar suelta o asociarse a una reserva.
+          final allowLink = reservationId == null;
           final catalog = _Catalog(wide: wide);
           if (wide) {
             return Column(
@@ -118,7 +122,10 @@ class SaleSheetView extends StatelessWidget {
                       VerticalDivider(width: 1, color: AppColors.slate200),
                       SizedBox(
                         width: constraints.maxWidth >= 1100 ? 410 : 340,
-                        child: _TicketPanel(reservationId: reservationId),
+                        child: _TicketPanel(
+                          reservationId: reservationId,
+                          allowLink: allowLink,
+                        ),
                       ),
                     ],
                   ),
@@ -133,7 +140,10 @@ class SaleSheetView extends StatelessWidget {
               Divider(height: 1, color: AppColors.slate200),
               Expanded(child: catalog),
               Divider(height: 1, color: AppColors.slate200),
-              _CompactCheckout(reservationId: reservationId),
+              _CompactCheckout(
+                reservationId: reservationId,
+                allowLink: allowLink,
+              ),
             ],
           );
         },
@@ -159,7 +169,17 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final info = reservation;
+    // En una venta nueva, la reserva elegida en el carrito.
+    return BlocSelector<SaleCartCubit, SaleCartState, Reservation?>(
+      selector: (s) => s.linkToReservation ? s.linked : null,
+      builder: (context, linked) => _build(
+        context,
+        reservation ?? (linked == null ? null : _infoOf(linked)),
+      ),
+    );
+  }
+
+  Widget _build(BuildContext context, SaleReservationInfo? info) {
     final muted = AppTypography.bodySm.copyWith(
       color: AppColors.slate600,
       fontWeight: FontWeight.w600,
@@ -217,7 +237,7 @@ class _Header extends StatelessWidget {
                 const SizedBox(height: 4),
                 if (info == null)
                   Text(
-                    'Venta de mostrador, se cobra en el momento',
+                    'Venta de mostrador o para una reserva de hoy',
                     style: muted,
                   )
                 else
@@ -844,13 +864,21 @@ class _RoundButton extends StatelessWidget {
 
 /// Resumen al costado (pantallas anchas).
 class _TicketPanel extends StatelessWidget {
-  const _TicketPanel({this.reservationId});
+  const _TicketPanel({this.reservationId, this.allowLink = false});
 
   final String? reservationId;
+  final bool allowLink;
 
   @override
   Widget build(BuildContext context) {
-    final walkIn = reservationId == null;
+    return BlocSelector<SaleCartCubit, SaleCartState, bool>(
+      selector: (s) => s.linkToReservation,
+      builder: (context, linking) =>
+          _build(context, walkIn: reservationId == null && !linking),
+    );
+  }
+
+  Widget _build(BuildContext context, {required bool walkIn}) {
     return ColoredBox(
       color: AppColors.slate50,
       child: Column(
@@ -916,6 +944,11 @@ class _TicketPanel extends StatelessWidget {
             ),
           ),
           Divider(height: 1, color: AppColors.slate200),
+          if (allowLink)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(14, 12, 14, 4),
+              child: _DestinationPicker(),
+            ),
           const Expanded(child: _CartLines()),
           Divider(height: 1, color: AppColors.slate200),
           _Checkout(reservationId: reservationId),
@@ -1260,9 +1293,9 @@ class _NoteDialogState extends State<_NoteDialog> {
   }
 }
 
-String _verb(String? reservationId, bool chargeNow, int total) {
+String _verb(bool consumption, bool chargeNow, int total) {
   final amount = AppFormatters.cop(total);
-  if (reservationId != null && !chargeNow) {
+  if (consumption && !chargeNow) {
     return total == 0 ? 'Cargar a la cuenta' : 'Cargar $amount a la cuenta';
   }
   return total == 0 ? 'Cobrar' : 'Cobrar $amount';
@@ -1300,7 +1333,13 @@ class _SubmitButton extends StatelessWidget {
               ),
             )
           : const Icon(Icons.check_circle_rounded, size: 20),
-      label: Text(_verb(reservationId, state.chargeNow, state.total)),
+      label: Text(
+        _verb(
+          reservationId != null || state.linkToReservation,
+          state.chargeNow,
+          state.total,
+        ),
+      ),
     );
   }
 }
@@ -1339,9 +1378,11 @@ class _Checkout extends StatelessWidget {
           prev.products != curr.products ||
           prev.chargeNow != curr.chargeNow ||
           prev.paymentMethod != curr.paymentMethod ||
-          prev.note != curr.note,
+          prev.note != curr.note ||
+          prev.linkToReservation != curr.linkToReservation,
       builder: (context, state) {
-        final payNow = reservationId == null || state.chargeNow;
+        final consumption = reservationId != null || state.linkToReservation;
+        final payNow = !consumption || state.chargeNow;
         final label = AppTypography.bodySm.copyWith(color: AppColors.slate600);
         return Container(
           color: AppColors.surfaceContainerLowest,
@@ -1350,7 +1391,7 @@ class _Checkout extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (reservationId != null) ...[
+              if (consumption) ...[
                 _ModeToggle(chargeNow: state.chargeNow),
                 const SizedBox(height: 12),
               ],
@@ -1434,9 +1475,10 @@ class _Checkout extends StatelessWidget {
 
 /// Pie en celular: modo, método de pago en una fila, total y confirmar.
 class _CompactCheckout extends StatelessWidget {
-  const _CompactCheckout({this.reservationId});
+  const _CompactCheckout({this.reservationId, this.allowLink = false});
 
   final String? reservationId;
+  final bool allowLink;
 
   @override
   Widget build(BuildContext context) {
@@ -1448,9 +1490,11 @@ class _CompactCheckout extends StatelessWidget {
           prev.products != curr.products ||
           prev.chargeNow != curr.chargeNow ||
           prev.paymentMethod != curr.paymentMethod ||
-          prev.note != curr.note,
+          prev.note != curr.note ||
+          prev.linkToReservation != curr.linkToReservation,
       builder: (context, state) {
-        final payNow = reservationId == null || state.chargeNow;
+        final consumption = reservationId != null || state.linkToReservation;
+        final payNow = !consumption || state.chargeNow;
         return Container(
           color: AppColors.surfaceContainerLowest,
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -1458,7 +1502,11 @@ class _CompactCheckout extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (reservationId != null) ...[
+              if (allowLink) ...[
+                const _DestinationPicker(compact: true),
+                const SizedBox(height: 8),
+              ],
+              if (consumption) ...[
                 _ModeToggle(chargeNow: state.chargeNow),
                 const SizedBox(height: 8),
               ],
@@ -1486,6 +1534,408 @@ class _CompactCheckout extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+SaleReservationInfo _infoOf(Reservation r) => SaleReservationInfo(
+  customerName: r.customerName,
+  courtName: r.courtsLabel,
+  start: r.start,
+  end: r.end,
+  sportIcon: r.sport.icon,
+);
+
+/// Destino de una venta nueva: suelta o asociada a una reserva de hoy.
+class _DestinationPicker extends StatelessWidget {
+  const _DestinationPicker({this.compact = false});
+
+  final bool compact;
+
+  Future<void> _choose(BuildContext context) async {
+    final cubit = context.read<SaleCartCubit>();
+    if (cubit.state.linkLoad != LinkLoad.ready) await cubit.loadReservations();
+    if (!context.mounted) return;
+    final chosen = await showDialog<Reservation>(
+      context: context,
+      builder: (_) => BlocProvider.value(
+        value: cubit,
+        child: const _ReservationPickerDialog(),
+      ),
+    );
+    if (chosen != null) cubit.linkReservation(chosen);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<SaleCartCubit>();
+    return BlocBuilder<SaleCartCubit, SaleCartState>(
+      buildWhen: (prev, curr) =>
+          prev.linkToReservation != curr.linkToReservation ||
+          prev.linked != curr.linked ||
+          prev.linkLoad != curr.linkLoad,
+      builder: (context, state) {
+        Widget option(String label, IconData icon, bool value, Key key) {
+          final selected = state.linkToReservation == value;
+          return Expanded(
+            child: Material(
+              color: selected
+                  ? AppColors.surfaceContainerLowest
+                  : Colors.transparent,
+              elevation: selected ? 1 : 0,
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                key: key,
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => cubit.setLinkToReservation(value),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 16,
+                        color: selected
+                            ? AppColors.brandTealDeep
+                            : AppColors.slate500,
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          label,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.labelMd.copyWith(
+                            color: selected
+                                ? AppColors.brandTealDeep
+                                : AppColors.slate600,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        final linked = state.linked;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!compact) ...[
+              Text(
+                'DESTINO DE LA VENTA',
+                style: AppTypography.labelSm.copyWith(
+                  color: AppColors.slate500,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppColors.slate100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  option(
+                    'Venta suelta',
+                    Icons.shopping_bag_outlined,
+                    false,
+                    const Key('destination-walk-in'),
+                  ),
+                  option(
+                    'A una reserva',
+                    Icons.event_available_outlined,
+                    true,
+                    const Key('destination-reservation'),
+                  ),
+                ],
+              ),
+            ),
+            if (state.linkToReservation) ...[
+              const SizedBox(height: 8),
+              if (linked == null)
+                OutlinedButton.icon(
+                  key: const Key('choose-reservation'),
+                  onPressed: state.linkLoad == LinkLoad.loading
+                      ? null
+                      : () => _choose(context),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 42),
+                    foregroundColor: AppColors.brandTealDeep,
+                    side: BorderSide(color: AppColors.brandTeal),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: state.linkLoad == LinkLoad.loading
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.search_rounded, size: 18),
+                  label: const Text('Elegir reserva de hoy'),
+                )
+              else
+                _LinkedReservationCard(
+                  reservation: linked,
+                  onChange: () => _choose(context),
+                ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _LinkedReservationCard extends StatelessWidget {
+  const _LinkedReservationCard({
+    required this.reservation,
+    required this.onChange,
+  });
+
+  final Reservation reservation;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = reservation;
+    return Container(
+      key: const Key('linked-reservation'),
+      padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
+      decoration: BoxDecoration(
+        color: AppColors.brandTealLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.brandTeal.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Icon(r.sport.icon, size: 20, color: AppColors.brandTealDeep),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  r.customerName,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodySm.copyWith(
+                    color: AppColors.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${r.courtsLabel} · ${AppFormatters.timeRange(r.start, r.end)}',
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodySm.copyWith(
+                    color: AppColors.slate600,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            key: const Key('change-reservation'),
+            onPressed: onChange,
+            child: const Text('Cambiar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lista de reservas de hoy (confirmadas o jugadas) con búsqueda.
+class _ReservationPickerDialog extends StatefulWidget {
+  const _ReservationPickerDialog();
+
+  @override
+  State<_ReservationPickerDialog> createState() =>
+      _ReservationPickerDialogState();
+}
+
+class _ReservationPickerDialogState extends State<_ReservationPickerDialog> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 600),
+        child: BlocBuilder<SaleCartCubit, SaleCartState>(
+          buildWhen: (prev, curr) =>
+              prev.linkLoad != curr.linkLoad ||
+              prev.reservations != curr.reservations,
+          builder: (context, state) {
+            final text = _query.trim().toLowerCase();
+            final items = [
+              for (final r in state.reservations)
+                if (text.isEmpty ||
+                    r.customerName.toLowerCase().contains(text) ||
+                    r.courtsLabel.toLowerCase().contains(text))
+                  r,
+            ];
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Reservas de hoy',
+                          style: AppTypography.headlineSm.copyWith(
+                            color: AppColors.onSurface,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Cerrar',
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: TextField(
+                    key: const Key('reservation-search'),
+                    autofocus: true,
+                    onChanged: (v) => setState(() => _query = v),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: 'Buscar por cliente o cancha…',
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: AppColors.slate400,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: switch (state.linkLoad) {
+                    LinkLoad.loading || LinkLoad.idle => const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    LinkLoad.failure => _Message(
+                      icon: Icons.wifi_off_rounded,
+                      text: 'No pudimos cargar las reservas de hoy.',
+                      action: TextButton(
+                        onPressed: () =>
+                            context.read<SaleCartCubit>().loadReservations(),
+                        child: const Text('Reintentar'),
+                      ),
+                    ),
+                    LinkLoad.ready when items.isEmpty => _Message(
+                      icon: Icons.event_busy_outlined,
+                      text: state.reservations.isEmpty
+                          ? 'No hay reservas confirmadas hoy.'
+                          : 'Ninguna reserva coincide con la búsqueda.',
+                    ),
+                    LinkLoad.ready => ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+                      itemCount: items.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 6),
+                      itemBuilder: (context, i) =>
+                          _ReservationOption(reservation: items[i]),
+                    ),
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ReservationOption extends StatelessWidget {
+  const _ReservationOption({required this.reservation});
+
+  final Reservation reservation;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = reservation;
+    return Material(
+      color: AppColors.surfaceContainerLowest,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        key: Key('pick-${r.id}'),
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.of(context).pop(r),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.slate200),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: r.sport.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(r.sport.icon, size: 18, color: r.sport.color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      r.customerName,
+                      style: AppTypography.bodyMd.copyWith(
+                        color: AppColors.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '${r.courtsLabel} · '
+                      '${AppFormatters.timeRange(r.start, r.end)}',
+                      style: AppTypography.bodySm.copyWith(
+                        color: AppColors.slate500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (r.displayBalance > 0)
+                Text(
+                  'Saldo ${AppFormatters.cop(r.displayBalance)}',
+                  style: AppTypography.labelSm.copyWith(
+                    color: AppColors.statusDeposit,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
