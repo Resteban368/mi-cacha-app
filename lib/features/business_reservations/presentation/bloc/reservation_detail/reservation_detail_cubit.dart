@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../../core/network/api_exception.dart';
+import '../../../../business_sales/domain/usecases/sales_usecases.dart';
 import '../../../domain/entities/reservation.dart';
 import '../../../domain/entities/reservation_failure.dart';
 import '../../../domain/usecases/booking_usecases.dart';
@@ -57,21 +59,24 @@ final class ReservationDetailState extends Equatable {
   ];
 }
 
-/// Detalle de una reserva con sus acciones: cancelar (con motivo) y marcar
-/// jugada, no asistió o de nuevo confirmada.
+/// Detalle de una reserva con sus acciones: cancelar (con motivo), marcar
+/// jugada, no asistió o de nuevo confirmada, y anular consumos.
 class ReservationDetailCubit extends Cubit<ReservationDetailState> {
   ReservationDetailCubit({
     required GetReservation getReservation,
     required CancelReservation cancelReservation,
     required UpdateReservationStatus updateStatus,
+    VoidSale? voidSale,
   }) : _getReservation = getReservation,
        _cancel = cancelReservation,
        _updateStatus = updateStatus,
+       _voidSale = voidSale,
        super(const ReservationDetailState());
 
   final GetReservation _getReservation;
   final CancelReservation _cancel;
   final UpdateReservationStatus _updateStatus;
+  final VoidSale? _voidSale;
 
   /// Muestra [initial] (de la agenda) mientras trae el detalle completo
   /// (pagos, cliente).
@@ -88,9 +93,12 @@ class ReservationDetailCubit extends Cubit<ReservationDetailState> {
     }
   }
 
-  /// Se registró un pago desde el detalle: trae de nuevo la reserva para
-  /// mostrar el saldo al día y avisa a la agenda que debe recargarse.
-  Future<void> paymentRegistered() async {
+  /// Se registró un pago o un consumo desde el detalle: trae de nuevo la
+  /// reserva para mostrar el saldo al día y avisa a la agenda que debe
+  /// recargarse.
+  Future<void> paymentRegistered() => refresh();
+
+  Future<void> refresh() async {
     emit(state.copyWith(changed: true));
     try {
       final reservation = await _getReservation(state.reservation!.id);
@@ -99,6 +107,29 @@ class ReservationDetailCubit extends Cubit<ReservationDetailState> {
     } catch (_) {
       // Se queda con los datos que ya mostraba.
     }
+  }
+
+  /// Anula un consumo: deja de sumar al saldo. Devuelve el mensaje de error
+  /// para mostrar, o `null` si se anuló.
+  Future<String?> voidConsumption(String saleId, String reason) async {
+    final voidSale = _voidSale;
+    if (voidSale == null) return 'No se pudo anular el consumo.';
+    try {
+      await voidSale((id: saleId, reason: reason));
+    } on ArgumentError catch (error) {
+      return '${error.message}';
+    } on ApiException catch (error) {
+      return switch (error.kind) {
+        ApiErrorKind.network =>
+          'Sin conexión. Revisa tu internet e intenta de nuevo.',
+        ApiErrorKind.conflict ||
+        ApiErrorKind.badRequest => error.message ?? 'No se pudo anular.',
+        _ => 'No se pudo anular el consumo. Intenta de nuevo.',
+      };
+    }
+    if (isClosed) return null;
+    await refresh();
+    return null;
   }
 
   Future<void> cancel(String reason) =>

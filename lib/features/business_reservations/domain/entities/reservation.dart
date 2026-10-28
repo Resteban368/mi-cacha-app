@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/domain/entities/sport.dart';
 import '../../../business_payments/domain/entities/payment.dart';
+import '../../../business_sales/domain/entities/sale.dart';
 import 'customer.dart';
 
 /// Estado administrativo de la reserva (fijo en la plataforma).
@@ -91,6 +92,7 @@ class ReservationGroup extends Equatable {
     required this.courts,
     required this.totalPrice,
     required this.amountPaid,
+    this.consumptionsTotal = 0,
   });
 
   final String id;
@@ -98,12 +100,24 @@ class ReservationGroup extends Equatable {
 
   /// Suma de las canchas, con el descuento.
   final int totalPrice;
+
+  /// Consumos de todas las canchas del grupo.
+  final int consumptionsTotal;
   final int amountPaid;
 
-  int get balance => (totalPrice - amountPaid).clamp(0, totalPrice);
+  /// Lo que se cobra: canchas más consumos.
+  int get amountDue => totalPrice + consumptionsTotal;
+
+  int get balance => (amountDue - amountPaid).clamp(0, amountDue);
 
   @override
-  List<Object?> get props => [id, courts, totalPrice, amountPaid];
+  List<Object?> get props => [
+    id,
+    courts,
+    totalPrice,
+    consumptionsTotal,
+    amountPaid,
+  ];
 }
 
 /// Momento de la reserva respecto a "ahora".
@@ -131,6 +145,8 @@ class Reservation extends Equatable {
     this.discount = 0,
     this.currency = 'COP',
     this.payments = const [],
+    this.consumptionsTotal = 0,
+    this.consumptions = const [],
     this.cancellationReason,
     this.cancelledAt,
     this.cancelledBy,
@@ -172,6 +188,12 @@ class Reservation extends Equatable {
   final int discount;
   final String currency;
   final List<ReservationPayment> payments;
+
+  /// Suma de los consumos activos (bebidas, snacks…) cargados a esta cancha.
+  final int consumptionsTotal;
+
+  /// Ventas cargadas a la reserva, también las anuladas (más antigua primero).
+  final List<Sale> consumptions;
   final String? cancellationReason;
   final DateTime? cancelledAt;
 
@@ -181,13 +203,24 @@ class Reservation extends Equatable {
   /// Si es parte de una reserva de varias canchas.
   final ReservationGroup? group;
 
+  /// Lo que se cobra de esta cancha: su valor más sus consumos.
+  int get amountDue => totalPrice + consumptionsTotal;
+
   /// Saldo de esta cancha (para sumar por cancha). Para mostrar al cliente
   /// usa [displayBalance], que en un grupo es el de todas las canchas.
-  int get balance => (totalPrice - amountPaid).clamp(0, totalPrice);
+  int get balance => (amountDue - amountPaid).clamp(0, amountDue);
 
-  /// Total, pagado y saldo que ve el negocio: los del grupo si lo hay (los
-  /// pagos de un grupo quedan en su primera reserva).
-  int get displayTotal => group?.totalPrice ?? totalPrice;
+  /// Total (canchas y consumos), pagado y saldo que ve el negocio: los del
+  /// grupo si lo hay (los pagos de un grupo quedan en su primera reserva).
+  int get displayTotal => group?.amountDue ?? amountDue;
+
+  /// Consumos que suma [displayTotal] (los del grupo si lo hay).
+  int get displayConsumptions => group?.consumptionsTotal ?? consumptionsTotal;
+
+  /// Si todavía se le pueden cargar consumos.
+  bool get acceptsConsumptions =>
+      status == ReservationStatus.confirmed ||
+      status == ReservationStatus.completed;
   int get displayPaid => group?.amountPaid ?? amountPaid;
   int get displayBalance => group?.balance ?? balance;
 
@@ -234,6 +267,8 @@ class Reservation extends Equatable {
     discount,
     currency,
     payments,
+    consumptionsTotal,
+    consumptions,
     cancellationReason,
     cancelledAt,
     cancelledBy,

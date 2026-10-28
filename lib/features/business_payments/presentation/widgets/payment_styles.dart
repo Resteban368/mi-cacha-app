@@ -62,6 +62,7 @@ extension PaymentConceptLabel on PaymentConcept {
     PaymentConcept.anticipo => 'Anticipo',
     PaymentConcept.saldo => 'Saldo',
     PaymentConcept.total => 'Pago total',
+    PaymentConcept.venta => 'Venta',
   };
 }
 

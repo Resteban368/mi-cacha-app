@@ -64,6 +64,14 @@ import '../../features/business_payments/domain/usecases/get_payments.dart';
 import '../../features/business_payments/domain/usecases/validate_payment.dart';
 import '../../features/business_payments/presentation/bloc/new_payment/new_payment_bloc.dart';
 import '../../features/business_payments/presentation/bloc/payments/payments_bloc.dart';
+import '../../features/business_sales/data/datasources/sales_api_data_source.dart';
+import '../../features/business_sales/data/datasources/sales_data_source.dart';
+import '../../features/business_sales/data/repositories/sales_repository_impl.dart';
+import '../../features/business_sales/domain/repositories/sales_repository.dart';
+import '../../features/business_sales/domain/usecases/sales_usecases.dart';
+import '../../features/business_sales/presentation/bloc/products_cubit.dart';
+import '../../features/business_sales/presentation/bloc/sale_cart_cubit.dart';
+import '../../features/business_sales/presentation/bloc/sales_cubit.dart';
 import '../../features/business_setup/domain/usecases/get_setup_progress.dart';
 import '../../features/business_setup/presentation/business_setup_gate.dart';
 import '../../features/business_profile/data/datasources/business_api_data_source.dart';
@@ -134,6 +142,7 @@ Future<void> initDependencies() async {
   _initAuth();
   _initBusinessReservations();
   _initBusinessPayments();
+  _initBusinessSales();
   _initBusinessProfile();
   _initBusinessAccount();
   _initBusinessNotifications();
@@ -228,6 +237,7 @@ void _initBusinessReservations() {
         getReservation: sl(),
         cancelReservation: sl(),
         updateStatus: sl(),
+        voidSale: sl(),
       ),
     )
     ..registerFactory(
@@ -238,6 +248,27 @@ void _initBusinessReservations() {
         searchCustomers: sl(),
         createReservation: sl(),
         clock: sl(),
+      ),
+    );
+}
+
+void _initBusinessSales() {
+  sl
+    ..registerLazySingleton<SalesDataSource>(() => SalesApiDataSource(sl()))
+    ..registerLazySingleton<SalesRepository>(() => SalesRepositoryImpl(sl()))
+    ..registerLazySingleton(() => GetProducts(sl()))
+    ..registerLazySingleton(() => SaveProduct(sl()))
+    ..registerLazySingleton(() => SetProductActive(sl()))
+    ..registerLazySingleton(() => GetSales(sl()))
+    ..registerLazySingleton(() => CreateSale(sl()))
+    ..registerLazySingleton(() => VoidSale(sl()))
+    ..registerFactory(() => SaleCartCubit(getProducts: sl(), createSale: sl()))
+    ..registerFactory(() => SalesCubit(getSales: sl(), voidSale: sl()))
+    ..registerFactory(
+      () => ProductsCubit(
+        getProducts: sl(),
+        saveProduct: sl(),
+        setProductActive: sl(),
       ),
     );
 }

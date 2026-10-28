@@ -32,7 +32,13 @@ enum PaymentMethod {
 enum PaymentConcept {
   anticipo('ANTICIPO'),
   saldo('SALDO'),
-  total('TOTAL');
+  total('TOTAL'),
+
+  /// Pago de una venta suelta (agua, bebidas…) sin reserva.
+  venta('VENTA');
+
+  /// Conceptos que se eligen al registrar el pago de una reserva.
+  static const selectable = [anticipo, saldo, total];
 
   const PaymentConcept(this.apiCode);
 

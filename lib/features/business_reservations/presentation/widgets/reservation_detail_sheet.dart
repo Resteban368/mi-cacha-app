@@ -12,6 +12,9 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../business_payments/domain/entities/payment.dart';
 import '../../../business_payments/presentation/widgets/payment_styles.dart';
+import '../../../business_sales/domain/entities/sale.dart';
+import '../../../business_sales/presentation/widgets/sale_sheet.dart';
+import '../../../business_sales/presentation/widgets/sale_tile.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/reservation.dart';
 import '../../domain/entities/reservation_failure.dart';
@@ -150,6 +153,45 @@ class ReservationDetailView extends StatelessWidget {
     await cubit.paymentRegistered();
   }
 
+  /// Carga bebidas, snacks… a la reserva: suman a su saldo.
+  Future<void> _addConsumption(BuildContext context, Reservation r) async {
+    if (!ensureCanWrite(context)) return;
+    final cubit = context.read<ReservationDetailCubit>();
+    final sale = await showSaleSheet(
+      context,
+      reservationId: r.id,
+      subtitle: '${r.customerName} · ${r.courtName}',
+    );
+    if (sale == null || !context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Consumo agregado: ${AppFormatters.cop(sale.total)}.'),
+        ),
+      );
+    await cubit.refresh();
+  }
+
+  Future<void> _voidConsumption(BuildContext context, Sale sale) async {
+    if (!ensureCanWrite(context)) return;
+    final reason = await showVoidSaleDialog(context);
+    if (reason == null || !context.mounted) return;
+    final error = await context.read<ReservationDetailCubit>().voidConsumption(
+      sale.id,
+      reason,
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Consumo anulado.'),
+          backgroundColor: error == null ? null : AppColors.statusDue,
+        ),
+      );
+  }
+
   void _setStatus(BuildContext context, ReservationStatus status) {
     if (!ensureCanWrite(context)) return;
     context.read<ReservationDetailCubit>().setStatus(status);
@@ -253,7 +295,16 @@ class ReservationDetailView extends StatelessWidget {
                     horizontal: 20,
                     vertical: 16,
                   ),
-                  child: _Details(reservation: r, state: state),
+                  child: _Details(
+                    reservation: r,
+                    state: state,
+                    onAddConsumption: canAct && r.acceptsConsumptions
+                        ? () => _addConsumption(context, r)
+                        : null,
+                    onVoidConsumption: canAct
+                        ? (sale) => _voidConsumption(context, sale)
+                        : null,
+                  ),
                 ),
               ),
 
@@ -467,10 +518,17 @@ class _HeaderBar extends StatelessWidget {
 }
 
 class _Details extends StatelessWidget {
-  const _Details({required this.reservation, required this.state});
+  const _Details({
+    required this.reservation,
+    required this.state,
+    this.onAddConsumption,
+    this.onVoidConsumption,
+  });
 
   final Reservation reservation;
   final ReservationDetailState state;
+  final VoidCallback? onAddConsumption;
+  final ValueChanged<Sale>? onVoidConsumption;
 
   void _launchWhatsApp(BuildContext context) =>
       openReservationChat(context, reservation);
@@ -511,12 +569,22 @@ class _Details extends StatelessWidget {
           },
         ),
 
+        // 3. CONSUMOS (BEBIDAS, SNACKS…)
+        if (onAddConsumption != null || r.consumptions.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _ConsumptionsCard(
+            reservation: r,
+            onAdd: onAddConsumption,
+            onVoid: onVoidConsumption,
+          ),
+        ],
+
         const SizedBox(height: 16),
 
-        // 3. FINANCIAL SUMMARY & PAYMENTS CARD
+        // 4. FINANCIAL SUMMARY & PAYMENTS CARD
         _FinancialCard(reservation: r),
 
-        // 4. CANCELLATION DETAILS (IF CANCELLED)
+        // 5. CANCELLATION DETAILS (IF CANCELLED)
         if (r.status == ReservationStatus.cancelled) ...[
           const SizedBox(height: 16),
           _CancellationCard(reservation: r),
@@ -1131,6 +1199,16 @@ class _FinancialCard extends StatelessWidget {
           const SizedBox(height: 12),
 
           // Detailed Breakdown
+          if (r.displayConsumptions > 0) ...[
+            ReservationAmountRow(
+              label: r.group == null ? 'Cancha' : 'Canchas',
+              value: AppFormatters.cop(r.displayTotal - r.displayConsumptions),
+            ),
+            ReservationAmountRow(
+              label: 'Consumos',
+              value: AppFormatters.cop(r.displayConsumptions),
+            ),
+          ],
           if (r.discount > 0) ...[
             ReservationAmountRow(
               label: 'Subtotal',
@@ -1175,6 +1253,83 @@ class _FinancialCard extends StatelessWidget {
               _PaymentTile(payment: p),
               const SizedBox(height: 6),
             ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ConsumptionsCard extends StatelessWidget {
+  const _ConsumptionsCard({required this.reservation, this.onAdd, this.onVoid});
+
+  final Reservation reservation;
+  final VoidCallback? onAdd;
+  final ValueChanged<Sale>? onVoid;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = reservation;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'CONSUMOS',
+                  style: AppTypography.labelSm.copyWith(
+                    color: AppColors.slate500,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              if (r.consumptionsTotal > 0)
+                Text(
+                  AppFormatters.cop(r.consumptionsTotal),
+                  style: AppTypography.bodyMd.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (r.consumptions.isEmpty)
+            Text(
+              'Bebidas, snacks o alquileres que pidan en el turno. Suman al '
+              'saldo de la reserva.',
+              style: AppTypography.bodySm.copyWith(color: AppColors.slate500),
+            ),
+          for (final sale in r.consumptions) ...[
+            SaleTile(
+              sale: sale,
+              onVoid: onVoid == null ? null : () => onVoid!(sale),
+            ),
+            const SizedBox(height: 6),
+          ],
+          if (onAdd != null) ...[
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                key: const Key('add-consumption'),
+                onPressed: onAdd,
+                icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
+                label: const Text('Agregar consumo'),
+              ),
+            ),
           ],
         ],
       ),

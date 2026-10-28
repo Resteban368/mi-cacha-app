@@ -83,12 +83,14 @@ class PaymentsApiDataSource implements PaymentsDataSource {
       concept: switch (json['concept']) {
         'ANTICIPO' => PaymentConcept.anticipo,
         'SALDO' => PaymentConcept.saldo,
+        'VENTA' => PaymentConcept.venta,
         _ => PaymentConcept.total,
       },
       receivedAt: DateTime.parse(json['receivedAt'] as String).toLocal(),
       status: switch (json['status']) {
         'APPROVED' => PaymentStatus.approved,
         'REJECTED' => PaymentStatus.rejected,
+        'REFUNDED' => PaymentStatus.refunded,
         _ => PaymentStatus.pending,
       },
       courtName: json['courtName'] as String?,

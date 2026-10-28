@@ -326,7 +326,7 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
               spacing: 6,
               runSpacing: 6,
               children: [
-                for (final concept in PaymentConcept.values)
+                for (final concept in PaymentConcept.selectable)
                   _ChoicePill(
                     label: concept.label,
                     selected: concept == _concept,

@@ -26,6 +26,8 @@ abstract final class AppRoutes {
   static const businessDashboard = '/negocio/dashboard';
   static const businessPayments = '/negocio/pagos';
   static const businessNewPayment = '/negocio/pagos/nuevo';
+  static const businessSales = '/negocio/ventas';
+  static const businessProducts = '/negocio/ventas/productos';
   static const businessCourts = '/negocio/canchas';
   static const businessNewCourt = '/negocio/canchas/nueva';
   static const businessEditCourt = '/negocio/canchas/editar/:id';

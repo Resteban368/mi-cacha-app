@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/domain/entities/sport.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../business_payments/domain/entities/payment.dart';
+import '../../../business_sales/data/datasources/sales_api_data_source.dart';
 import '../../domain/entities/availability.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/new_reservation.dart';
@@ -273,6 +274,11 @@ class ReservationsApiDataSource implements ReservationsDataSource {
       for (final item in (json['payments'] as List<dynamic>? ?? const []))
         _payment(item as Map<String, dynamic>),
     ],
+    consumptionsTotal: _money(json['consumptionsTotal']),
+    consumptions: [
+      for (final item in (json['consumptions'] as List<dynamic>? ?? const []))
+        SalesApiDataSource.saleFromJson(item as Map<String, dynamic>),
+    ],
     status:
         ReservationStatus.fromApi(json['status'] as String?) ??
         ReservationStatus.confirmed,
@@ -304,6 +310,7 @@ class ReservationsApiDataSource implements ReservationsDataSource {
           ),
     ],
     totalPrice: _money(json['totalPrice']),
+    consumptionsTotal: _money(json['consumptionsTotal']),
     amountPaid: _money(json['amountPaid']),
   );
 }

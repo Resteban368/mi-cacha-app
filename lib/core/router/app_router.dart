@@ -32,6 +32,10 @@ import '../../features/business_payments/presentation/bloc/new_payment/new_payme
 import '../../features/business_payments/presentation/bloc/payments/payments_bloc.dart';
 import '../../features/business_payments/presentation/pages/new_payment_page.dart';
 import '../../features/business_payments/presentation/pages/payments_page.dart';
+import '../../features/business_sales/presentation/bloc/products_cubit.dart';
+import '../../features/business_sales/presentation/bloc/sales_cubit.dart';
+import '../../features/business_sales/presentation/pages/products_page.dart';
+import '../../features/business_sales/presentation/pages/sales_page.dart';
 import '../../features/business_profile/presentation/bloc/business_city_cubit.dart';
 import '../../features/business_profile/presentation/bloc/business_profile_bloc.dart';
 import '../../features/business_profile/presentation/pages/business_profile_page.dart';
@@ -283,6 +287,27 @@ GoRouter _buildRouter(
               ),
             ),
           ],
+        ),
+        GoRoute(
+          path: AppRoutes.businessSales,
+          pageBuilder: (_, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: BlocProvider(
+              create: (_) => sl<SalesCubit>()..load(),
+              child: const SalesPage(),
+            ),
+          ),
+        ),
+        // Hermana (no hija) de Ventas: solo una de las dos queda montada.
+        GoRoute(
+          path: AppRoutes.businessProducts,
+          pageBuilder: (_, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: BlocProvider(
+              create: (_) => sl<ProductsCubit>()..load(),
+              child: const ProductsPage(),
+            ),
+          ),
         ),
         GoRoute(
           path: AppRoutes.businessCourts,

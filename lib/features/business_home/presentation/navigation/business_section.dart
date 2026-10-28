@@ -48,6 +48,14 @@ enum BusinessSection {
     activeIcon: Icons.account_balance_wallet,
     fullWidth: true,
   ),
+  ventas(
+    group: BusinessSectionGroup.gestion,
+    path: AppRoutes.businessSales,
+    label: 'Ventas',
+    icon: Icons.point_of_sale_outlined,
+    activeIcon: Icons.point_of_sale,
+    fullWidth: true,
+  ),
   canchas(
     group: BusinessSectionGroup.gestion,
     path: AppRoutes.businessCourts,
