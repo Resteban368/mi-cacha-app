@@ -348,49 +348,49 @@ class _HeroPitchBanner extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFA3E635)
-                                          .withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: const Color(0xFFA3E635)
-                                            .withValues(alpha: 0.4),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          width: 6,
-                                          height: 6,
-                                          decoration: const BoxDecoration(
-                                            color: Color(0xFFA3E635),
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'OPERACIÓN EN VIVO',
-                                          style: AppTypography.labelSm.copyWith(
-                                            color: const Color(0xFFA3E635),
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 0.6,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
+                              // Row(
+                              //   children: [
+                              //     Container(
+                              //       padding: const EdgeInsets.symmetric(
+                              //         horizontal: 8,
+                              //         vertical: 3,
+                              //       ),
+                              //       decoration: BoxDecoration(
+                              //         color: const Color(0xFFA3E635)
+                              //             .withValues(alpha: 0.2),
+                              //         borderRadius: BorderRadius.circular(6),
+                              //         border: Border.all(
+                              //           color: const Color(0xFFA3E635)
+                              //               .withValues(alpha: 0.4),
+                              //         ),
+                              //       ),
+                              //       child: Row(
+                              //         mainAxisSize: MainAxisSize.min,
+                              //         children: [
+                              //           Container(
+                              //             width: 6,
+                              //             height: 6,
+                              //             decoration: const BoxDecoration(
+                              //               color: Color(0xFFA3E635),
+                              //               shape: BoxShape.circle,
+                              //             ),
+                              //           ),
+                              //           const SizedBox(width: 6),
+                              //           Text(
+                              //             'OPERACIÓN EN VIVO',
+                              //             style: AppTypography.labelSm.copyWith(
+                              //               color: const Color(0xFFA3E635),
+                              //               fontSize: 10,
+                              //               fontWeight: FontWeight.w800,
+                              //               letterSpacing: 0.6,
+                              //             ),
+                              //           ),
+                              //         ],
+                              //       ),
+                              //     ),
+                              //   ],
+                              // ),
+                              // const SizedBox(height: 8),
                               Text(
                                 'Control de Inventario y Existencias',
                                 style: AppTypography.headlineLg.copyWith(
