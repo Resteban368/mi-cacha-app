@@ -391,19 +391,18 @@ class _Catalog extends StatelessWidget {
                             text: 'Ningún producto coincide con la búsqueda.',
                           )
                         : GridView.builder(
-                            padding: EdgeInsets.all(wide ? 20 : 12),
+                            padding: EdgeInsets.all(wide ? 16 : 12),
                             gridDelegate:
                                 SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: wide ? 230 : 190,
-                                  mainAxisExtent: wide ? 222 : 186,
-                                  crossAxisSpacing: wide ? 14 : 10,
-                                  mainAxisSpacing: wide ? 14 : 10,
+                                  maxCrossAxisExtent: wide ? 210 : 200,
+                                  mainAxisExtent: wide ? 118 : 132,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
                                 ),
                             itemCount: visible.length,
                             itemBuilder: (_, i) => _ProductCard(
                               product: visible[i],
                               rank: ranks[visible[i].id],
-                              compact: !wide,
                             ),
                           ),
                   ),
@@ -630,15 +629,12 @@ class _Message extends StatelessWidget {
   }
 }
 
-/// Tarjeta de un producto: tocarla suma una unidad. Sin unidades muestra
-/// "Agregar"; con unidades, − cantidad +.
+/// Tarjeta compacta de un producto: ícono a la izquierda, nombre y precio,
+/// y abajo "Agregar" o − cantidad +. Tocarla suma una unidad.
 class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product, this.rank, this.compact = false});
+  const _ProductCard({required this.product, this.rank});
 
   final Product product;
-
-  /// Celular: ícono más chico y menos aire para que quepan más tarjetas.
-  final bool compact;
 
   /// Puesto entre los más vendidos (1, 2, 3) o `null`.
   final int? rank;
@@ -653,158 +649,147 @@ class _ProductCard extends StatelessWidget {
         final selected = quantity > 0;
         return Material(
           color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(18),
-          elevation: selected ? 2 : 0,
-          shadowColor: AppColors.brandTeal.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(14),
           child: InkWell(
             key: Key('product-${product.id}'),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             onTap: () => cubit.add(product.id),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: selected ? AppColors.brandTeal : AppColors.slate200,
                   width: selected ? 2 : 1,
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-              child: Stack(
-                clipBehavior: Clip.none,
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: compact ? 10 : 14),
-                      Center(
-                        child: Container(
-                          width: compact ? 44 : 56,
-                          height: compact ? 44 : 56,
-                          decoration: BoxDecoration(
-                            color: category.tint,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            category.icon,
-                            color: category.color,
-                            size: compact ? 22 : 28,
-                          ),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: category.tint,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          category.icon,
+                          color: category.color,
+                          size: 22,
                         ),
                       ),
-                      SizedBox(height: compact ? 6 : 10),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          product.name,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.bodyMd.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface,
-                            height: 1.2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.bodySm.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.onSurface,
+                                height: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              AppFormatters.cop(product.price),
+                              style: AppTypography.labelMd.copyWith(
+                                color: selected
+                                    ? AppColors.brandTealDeep
+                                    : AppColors.slate600,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (rank case final rank?)
+                        Container(
+                          key: Key('top-${product.id}'),
+                          margin: const EdgeInsets.only(left: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.amber500,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.star_rounded,
+                                size: 10,
+                                color: Colors.white,
+                              ),
+                              Text(
+                                '$rank',
+                                style: AppTypography.labelSm.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      Text(
-                        '${AppFormatters.cop(product.price)} COP',
-                        textAlign: TextAlign.center,
-                        style: AppTypography.bodySm.copyWith(
-                          color: selected
-                              ? AppColors.brandTealDeep
-                              : AppColors.onSurface,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: compact ? 6 : 8),
-                      Divider(height: 1, color: AppColors.slate100),
-                      SizedBox(height: compact ? 6 : 8),
-                      SizedBox(
-                        height: 34,
-                        child: selected
-                            ? Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _RoundButton(
-                                    key: Key('remove-${product.id}'),
-                                    icon: Icons.remove_rounded,
-                                    tooltip: 'Quitar uno',
-                                    onTap: () => cubit.remove(product.id),
-                                  ),
-                                  Text(
-                                    '$quantity',
-                                    style: AppTypography.bodyLg.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.onSurface,
-                                    ),
-                                  ),
-                                  _RoundButton(
-                                    key: Key('add-${product.id}'),
-                                    icon: Icons.add_rounded,
-                                    tooltip: 'Agregar uno',
-                                    filled: true,
-                                    onTap: () => cubit.add(product.id),
-                                  ),
-                                ],
-                              )
-                            : TextButton.icon(
-                                key: Key('add-${product.id}'),
-                                onPressed: () => cubit.add(product.id),
-                                style: TextButton.styleFrom(
-                                  backgroundColor: AppColors.slate100,
-                                  foregroundColor: AppColors.slate700,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.add_rounded, size: 16),
-                                label: const Text('Agregar'),
-                              ),
-                      ),
                     ],
                   ),
-                  if (rank case final rank?)
-                    Positioned(
-                      top: -2,
-                      left: -2,
-                      child: Container(
-                        key: Key('top-${product.id}'),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.amber500,
-                          borderRadius: BorderRadius.circular(999),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.amber500.withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.star_rounded,
-                              size: 12,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              'TOP $rank',
-                              style: AppTypography.labelSm.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 10,
+                  const Spacer(),
+                  SizedBox(
+                    height: 30,
+                    child: selected
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _RoundButton(
+                                key: Key('remove-${product.id}'),
+                                icon: Icons.remove_rounded,
+                                tooltip: 'Quitar uno',
+                                onTap: () => cubit.remove(product.id),
+                              ),
+                              Text(
+                                '$quantity',
+                                style: AppTypography.bodyMd.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.onSurface,
+                                ),
+                              ),
+                              _RoundButton(
+                                key: Key('add-${product.id}'),
+                                icon: Icons.add_rounded,
+                                tooltip: 'Agregar uno',
+                                filled: true,
+                                onTap: () => cubit.add(product.id),
+                              ),
+                            ],
+                          )
+                        : TextButton.icon(
+                            key: Key('add-${product.id}'),
+                            onPressed: () => cubit.add(product.id),
+                            style: TextButton.styleFrom(
+                              backgroundColor: AppColors.slate100,
+                              foregroundColor: AppColors.slate700,
+                              padding: EdgeInsets.zero,
+                              textStyle: AppTypography.labelMd.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
+                            icon: const Icon(Icons.add_rounded, size: 16),
+                            label: const Text('Agregar'),
+                          ),
+                  ),
                 ],
               ),
             ),
@@ -840,7 +825,7 @@ class _RoundButton extends StatelessWidget {
           customBorder: const CircleBorder(),
           onTap: onTap,
           child: SizedBox.square(
-            dimension: 34,
+            dimension: 30,
             child: Icon(
               icon,
               size: 18,
