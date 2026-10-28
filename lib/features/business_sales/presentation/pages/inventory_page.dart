@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/session/business_modules.dart';
 import '../../../../core/session/write_access.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -446,6 +448,22 @@ class _HeroPitchBanner extends StatelessWidget {
                             icon: Icons.move_to_inbox_rounded,
                             label: 'Entrada de mercancía',
                           ),
+                        // Botón Proveedores
+                        _GlassHeroButton(
+                          key: const Key('open-suppliers'),
+                          onPressed: () =>
+                              context.go(AppRoutes.businessSuppliers),
+                          icon: Icons.local_shipping_outlined,
+                          label: 'Proveedores',
+                        ),
+                        // Botón Catálogo de Productos
+                        _GlassHeroButton(
+                          key: const Key('open-products'),
+                          onPressed: () =>
+                              context.go(AppRoutes.businessProducts),
+                          icon: Icons.inventory_2_outlined,
+                          label: 'Productos',
+                        ),
                       ],
                     ),
                   ],

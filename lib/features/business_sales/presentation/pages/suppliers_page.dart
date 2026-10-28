@@ -66,7 +66,9 @@ class SuppliersPage extends StatelessWidget {
       title: 'Proveedores',
       subtitle: 'A quién le pagas desde la caja',
       icon: Icons.local_shipping_rounded,
-      onBack: () => context.go(AppRoutes.businessSales),
+      onBack: () => context.canPop()
+          ? context.pop()
+          : context.go(AppRoutes.businessInventory),
     );
     if (!BusinessModulesScope.salesOf(context)) {
       return Column(

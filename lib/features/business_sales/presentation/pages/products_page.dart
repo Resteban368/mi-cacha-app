@@ -73,7 +73,9 @@ class ProductsPage extends StatelessWidget {
             title: 'Productos',
             subtitle: 'Lo que vendes por unidad',
             icon: Icons.inventory_2_rounded,
-            onBack: () => context.go(AppRoutes.businessSales),
+            onBack: () => context.canPop()
+                ? context.pop()
+                : context.go(AppRoutes.businessInventory),
           ),
           const Expanded(child: SalesModuleLocked()),
         ],
@@ -90,7 +92,9 @@ class ProductsPage extends StatelessWidget {
               title: 'Productos',
               subtitle: 'Lo que vendes por unidad',
               icon: Icons.inventory_2_rounded,
-              onBack: () => context.go(AppRoutes.businessSales),
+              onBack: () => context.canPop()
+                ? context.pop()
+                : context.go(AppRoutes.businessInventory),
             ),
             Expanded(
               child: MediaQuery.removePadding(
