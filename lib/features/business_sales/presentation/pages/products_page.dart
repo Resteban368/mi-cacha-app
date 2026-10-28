@@ -14,6 +14,7 @@ import '../../../../core/widgets/app_top_bar.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/usecases/sales_usecases.dart';
 import '../bloc/products_cubit.dart';
+import '../widgets/product_category_style.dart';
 
 /// Catálogo de lo que vende el negocio por unidad. Los productos no se
 /// borran: se desactivan para dejar de ofrecerlos.
@@ -179,6 +180,19 @@ class _ProductTile extends StatelessWidget {
           ),
           child: Row(
             children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: active ? product.category.tint : AppColors.slate100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  product.category.icon,
+                  size: 20,
+                  color: active ? product.category.color : AppColors.slate400,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,8 +251,18 @@ class _ProductDialogState extends State<_ProductDialog> {
       null => '',
     },
   );
+  late var _category = widget.product?.category ?? ProductCategory.otro;
+
+  /// Mientras no la elijan a mano, la categoría sigue al nombre.
+  late var _categoryTouched = widget.product != null;
   bool _saving = false;
   String? _error;
+
+  void _onNameChanged(String name) {
+    if (_categoryTouched) return;
+    final guess = ProductCategory.guess(name);
+    if (guess != _category) setState(() => _category = guess);
+  }
 
   @override
   void dispose() {
@@ -256,6 +280,7 @@ class _ProductDialogState extends State<_ProductDialog> {
     final error = await widget.onSave((
       id: widget.product?.id,
       name: _name.text,
+      category: _category,
       price: CopInputFormatter.parse(_price.text),
     ));
     if (!mounted) return;
@@ -276,47 +301,84 @@ class _ProductDialogState extends State<_ProductDialog> {
       title: Text(
         widget.product == null ? 'Nuevo producto' : 'Editar producto',
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            key: const Key('product-name'),
-            controller: _name,
-            autofocus: widget.product == null,
-            maxLength: Product.maxName,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Nombre',
-              hintText: 'Ej. Agua 600 ml',
+      // Con las categorías no cabe en celulares pequeños: se desplaza.
+      scrollable: true,
+      content: SizedBox(
+        width: 440,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              key: const Key('product-name'),
+              controller: _name,
+              autofocus: widget.product == null,
+              maxLength: Product.maxName,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Nombre',
+                hintText: 'Ej. Agua 600 ml',
+              ),
+              onChanged: _onNameChanged,
             ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            key: const Key('product-price'),
-            controller: _price,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              CopInputFormatter(),
-            ],
-            decoration: const InputDecoration(
-              labelText: 'Precio por unidad',
-              prefixText: r'$ ',
-            ),
-            onSubmitted: (_) => _submit(),
-          ),
-          if (_error case final error?) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
-              error,
-              style: AppTypography.bodySm.copyWith(
-                color: AppColors.statusDue,
-                fontWeight: FontWeight.w600,
+              'Categoría',
+              style: AppTypography.labelSm.copyWith(
+                color: AppColors.slate500,
+                fontWeight: FontWeight.w700,
               ),
             ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final category in ProductCategory.values)
+                  ChoiceChip(
+                    key: Key('category-${category.apiCode}'),
+                    avatar: Icon(
+                      category.icon,
+                      size: 16,
+                      color: category.color,
+                    ),
+                    label: Text(category.label),
+                    selected: _category == category,
+                    onSelected: (_) => setState(() {
+                      _category = category;
+                      _categoryTouched = true;
+                    }),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('product-price'),
+              controller: _price,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                CopInputFormatter(),
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Precio por unidad',
+                prefixText: r'$ ',
+              ),
+              onSubmitted: (_) => _submit(),
+            ),
+            if (_error case final error?) ...[
+              const SizedBox(height: 8),
+              Text(
+                error,
+                style: AppTypography.bodySm.copyWith(
+                  color: AppColors.statusDue,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
       actions: [
         TextButton(

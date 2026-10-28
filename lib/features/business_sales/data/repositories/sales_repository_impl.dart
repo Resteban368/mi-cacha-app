@@ -14,18 +14,23 @@ class SalesRepositoryImpl implements SalesRepository {
       _dataSource.getProducts(includeInactive: includeInactive);
 
   @override
-  Future<Product> createProduct({required String name, required int price}) =>
-      _dataSource.createProduct(name: name, price: price);
+  Future<Product> createProduct({
+    required String name,
+    required ProductCategory category,
+    required int price,
+  }) => _dataSource.createProduct(name: name, category: category, price: price);
 
   @override
   Future<Product> updateProduct(
     String id, {
     String? name,
+    ProductCategory? category,
     int? price,
     bool? isActive,
   }) => _dataSource.updateProduct(
     id,
     name: name,
+    category: category,
     price: price,
     isActive: isActive,
   );

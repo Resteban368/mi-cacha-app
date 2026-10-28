@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mi_cancha/core/domain/entities/sport.dart';
 import 'package:mi_cancha/features/business_reservations/domain/entities/reservation.dart';
 import 'package:mi_cancha/features/business_sales/domain/entities/new_sale.dart';
+import 'package:mi_cancha/features/business_sales/domain/entities/product.dart';
 import 'package:mi_cancha/features/business_sales/domain/repositories/sales_repository.dart';
 import 'package:mi_cancha/features/business_sales/domain/usecases/sales_usecases.dart';
 import 'package:mocktail/mocktail.dart';
@@ -106,10 +107,30 @@ void main() {
 
   test('SaveProduct valida nombre y precio', () {
     final save = SaveProduct(_MockRepository());
-    expect(() => save((id: null, name: ' ', price: 1000)), throwsArgumentError);
+    const otro = ProductCategory.otro;
     expect(
-      () => save((id: null, name: 'Agua', price: -1)),
+      () => save((id: null, name: ' ', category: otro, price: 1000)),
       throwsArgumentError,
     );
+    expect(
+      () => save((id: null, name: 'Agua', category: otro, price: -1)),
+      throwsArgumentError,
+    );
+  });
+
+  test('sugiere la categoría según el nombre', () {
+    expect(
+      ProductCategory.guess('Gatorade 500 ml'),
+      ProductCategory.hidratante,
+    );
+    expect(ProductCategory.guess('Agua Brisa 600'), ProductCategory.agua);
+    expect(ProductCategory.guess('Cerveza Poker'), ProductCategory.cerveza);
+    expect(
+      ProductCategory.guess('Alquiler de petos'),
+      ProductCategory.alquiler,
+    );
+    expect(ProductCategory.guess('Papas de limón'), ProductCategory.snack);
+    expect(ProductCategory.guess('Cinta para muñeca'), ProductCategory.otro);
+    expect(ProductCategory.fromApi('RARO'), ProductCategory.otro);
   });
 }

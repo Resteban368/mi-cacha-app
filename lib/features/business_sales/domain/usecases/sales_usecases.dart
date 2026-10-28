@@ -15,7 +15,12 @@ class GetProducts implements UseCase<List<Product>, bool> {
       _repository.getProducts(includeInactive: includeInactive);
 }
 
-typedef ProductDraft = ({String? id, String name, int price});
+typedef ProductDraft = ({
+  String? id,
+  String name,
+  ProductCategory category,
+  int price,
+});
 
 /// Crea el producto o, con `id`, cambia su nombre y precio.
 class SaveProduct implements UseCase<Product, ProductDraft> {
@@ -39,9 +44,14 @@ class SaveProduct implements UseCase<Product, ProductDraft> {
       final id? => _repository.updateProduct(
         id,
         name: name,
+        category: draft.category,
         price: draft.price,
       ),
-      null => _repository.createProduct(name: name, price: draft.price),
+      null => _repository.createProduct(
+        name: name,
+        category: draft.category,
+        price: draft.price,
+      ),
     };
   }
 }

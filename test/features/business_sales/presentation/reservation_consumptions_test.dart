@@ -13,6 +13,7 @@ import 'package:mi_cancha/features/business_sales/domain/entities/product.dart';
 import 'package:mi_cancha/features/business_sales/domain/entities/sale.dart';
 import 'package:mi_cancha/features/business_sales/domain/usecases/sales_usecases.dart';
 import 'package:mi_cancha/features/business_sales/presentation/bloc/sale_cart_cubit.dart';
+import 'package:mi_cancha/features/business_sales/presentation/widgets/sale_sheet.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockGet extends Mock implements GetReservation {}
@@ -88,8 +89,19 @@ void main() {
     voidSale = _MockVoidSale();
     when(() => getProducts(false)).thenAnswer(
       (_) async => const [
-        Product(id: 'p1', name: 'Gatorade', price: 5000),
-        Product(id: 'p2', name: 'Agua', price: 2500),
+        Product(
+          id: 'p1',
+          name: 'Gatorade',
+          price: 5000,
+          category: ProductCategory.hidratante,
+          sold: 24,
+        ),
+        Product(
+          id: 'p2',
+          name: 'Agua',
+          price: 2500,
+          category: ProductCategory.agua,
+        ),
       ],
     );
     sl.registerFactory(
@@ -99,8 +111,12 @@ void main() {
 
   tearDown(() => sl.unregister<SaleCartCubit>());
 
-  Future<void> pumpDetail(WidgetTester tester, Reservation r) async {
-    tester.view.physicalSize = const Size(1200, 1800);
+  Future<void> pumpDetail(
+    WidgetTester tester,
+    Reservation r, {
+    Size size = const Size(1200, 1800),
+  }) async {
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -171,6 +187,57 @@ void main() {
     // Ahora el saldo son los consumos: se puede cobrar.
     expect(find.byKey(const Key('register-payment')), findsOneWidget);
   });
+
+  testWidgets('la cuadrícula marca el más vendido y cada categoría', (
+    tester,
+  ) async {
+    final r = _reservation();
+    when(() => get(any())).thenAnswer((_) async => r);
+    await pumpDetail(tester, r);
+    await tester.tap(find.byKey(const Key('add-consumption')));
+    await tester.pumpAndSettle();
+
+    // Solo Gatorade tiene ventas: es el único "Top".
+    expect(find.byKey(const Key('top-p1')), findsOneWidget);
+    expect(find.byKey(const Key('top-p2')), findsNothing);
+    expect(find.byIcon(Icons.bolt_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.water_drop_outlined), findsOneWidget);
+    // Resumen al costado en pantallas anchas.
+    expect(find.text('Aún no has agregado productos.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('product-p2')));
+    await tester.pump();
+    expect(find.text('1 × Agua'), findsOneWidget);
+  });
+
+  for (final size in const [Size(320, 640), Size(390, 844)]) {
+    testWidgets('carrito en celular de ${size.width.toInt()} px', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showSaleSheet(context),
+                child: const Text('vender'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('vender'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('add-p1')));
+      await tester.pump();
+      // Venta suelta: método de pago abajo y "Cobrar".
+      expect(find.byKey(const Key('method-EFECTIVO')), findsOneWidget);
+      expect(find.text(r'Cobrar $5.000'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('anular un consumo pide el motivo', (tester) async {
     final withSale = _reservation(consumptions: [_sale()]);

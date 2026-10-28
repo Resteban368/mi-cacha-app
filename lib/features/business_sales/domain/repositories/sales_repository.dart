@@ -3,14 +3,20 @@ import '../entities/product.dart';
 import '../entities/sale.dart';
 
 abstract interface class SalesRepository {
-  /// Productos por nombre; con [includeInactive] también los desactivados.
+  /// Activos, los más vendidos primero (para vender); con
+  /// [includeInactive], todos por nombre (catálogo).
   Future<List<Product>> getProducts({bool includeInactive = false});
 
-  Future<Product> createProduct({required String name, required int price});
+  Future<Product> createProduct({
+    required String name,
+    required ProductCategory category,
+    required int price,
+  });
 
   Future<Product> updateProduct(
     String id, {
     String? name,
+    ProductCategory? category,
     int? price,
     bool? isActive,
   });

@@ -20,7 +20,10 @@ class SalesApiDataSource implements SalesDataSource {
     final response = await apiCall(
       () => _dio.get<List<dynamic>>(
         _products,
-        queryParameters: {if (includeInactive) 'includeInactive': true},
+        // Para vender: los más vendidos primero; el catálogo, por nombre.
+        queryParameters: includeInactive
+            ? {'includeInactive': true}
+            : {'sort': 'popular'},
       ),
     );
     return [
@@ -32,12 +35,13 @@ class SalesApiDataSource implements SalesDataSource {
   @override
   Future<Product> createProduct({
     required String name,
+    required ProductCategory category,
     required int price,
   }) async {
     final response = await apiCall(
       () => _dio.post<Map<String, dynamic>>(
         _products,
-        data: {'name': name, 'price': price},
+        data: {'name': name, 'category': category.apiCode, 'price': price},
       ),
     );
     return productFromJson(response.data!);
@@ -47,13 +51,19 @@ class SalesApiDataSource implements SalesDataSource {
   Future<Product> updateProduct(
     String id, {
     String? name,
+    ProductCategory? category,
     int? price,
     bool? isActive,
   }) async {
     final response = await apiCall(
       () => _dio.patch<Map<String, dynamic>>(
         '$_products/$id',
-        data: {'name': ?name, 'price': ?price, 'isActive': ?isActive},
+        data: {
+          'name': ?name,
+          'category': ?category?.apiCode,
+          'price': ?price,
+          'isActive': ?isActive,
+        },
       ),
     );
     return productFromJson(response.data!);
@@ -120,8 +130,10 @@ class SalesApiDataSource implements SalesDataSource {
   static Product productFromJson(Map<String, dynamic> json) => Product(
     id: json['id'] as String,
     name: json['name'] as String,
+    category: ProductCategory.fromApi(json['category'] as String?),
     price: _money(json['price']),
     isActive: json['isActive'] as bool? ?? true,
+    sold: (json['sold'] as num? ?? 0).toInt(),
   );
 
   /// También lo usan las reservas para sus consumos.

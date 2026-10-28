@@ -5,11 +5,16 @@ import '../../domain/entities/sale.dart';
 abstract interface class SalesDataSource {
   Future<List<Product>> getProducts({required bool includeInactive});
 
-  Future<Product> createProduct({required String name, required int price});
+  Future<Product> createProduct({
+    required String name,
+    required ProductCategory category,
+    required int price,
+  });
 
   Future<Product> updateProduct(
     String id, {
     String? name,
+    ProductCategory? category,
     int? price,
     bool? isActive,
   });

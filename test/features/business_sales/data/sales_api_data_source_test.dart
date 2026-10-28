@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mi_cancha/features/business_reservations/data/datasources/reservations_api_data_source.dart';
 import 'package:mi_cancha/features/business_sales/data/datasources/sales_api_data_source.dart';
 import 'package:mi_cancha/features/business_sales/domain/entities/new_sale.dart';
+import 'package:mi_cancha/features/business_sales/domain/entities/product.dart';
 import 'package:mi_cancha/features/business_sales/domain/entities/sale.dart';
 
 import '../../../helpers/api_dio.dart';
@@ -114,6 +115,44 @@ void main() {
     final request = adapter.requests.single;
     expect(request.path, endsWith('/business/sales/s1/void'));
     expect(_body(request.data), {'reason': 'Se registró dos veces'});
+  });
+
+  test('para vender pide los más vendidos; el catálogo, todos', () async {
+    adapter.handler = (_) => (
+      200,
+      [
+        {
+          'id': 'p1',
+          'name': 'Gatorade',
+          'category': 'HIDRATANTE',
+          'price': 5000,
+          'isActive': true,
+          'sold': 24,
+        },
+      ],
+    );
+    final products = await source.getProducts(includeInactive: false);
+    expect(adapter.requests.last.queryParameters, {'sort': 'popular'});
+    expect(products.single.category, ProductCategory.hidratante);
+    expect(products.single.sold, 24);
+
+    await source.getProducts(includeInactive: true);
+    expect(adapter.requests.last.queryParameters, {'includeInactive': true});
+  });
+
+  test('crear un producto envía su categoría', () async {
+    adapter.handler = (_) =>
+        (200, {'id': 'p1', 'name': 'Agua', 'category': 'AGUA', 'price': 2500});
+    await source.createProduct(
+      name: 'Agua',
+      category: ProductCategory.agua,
+      price: 2500,
+    );
+    expect(_body(adapter.requests.single.data), {
+      'name': 'Agua',
+      'category': 'AGUA',
+      'price': 2500,
+    });
   });
 
   test('editar un producto solo envía lo que cambia', () async {
