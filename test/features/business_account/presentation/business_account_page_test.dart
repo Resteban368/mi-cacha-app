@@ -208,12 +208,20 @@ void main() {
     expect(find.text('Cambiar contraseña: próximamente'), findsOneWidget);
   });
 
-  testWidgets('el detalle del módulo de Ventas solo aparece si está activo', (
-    tester,
-  ) async {
-    await pumpPage(tester);
-    expect(find.byKey(const Key('sales-module-card')), findsNothing);
+  testWidgets('sin el módulo ofrece solicitarlo', (tester) async {
+    await pumpPage(tester, size: const Size(1280, 1400));
+    final card = find.byKey(const Key('sales-module-card'));
+    expect(card, findsOneWidget);
+    expect(
+      find.descendant(of: card, matching: find.text('NO ACTIVO')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('request-sales-module')), findsOneWidget);
+    expect(find.byKey(const Key('open-sales')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
+  testWidgets('con el módulo activo muestra su detalle', (tester) async {
     await pumpPage(
       tester,
       size: const Size(1280, 1400),
@@ -233,6 +241,8 @@ void main() {
     final card = find.byKey(const Key('sales-module-card'));
     expect(card, findsOneWidget);
     expect(find.text('Módulo de Ventas e inventario'), findsOneWidget);
+    expect(find.byKey(const Key('request-sales-module')), findsNothing);
+    expect(find.byKey(const Key('open-sales')), findsOneWidget);
     // Debajo del plan.
     expect(
       tester.getTopLeft(card).dy,

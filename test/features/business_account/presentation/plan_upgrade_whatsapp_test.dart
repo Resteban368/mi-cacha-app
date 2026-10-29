@@ -20,6 +20,20 @@ void main() {
     );
   });
 
+  test('pedir el módulo de Ventas e inventario', () {
+    final uri = salesModuleRequestWhatsAppUri(businessName: 'El Campín');
+    expect(uri.path, '/573208806654');
+    expect(
+      uri.queryParameters['text'],
+      'Hola, soy el administrador de El Campín y quiero activar el módulo de '
+      'Ventas e inventario.',
+    );
+    expect(
+      salesModuleRequestWhatsAppUri().queryParameters['text'],
+      'Hola, quiero activar el módulo de Ventas e inventario para mi negocio.',
+    );
+  });
+
   testWidgets('si no se puede abrir WhatsApp lo avisa', (tester) async {
     Uri? opened;
     await tester.pumpWidget(

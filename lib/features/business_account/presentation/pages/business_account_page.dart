@@ -151,13 +151,14 @@ class _AccountContent extends StatelessWidget {
             onBillingHistory: () =>
                 _comingSoon(context, 'Historial de facturación'),
           );
-    // Detalle del módulo de Ventas, debajo del plan, solo si está activo.
-    final salesModule = account.salesModule.enabled
-        ? SalesModuleCard(
-            module: account.salesModule,
-            onOpen: () => context.go(AppRoutes.businessSales),
-          )
-        : null;
+    // Módulo de Ventas e inventario, debajo del plan: su detalle si está
+    // activo o el botón para pedirlo si no.
+    final salesModule = SalesModuleCard(
+      module: account.salesModule,
+      onOpen: () => context.go(AppRoutes.businessSales),
+      onRequest: () =>
+          openSalesModuleRequest(context, businessName: venue?.name),
+    );
     final create = createNotificationsCubit;
     final settings = AccountSettingsCard(
       onChangePassword: switch (createChangePasswordCubit) {
@@ -192,10 +193,8 @@ class _AccountContent extends StatelessWidget {
               profile,
               const SizedBox(height: 16),
               subscription,
-              if (salesModule != null) ...[
-                const SizedBox(height: 16),
-                salesModule,
-              ],
+              const SizedBox(height: 16),
+              salesModule,
               const SizedBox(height: 16),
               settings,
               const SizedBox(height: 16),
@@ -230,10 +229,8 @@ class _AccountContent extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             subscription,
-                            if (salesModule != null) ...[
-                              const SizedBox(height: 24),
-                              salesModule,
-                            ],
+                            const SizedBox(height: 24),
+                            salesModule,
                           ],
                         ),
                       ),

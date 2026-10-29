@@ -6,15 +6,23 @@ import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/business_account.dart';
 import 'account_card.dart';
 
-/// Detalle del módulo de Ventas e inventario, debajo del plan (solo si está
-/// activo).
+/// Módulo de Ventas e inventario, debajo del plan: si está activo, su
+/// detalle; si no, qué incluye y el botón para pedirlo.
 class SalesModuleCard extends StatelessWidget {
-  const SalesModuleCard({super.key, required this.module, this.onOpen});
+  const SalesModuleCard({
+    super.key,
+    required this.module,
+    this.onOpen,
+    this.onRequest,
+  });
 
   final SalesModule module;
 
-  /// Ir a la sección Ventas.
+  /// Ir a la sección Ventas (módulo activo).
   final VoidCallback? onOpen;
+
+  /// Pedir que lo activen (módulo inactivo).
+  final VoidCallback? onRequest;
 
   static const _features = [
     (Icons.inventory_2_outlined, 'Catálogo de productos con categorías'),
@@ -28,6 +36,7 @@ class SalesModuleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = module.enabled;
     return AccountCard(
       key: const Key('sales-module-card'),
       child: Column(
@@ -48,7 +57,14 @@ class SalesModuleCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    if (module.enabledAt case final since?)
+                    if (!enabled)
+                      Text(
+                        'Disponible para tu negocio',
+                        style: AppTypography.bodySm.copyWith(
+                          color: AppColors.slate500,
+                        ),
+                      )
+                    else if (module.enabledAt case final since?)
                       Text(
                         'Activo desde el ${AppFormatters.mediumDate(since)}',
                         style: AppTypography.bodySm.copyWith(
@@ -61,13 +77,13 @@ class SalesModuleCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.successTint,
+                  color: enabled ? AppColors.successTint : AppColors.slate100,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  'ACTIVO',
+                  enabled ? 'ACTIVO' : 'NO ACTIVO',
                   style: AppTypography.labelSm.copyWith(
-                    color: AppColors.emerald800,
+                    color: enabled ? AppColors.emerald800 : AppColors.slate600,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -93,7 +109,25 @@ class SalesModuleCard extends StatelessWidget {
                 ],
               ),
             ),
-          if (onOpen != null) ...[
+          if (!enabled && onRequest != null) ...[
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              key: const Key('request-sales-module'),
+              onPressed: onRequest,
+              icon: const Icon(Icons.chat_rounded, size: 18),
+              label: const Text('Solicitar módulo'),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Te escribimos por WhatsApp y lo activamos para tu negocio.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySm.copyWith(
+                fontSize: 11,
+                color: AppColors.slate500,
+              ),
+            ),
+          ],
+          if (enabled && onOpen != null) ...[
             const SizedBox(height: 6),
             Align(
               alignment: Alignment.centerLeft,
