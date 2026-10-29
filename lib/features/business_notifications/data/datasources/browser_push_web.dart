@@ -23,13 +23,26 @@ class BrowserPushWeb implements BrowserPush {
           final data = (event as web.MessageEvent).data;
           final type = (data as JSObject?)?.getProperty<JSString?>('type'.toJS);
           if (type == null) return;
+          // Con la app abierta suena con cualquier aviso.
+          _playChime();
           _anyMessages.add(null);
-          if (type.toDart == 'NEW_RESERVATION') {
-            _playChime();
-            _messages.add(null);
-          }
+          if (type.toDart == 'NEW_RESERVATION') _messages.add(null);
         }).toJS,
       );
+      // El navegador no deja sonar audio hasta que el usuario toca la
+      // página: con el primer toque se deja listo el sonido.
+      for (final event in ['pointerdown', 'keydown']) {
+        web.window.addEventListener(event, _unlockAudio.toJS);
+      }
+    }
+  }
+
+  void _unlockAudio(web.Event _) {
+    try {
+      final ctx = _audio ??= web.AudioContext();
+      if (ctx.state == 'suspended') ctx.resume();
+    } catch (_) {
+      // Sin audio disponible.
     }
   }
 

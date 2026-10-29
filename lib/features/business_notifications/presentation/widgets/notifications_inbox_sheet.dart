@@ -6,16 +6,26 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../domain/entities/app_notification.dart';
+import '../bloc/business_notifications_cubit.dart';
 import '../bloc/notifications_inbox_cubit.dart';
+import 'push_permission_banner.dart';
 
 /// Abre la bandeja: hoja inferior en el celular, panel en pantallas anchas.
 Future<void> showNotificationsInbox(
   BuildContext context,
-  NotificationsInboxCubit cubit,
-) {
+  NotificationsInboxCubit cubit, {
+  BusinessNotificationsCubit? push,
+}) {
   cubit.load();
-  Widget body(BuildContext _) =>
-      BlocProvider.value(value: cubit, child: const NotificationsInboxView());
+  Widget body(BuildContext _) => BlocProvider.value(
+    value: cubit,
+    child: push == null
+        ? const NotificationsInboxView()
+        : BlocProvider.value(
+            value: push,
+            child: const NotificationsInboxView(showPushBanner: true),
+          ),
+  );
 
   if (MediaQuery.sizeOf(context).width >= 600) {
     return showDialog<void>(
@@ -43,7 +53,11 @@ Future<void> showNotificationsInbox(
 
 /// Listado de notificaciones con "Marcar todas como leídas".
 class NotificationsInboxView extends StatelessWidget {
-  const NotificationsInboxView({super.key});
+  const NotificationsInboxView({super.key, this.showPushBanner = false});
+
+  /// Mostrar el aviso para activar las notificaciones del navegador (necesita
+  /// un [BusinessNotificationsCubit] arriba).
+  final bool showPushBanner;
 
   /// Tocar una notificación solo muestra su detalle (no navega).
   void _open(BuildContext context, AppNotification notification) {
@@ -80,6 +94,7 @@ class NotificationsInboxView extends StatelessWidget {
                 ],
               ),
             ),
+            if (showPushBanner) const PushPermissionBanner(),
             Divider(height: 1, color: AppColors.slate200),
             Expanded(
               child: switch (state.status) {

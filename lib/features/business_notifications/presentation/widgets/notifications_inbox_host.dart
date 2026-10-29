@@ -75,7 +75,7 @@ class _NotificationsInboxHostState extends State<NotificationsInboxHost> {
           onOpen: () {
             // Primero el permiso: el navegador solo lo muestra en el toque.
             _push?.promptIfNeeded();
-            showNotificationsInbox(context, _cubit);
+            showNotificationsInbox(context, _cubit, push: _push);
           },
           child: widget.child,
         ),

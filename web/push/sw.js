@@ -12,6 +12,11 @@ self.addEventListener('push', (event) => {
       await self.registration.showNotification(title, {
         body: data.body,
         tag: data.tag,
+        // Con el mismo tag, el aviso nuevo reemplaza al anterior: renotify
+        // hace que vuelva a sonar y vibrar en vez de cambiarlo en silencio.
+        renotify: Boolean(data.tag),
+        silent: false,
+        vibrate: [200, 100, 200],
         icon: '/icons/Icon-192.png',
         // Imagen grande del aviso del admin; se ignora donde no se soporta.
         image: data.image,
