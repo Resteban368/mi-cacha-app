@@ -471,8 +471,9 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
     }
 
     if (state.filter != null || !agenda.isToday) {
-      final cards =
-          deduplicate(agenda.filtered(state.filter)).map(card).toList();
+      final cards = deduplicate(
+        agenda.filtered(state.filter),
+      ).map(card).toList();
       return [if (cards.isNotEmpty) _Section(cards: cards)];
     }
 
