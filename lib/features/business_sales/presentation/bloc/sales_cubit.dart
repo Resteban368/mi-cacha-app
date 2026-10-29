@@ -65,10 +65,11 @@ final class SalesState extends Equatable {
     return totals.entries.toList()..sort((a, b) => b.value - a.value);
   }
 
-  /// Consumos cargados al saldo de su reserva (por cobrar con la reserva).
+  /// Lo que falta por cobrar de los consumos cargados al saldo (sin lo que
+  /// ya cubrieron los pagos de su reserva).
   int get chargedToReservations => _active
       .where((s) => !s.isWalkIn && !s.isPaid)
-      .fold(0, (sum, s) => sum + s.total);
+      .fold(0, (sum, s) => sum + s.reservationPending);
 
   int countOf(SalesTab tab) => sales.where((s) => _inTab(s, tab)).length;
 

@@ -173,5 +173,9 @@ class SalesApiDataSource implements SalesDataSource {
       _ => null,
     },
     reservationPaid: json['reservationPaid'] as bool? ?? false,
+    reservationPending: switch (json['reservationPending']) {
+      final num pending => pending.round(),
+      _ => null,
+    },
   );
 }

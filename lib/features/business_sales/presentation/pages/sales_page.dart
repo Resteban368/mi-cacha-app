@@ -986,6 +986,8 @@ class _SaleCard extends StatelessWidget {
         ? ('Cobrado · ${method.label}', method.color)
         : sale.reservationPaid
         ? ('Pagado con la reserva', AppColors.emerald600)
+        : sale.isPartlyPaid
+        ? ('Abonado con la reserva', AppColors.amber500)
         : ('Cargado a la reserva', _sky);
 
     final dot = Text(
@@ -1099,6 +1101,8 @@ class _SaleCard extends StatelessWidget {
         ? 'Monto anulado'
         : method != null || sale.reservationPaid
         ? 'Total pagado'
+        : sale.isPartlyPaid
+        ? 'Faltan ${AppFormatters.cop(sale.reservationPending)}'
         : 'Por cobrar con la reserva';
     final amount = Column(
       crossAxisAlignment: wide

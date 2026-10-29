@@ -61,7 +61,12 @@ class Sale extends Equatable {
     this.courtName,
     this.reservationStart,
     this.reservationPaid = false,
-  });
+    int? reservationPending,
+  }) : reservationPending =
+           reservationPending ??
+           (reservationId == null || paymentMethod != null || reservationPaid
+               ? 0
+               : total);
 
   final String id;
 
@@ -84,8 +89,16 @@ class Sale extends Equatable {
   final String? courtName;
   final DateTime? reservationStart;
 
-  /// Consumo cargado al saldo cuya reserva ya se pagó por completo.
+  /// Consumo cargado al saldo ya cubierto con lo pagado en la reserva.
   final bool reservationPaid;
+
+  /// Lo que falta por cobrar de un consumo cargado al saldo: lo pagado en la
+  /// reserva cubre primero la cancha y luego los consumos en orden de carga.
+  final int reservationPending;
+
+  /// Consumo cubierto en parte con lo pagado en la reserva.
+  bool get isPartlyPaid =>
+      !isPaid && reservationPending > 0 && reservationPending < total;
 
   bool get isVoided => status == SaleStatus.voided;
   bool get isWalkIn => reservationId == null;
@@ -114,5 +127,6 @@ class Sale extends Equatable {
     courtName,
     reservationStart,
     reservationPaid,
+    reservationPending,
   ];
 }

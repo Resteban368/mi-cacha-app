@@ -71,6 +71,7 @@ Sale _sale(
   String product = 'Agua 600 ml',
   String? customer,
   bool reservationPaid = false,
+  int? reservationPending,
 }) => Sale(
   id: id,
   reservationId: reservationId,
@@ -83,6 +84,7 @@ Sale _sale(
   courtName: reservationId == null ? null : 'Sintética 1',
   reservationStart: reservationId == null ? null : _now,
   reservationPaid: reservationPaid,
+  reservationPending: reservationPending,
   items: [
     SaleItem(
       productName: product,
@@ -240,6 +242,38 @@ void main() {
     expect(find.text('Por cobrar con la reserva'), findsOneWidget);
     // Solo el consumo sin pagar queda por cobrar.
     expect(cubit.state.chargedToReservations, 6000);
+  });
+
+  testWidgets('lo pagado en la reserva cubre los consumos en orden', (
+    tester,
+  ) async {
+    // Cancha 60.000 + cervezas 50.000 pagadas con 110.000; luego agua 7.000
+    // (por cobrar) y gaseosas 10.000 con 4.000 abonados.
+    when(() => getSales(any())).thenAnswer(
+      (_) async => [
+        _sale('s-agua', 7000, reservationId: 'r1', reservationPending: 7000),
+        _sale(
+          's-cerveza',
+          50000,
+          reservationId: 'r1',
+          reservationPaid: true,
+          reservationPending: 0,
+        ),
+        _sale(
+          's-gaseosa',
+          10000,
+          reservationId: 'r2',
+          reservationPending: 6000,
+        ),
+      ],
+    );
+    final cubit = await pump(tester, const Size(1440, 2000));
+    expect(cubit.state.chargedToReservations, 13000);
+    expect(find.text('Pagado con la reserva'), findsOneWidget);
+    expect(find.text('Cargado a la reserva'), findsOneWidget);
+    expect(find.text('Abonado con la reserva'), findsOneWidget);
+    expect(find.text('Faltan \$6.000'), findsOneWidget);
+    expect(find.text('\$13.000 por cobrar'), findsOneWidget);
   });
 
   testWidgets('cuadre de caja: muestra el faltante y cierra', (tester) async {
