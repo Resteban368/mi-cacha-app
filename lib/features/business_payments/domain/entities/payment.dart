@@ -95,7 +95,9 @@ class Payment extends Equatable {
     this.note,
     this.rejectionReason,
     this.registeredByBusiness = false,
-  });
+    int? courtAmount,
+    this.productsAmount = 0,
+  }) : courtAmount = courtAmount ?? amount - productsAmount;
 
   final String id;
   final String customerName;
@@ -120,6 +122,18 @@ class Payment extends Equatable {
   /// `false` si lo envió el jugador y requiere validación.
   final bool registeredByBusiness;
 
+  /// Parte del pago que fue para la cancha y parte para productos (consumos
+  /// o venta de mostrador). En una reserva, lo pagado cubre primero la
+  /// cancha y luego los consumos. Suman [amount].
+  final int courtAmount;
+  final int productsAmount;
+
+  /// Pago de una venta de mostrador (sin reserva).
+  bool get isWalkInSale => concept == PaymentConcept.venta && courtName == null;
+
+  /// Pago que cubrió cancha y consumos a la vez.
+  bool get isSplit => courtAmount > 0 && productsAmount > 0;
+
   Payment copyWith({PaymentStatus? status, String? rejectionReason}) => Payment(
     id: id,
     customerName: customerName,
@@ -134,6 +148,8 @@ class Payment extends Equatable {
     note: note,
     rejectionReason: rejectionReason ?? this.rejectionReason,
     registeredByBusiness: registeredByBusiness,
+    courtAmount: courtAmount,
+    productsAmount: productsAmount,
   );
 
   @override
@@ -151,5 +167,7 @@ class Payment extends Equatable {
     note,
     rejectionReason,
     registeredByBusiness,
+    courtAmount,
+    productsAmount,
   ];
 }

@@ -126,6 +126,18 @@ class PaymentCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (p.isSplit) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Cancha ${AppFormatters.cop(p.courtAmount)} · '
+                    'Consumos ${AppFormatters.cop(p.productsAmount)}',
+                    key: Key('payment-split-${p.id}'),
+                    style: AppTypography.labelMd.copyWith(
+                      color: AppColors.brandTealDeep,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 6,

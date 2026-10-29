@@ -124,7 +124,7 @@ void main() {
     ],
   );
 
-  test('filtros: cancha, medio de pago y día', () {
+  test('filtros: cancha, medio de pago y rango de fechas', () {
     final state = PaymentsState(
       status: PaymentsStatus.success,
       payments: [
@@ -145,7 +145,58 @@ void main() {
         state.copyWith(filter: f).visible.map((p) => p.id).toList();
     expect(ids(const PaymentsFilter(method: PaymentMethod.efectivo)), ['y']);
     expect(ids(const PaymentsFilter(court: 'Otra')), isEmpty);
-    expect(ids(PaymentsFilter(day: now)), ['x']);
+    expect(ids(PaymentsFilter(from: now, to: now)), ['x']);
+    final threeDaysAgo = now.subtract(const Duration(days: 3));
+    expect(ids(PaymentsFilter(from: threeDaysAgo, to: now)), ['x', 'y']);
+    expect(ids(PaymentsFilter(to: threeDaysAgo)), ['y']);
+    expect(ids(PaymentsFilter(from: now.subtract(const Duration(days: 2)))), [
+      'x',
+    ]);
+  });
+
+  test('resumen: total, por medio de pago y por concepto', () {
+    final state = PaymentsState(
+      status: PaymentsStatus.success,
+      payments: [
+        // Reserva: cancha 60.000 + consumos 50.000 pagados juntos.
+        payment(
+          id: 'r',
+          status: PaymentStatus.approved,
+          amount: 110000,
+          productsAmount: 50000,
+        ),
+        payment(
+          id: 'v',
+          status: PaymentStatus.approved,
+          amount: 10000,
+          method: PaymentMethod.efectivo,
+          walkIn: true,
+        ),
+        payment(
+          id: 'c',
+          status: PaymentStatus.approved,
+          amount: 40000,
+          method: PaymentMethod.efectivo,
+        ),
+        payment(id: 'p', amount: 99999),
+      ],
+    );
+    final s = state.summary;
+    expect(s.count, 3);
+    expect(s.total, 160000);
+    expect(s.courts, 100000);
+    expect(s.consumptions, 50000);
+    expect(s.walkIn, 10000);
+    expect(s.byMethod.map((e) => (e.key, e.value)), [
+      (PaymentMethod.nequi, 110000),
+      (PaymentMethod.efectivo, 50000),
+    ]);
+    // Sigue el filtro.
+    final cash = state.copyWith(
+      filter: const PaymentsFilter(method: PaymentMethod.efectivo),
+    );
+    expect(cash.summary.total, 50000);
+    expect(cash.summary.consumptions, 0);
   });
 
   blocTest<PaymentsBloc, PaymentsState>(

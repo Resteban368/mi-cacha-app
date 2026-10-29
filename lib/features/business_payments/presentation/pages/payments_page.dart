@@ -12,6 +12,7 @@ import '../../../../core/widgets/sliver_card_grid.dart';
 import '../bloc/payments/payments_bloc.dart';
 import '../widgets/payment_card.dart';
 import '../widgets/payment_detail_sheet.dart';
+import '../widgets/payments_summary_card.dart';
 import '../widgets/payments_filters.dart';
 import '../../../../core/widgets/loading_dialog.dart';
 import '../../../../core/session/write_access.dart';
@@ -158,6 +159,12 @@ class PaymentsPage extends StatelessWidget {
           SliverPadding(
             padding: EdgeInsets.fromLTRB(gutter, 16, gutter, 0),
             sliver: SliverToBoxAdapter(child: filters),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 0),
+            sliver: SliverToBoxAdapter(
+              child: PaymentsSummaryCard(summary: state.summary),
+            ),
           ),
           SliverPadding(
             // Espacio final para el botón flotante.

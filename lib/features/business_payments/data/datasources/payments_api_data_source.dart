@@ -101,6 +101,8 @@ class PaymentsApiDataSource implements PaymentsDataSource {
       note: json['note'] as String?,
       rejectionReason: json['rejectionReason'] as String?,
       registeredByBusiness: json['registeredByBusiness'] as bool? ?? false,
+      courtAmount: (json['courtAmount'] as num?)?.round(),
+      productsAmount: (json['productsAmount'] as num? ?? 0).round(),
     );
   }
 }

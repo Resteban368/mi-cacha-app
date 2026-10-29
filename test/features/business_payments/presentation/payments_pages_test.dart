@@ -95,11 +95,83 @@ void main() {
 
       expect(find.text('Pagos'), findsOneWidget);
       expect(find.byType(PaymentCard), findsOneWidget);
-      expect(find.text(r'$100.000'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(PaymentCard),
+          matching: find.text(r'$100.000'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Aprobar'), findsNothing);
       expect(find.text('Rechazar'), findsNothing);
       expect(find.text('Por validar'), findsNothing);
       expect(find.byTooltip('Nuevo pago'), findsOneWidget);
+    });
+
+    testWidgets('resumen por medio de pago y concepto; pago dividido', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        PaymentsState(
+          status: PaymentsStatus.success,
+          payments: [
+            payment(
+              id: 'r',
+              status: PaymentStatus.approved,
+              amount: 110000,
+              productsAmount: 50000,
+            ),
+            payment(
+              id: 'v',
+              status: PaymentStatus.approved,
+              amount: 10000,
+              method: PaymentMethod.efectivo,
+              walkIn: true,
+            ),
+          ],
+        ),
+        size: const Size(1280, 1400),
+      );
+      Finder inSummary(Key key, String text) =>
+          find.descendant(of: find.byKey(key), matching: find.text(text));
+      expect(inSummary(const Key('summary-total'), r'$120.000'), findsOne);
+      expect(inSummary(const Key('summary-courts'), r'$60.000'), findsOne);
+      expect(
+        inSummary(const Key('summary-consumptions'), r'$50.000'),
+        findsOne,
+      );
+      expect(inSummary(const Key('summary-walk-in'), r'$10.000'), findsOne);
+      expect(
+        inSummary(const Key('summary-method-nequi'), r'$110.000'),
+        findsOne,
+      );
+      expect(
+        inSummary(const Key('summary-method-efectivo'), r'$10.000'),
+        findsOne,
+      );
+      expect(find.text(r'Cancha $60.000 · Consumos $50.000'), findsOneWidget);
+      expect(find.byKey(const Key('payment-split-v')), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('el filtro de fechas muestra el rango', (tester) async {
+      await pump(
+        tester,
+        loaded(
+          filter: PaymentsFilter(
+            from: DateTime(2026, 10, 1),
+            to: DateTime(2026, 10, 9),
+          ),
+        ),
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('filter-dates')),
+          matching: find.textContaining('–'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('al tocar un pago se ve su detalle', (tester) async {
