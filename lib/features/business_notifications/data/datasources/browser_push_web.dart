@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:web/web.dart' as web;
 
 import '../../domain/entities/push_exception.dart';
+import '../../domain/entities/push_message.dart';
 import '../../domain/entities/push_permission.dart';
 import 'browser_push_contract.dart';
 
@@ -20,13 +21,20 @@ class BrowserPushWeb implements BrowserPush {
       web.window.navigator.serviceWorker.addEventListener(
         'message',
         ((web.Event event) {
-          final data = (event as web.MessageEvent).data;
-          final type = (data as JSObject?)?.getProperty<JSString?>('type'.toJS);
+          final data = (event as web.MessageEvent).data as JSObject?;
+          String? text(String key) =>
+              data?.getProperty<JSString?>(key.toJS)?.toDart;
+          final type = text('type');
           if (type == null) return;
           // Con la app abierta suena con cualquier aviso.
           _playChime();
-          _anyMessages.add(null);
-          if (type.toDart == 'NEW_RESERVATION') _messages.add(null);
+          final message = PushMessage(
+            type: type,
+            title: text('title'),
+            body: text('body'),
+          );
+          _anyMessages.add(message);
+          if (message.isNewReservation) _messages.add(null);
         }).toJS,
       );
       // El navegador no deja sonar audio hasta que el usuario toca la
@@ -50,7 +58,7 @@ class BrowserPushWeb implements BrowserPush {
   static const _scope = '/push/';
 
   final _messages = StreamController<void>.broadcast();
-  final _anyMessages = StreamController<void>.broadcast();
+  final _anyMessages = StreamController<PushMessage>.broadcast();
   web.AudioContext? _audio;
 
   /// Dos tonos cortos para avisar con la app abierta. El navegador puede
@@ -160,5 +168,5 @@ class BrowserPushWeb implements BrowserPush {
   Stream<void> get newReservationMessages => _messages.stream;
 
   @override
-  Stream<void> get notificationMessages => _anyMessages.stream;
+  Stream<PushMessage> get notificationMessages => _anyMessages.stream;
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../../domain/entities/push_exception.dart';
+import '../../domain/entities/push_message.dart';
 import '../../domain/entities/push_permission.dart';
 import '../../domain/entities/push_snapshot.dart';
 import '../../domain/repositories/push_repository.dart';
@@ -81,7 +82,7 @@ class PushRepositoryImpl implements PushRepository {
   Stream<void> get newReservations => _browser.newReservationMessages;
 
   @override
-  Stream<void> get notificationsChanged => _browser.notificationMessages;
+  Stream<PushMessage> get notificationsChanged => _browser.notificationMessages;
 
   /// Clave VAPID en base64url (sin relleno) a bytes.
   static Uint8List _decodeKey(String key) {

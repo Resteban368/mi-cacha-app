@@ -1,3 +1,4 @@
+import '../entities/push_message.dart';
 import '../entities/push_permission.dart';
 import '../entities/push_snapshot.dart';
 
@@ -18,5 +19,5 @@ abstract interface class PushRepository {
   Stream<void> get newReservations;
 
   /// Se emite con cualquier aviso que llega con la app abierta.
-  Stream<void> get notificationsChanged;
+  Stream<PushMessage> get notificationsChanged;
 }

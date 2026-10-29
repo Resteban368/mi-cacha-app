@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../../domain/entities/push_message.dart';
 import '../../domain/entities/push_exception.dart';
 import '../../domain/entities/push_permission.dart';
 import 'browser_push_contract.dart';
@@ -33,5 +34,5 @@ class BrowserPushStub implements BrowserPush {
   Stream<void> get newReservationMessages => const Stream.empty();
 
   @override
-  Stream<void> get notificationMessages => const Stream.empty();
+  Stream<PushMessage> get notificationMessages => const Stream.empty();
 }

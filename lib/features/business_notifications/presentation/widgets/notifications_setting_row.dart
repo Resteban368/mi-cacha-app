@@ -39,7 +39,7 @@ class NotificationsSettingRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Avisarme de nuevas reservas',
+                      'Notificaciones',
                       style: AppTypography.labelMd.copyWith(
                         color: AppColors.onSurface,
                       ),
@@ -83,11 +83,11 @@ class NotificationsSettingRow extends StatelessWidget {
     BusinessNotificationsStatus status,
   ) => switch (status) {
     BusinessNotificationsStatus.enabled =>
-      'Te avisamos cuando un jugador reserve',
+      'Activas: suenan con nuevas reservas y avisos de Mi Cancha',
     BusinessNotificationsStatus.denied =>
       'Bloqueaste las notificaciones; permítelas desde el candado de la barra de direcciones',
     BusinessNotificationsStatus.error =>
       'No pudimos cambiar el aviso. Intenta de nuevo.',
-    _ => 'Recibe un aviso aunque la app esté cerrada',
+    _ => 'Nuevas reservas y avisos de Mi Cancha, aunque la app esté cerrada',
   };
 }

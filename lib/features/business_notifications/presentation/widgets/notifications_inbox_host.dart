@@ -6,6 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/widgets/notifications_bell_scope.dart';
 import '../bloc/business_notifications_cubit.dart';
 import '../bloc/notifications_inbox_cubit.dart';
+import '../../domain/entities/push_message.dart';
+import 'notification_toast.dart';
 import 'notifications_inbox_sheet.dart';
 
 /// Envuelve el panel del negocio: mantiene la bandeja y le da a la campana
@@ -27,8 +29,9 @@ class NotificationsInboxHost extends StatefulWidget {
   /// nunca se ha pedido. Sin él la campana solo abre la bandeja.
   final BusinessNotificationsCubit Function()? createPushCubit;
 
-  /// Avisos que llegan con la app abierta (push).
-  final Stream<void>? notificationsChanged;
+  /// Avisos que llegan con la app abierta (push): refrescan la bandeja y
+  /// se muestran como un mini aviso.
+  final Stream<PushMessage>? notificationsChanged;
 
   /// Cada cuánto se consulta el contador por si no hay push (`null`: nunca).
   final Duration? refreshInterval;
@@ -42,13 +45,17 @@ class _NotificationsInboxHostState extends State<NotificationsInboxHost> {
     ..refreshUnread();
   late final BusinessNotificationsCubit? _push = widget.createPushCubit?.call()
     ?..load();
-  StreamSubscription<void>? _changes;
+  StreamSubscription<PushMessage>? _changes;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _changes = widget.notificationsChanged?.listen((_) => _cubit.refresh());
+    _changes = widget.notificationsChanged?.listen((message) {
+      _cubit.refresh();
+      if (!mounted) return;
+      showNotificationToast(context, message, onOpen: _openInbox);
+    });
     final interval = widget.refreshInterval;
     if (interval != null) {
       _timer = Timer.periodic(interval, (_) => _cubit.refreshUnread());
@@ -64,6 +71,8 @@ class _NotificationsInboxHostState extends State<NotificationsInboxHost> {
     super.dispose();
   }
 
+  void _openInbox() => showNotificationsInbox(context, _cubit, push: _push);
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -75,7 +84,7 @@ class _NotificationsInboxHostState extends State<NotificationsInboxHost> {
           onOpen: () {
             // Primero el permiso: el navegador solo lo muestra en el toque.
             _push?.promptIfNeeded();
-            showNotificationsInbox(context, _cubit, push: _push);
+            _openInbox();
           },
           child: widget.child,
         ),

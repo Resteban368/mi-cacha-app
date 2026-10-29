@@ -29,7 +29,9 @@ self.addEventListener('push', (event) => {
         includeUncontrolled: true,
       });
       const type = (data.data && data.data.type) || 'NEW_RESERVATION';
-      clients.forEach((client) => client.postMessage({ type }));
+      clients.forEach((client) =>
+        client.postMessage({ type, title, body: data.body || null }),
+      );
     })(),
   );
 });

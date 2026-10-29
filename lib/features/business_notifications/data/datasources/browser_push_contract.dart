@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../../domain/entities/push_message.dart';
 import '../../domain/entities/push_permission.dart';
 
 /// Suscripción del navegador, tal como la espera el servidor.
@@ -39,6 +40,6 @@ abstract interface class BrowserPush {
   Stream<void> get newReservationMessages;
 
   /// Cualquier aviso que llega con la app abierta (reservas y avisos del
-  /// administrador): sirve para refrescar la bandeja.
-  Stream<void> get notificationMessages;
+  /// administrador): refresca la bandeja y se muestra en la app.
+  Stream<PushMessage> get notificationMessages;
 }
