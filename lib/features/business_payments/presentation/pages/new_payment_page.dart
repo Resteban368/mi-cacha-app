@@ -18,12 +18,40 @@ import '../widgets/payment_styles.dart';
 
 /// Registrar un pago recibido en el negocio (efectivo, Nequi, etc.),
 /// asociándolo a un cliente o reserva específica si aplica.
+/// Abrir "Nuevo pago" con una reserva y un monto ya puestos (p. ej. para
+/// cobrar un consumo desde Ventas).
+class NewPaymentArgs {
+  const NewPaymentArgs({required this.reservation, this.amount});
+
+  final Reservation reservation;
+  final int? amount;
+}
+
 class NewPaymentPage extends StatefulWidget {
-  const NewPaymentPage({super.key, this.initialReservation});
+  const NewPaymentPage({
+    super.key,
+    this.initialReservation,
+    this.initialAmount,
+  });
+
+  /// Lo que llega como `extra` de la ruta: una reserva o [NewPaymentArgs].
+  factory NewPaymentPage.fromExtra(Object? extra) => switch (extra) {
+    NewPaymentArgs(:final reservation, :final amount) => NewPaymentPage(
+      initialReservation: reservation,
+      initialAmount: amount,
+    ),
+    final Reservation reservation => NewPaymentPage(
+      initialReservation: reservation,
+    ),
+    _ => const NewPaymentPage(),
+  };
 
   /// Reserva ya elegida (p. ej. desde su detalle): el pago queda ligado a
   /// ella y a su cliente, con el saldo pendiente como monto.
   final Reservation? initialReservation;
+
+  /// Monto a usar en vez del saldo de la reserva.
+  final int? initialAmount;
 
   static const quickAmounts = [20000, 50000, 100000];
 
@@ -62,6 +90,9 @@ class _NewPaymentPageState extends State<NewPaymentPage> {
         ..add(NewPaymentReservationSelected(reservation));
       _customer.text = reservation.customerName;
       _onFillReservationBalance(reservation);
+      if (widget.initialAmount case final amount? when amount > 0) {
+        _amount.text = CopInputFormatter.format(amount);
+      }
     }
     // Redibuja el total de la barra inferior al escribir el monto.
     _amount.addListener(() => setState(() {}));

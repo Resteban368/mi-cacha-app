@@ -15,6 +15,7 @@ import '../bloc/cash_cubit.dart';
 import '../bloc/sale_cart_cubit.dart';
 import '../bloc/sales_cubit.dart';
 import '../widgets/cash_widgets.dart';
+import '../widgets/sale_detail_sheet.dart';
 import '../widgets/sale_sheet.dart';
 import '../widgets/sales_module_locked.dart';
 import '../widgets/sale_tile.dart';
@@ -968,6 +969,16 @@ class _SaleCard extends StatelessWidget {
   final bool canWrite;
   final bool wide;
 
+  /// Detalle de la venta; si se cobró o cambió su reserva, recarga.
+  Future<void> _openDetail(BuildContext context) async {
+    final sales = context.read<SalesCubit>();
+    final cash = context.read<CashCubit>();
+    final changed = await showSaleDetail(context, sale: sale);
+    if (!changed) return;
+    await sales.load();
+    await cash.load();
+  }
+
   Future<void> _void(BuildContext context) async {
     if (!ensureCanWrite(context)) return;
     final cubit = context.read<SalesCubit>();
@@ -1003,15 +1014,7 @@ class _SaleCard extends StatelessWidget {
         ? _sky
         : AppColors.brandTeal;
 
-    final (badge, badgeColor) = voided
-        ? ('Anulada', AppColors.statusDue)
-        : method != null
-        ? ('Cobrado · ${method.label}', method.color)
-        : sale.reservationPaid
-        ? ('Pagado con la reserva', AppColors.emerald600)
-        : sale.isPartlyPaid
-        ? ('Abonado con la reserva', AppColors.amber500)
-        : ('Cargado a la reserva', _sky);
+    final (badge, badgeColor) = saleStatusBadge(sale);
 
     final dot = Text(
       '•',
@@ -1170,6 +1173,17 @@ class _SaleCard extends StatelessWidget {
             icon: Icon(Icons.more_vert_rounded, color: AppColors.slate600),
             itemBuilder: (_) => [
               PopupMenuItem(
+                key: Key('detail-${sale.id}'),
+                onTap: () => _openDetail(context),
+                child: const Row(
+                  children: [
+                    Icon(Icons.receipt_long_rounded, size: 18),
+                    SizedBox(width: 8),
+                    Text('Ver detalle'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
                 key: Key('void-${sale.id}'),
                 onTap: () => _void(context),
                 child: Row(
@@ -1206,7 +1220,7 @@ class _SaleCard extends StatelessWidget {
       ),
     );
 
-    return Container(
+    final card = Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: voided
@@ -1264,6 +1278,17 @@ class _SaleCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+    // Tocar la venta abre su detalle.
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        key: Key('sale-${sale.id}'),
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openDetail(context),
+        child: card,
       ),
     );
   }

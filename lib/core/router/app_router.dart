@@ -19,7 +19,6 @@ import '../../features/business_clients/presentation/bloc/business_clients_bloc.
 import '../../features/business_clients/presentation/bloc/business_clients_event.dart';
 import '../../features/business_clients/presentation/pages/business_clients_page.dart';
 import '../../features/business_reservations/domain/entities/customer.dart';
-import '../../features/business_reservations/domain/entities/reservation.dart';
 import '../../features/business_courts/presentation/bloc/courts_bloc.dart';
 import '../../features/business_courts/presentation/bloc/court_form_bloc.dart';
 import '../../features/business_courts/presentation/pages/business_courts_page.dart';
@@ -300,9 +299,7 @@ GoRouter _buildRouter(
               parentNavigatorKey: rootNavigatorKey,
               builder: (_, state) => BlocProvider(
                 create: (_) => sl<NewPaymentBloc>(),
-                child: NewPaymentPage(
-                  initialReservation: state.extra as Reservation?,
-                ),
+                child: NewPaymentPage.fromExtra(state.extra),
               ),
             ),
           ],
