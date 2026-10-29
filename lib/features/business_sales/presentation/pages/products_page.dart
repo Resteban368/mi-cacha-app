@@ -93,8 +93,8 @@ class ProductsPage extends StatelessWidget {
               subtitle: 'Lo que vendes por unidad',
               icon: Icons.inventory_2_rounded,
               onBack: () => context.canPop()
-                ? context.pop()
-                : context.go(AppRoutes.businessInventory),
+                  ? context.pop()
+                  : context.go(AppRoutes.businessInventory),
             ),
             Expanded(
               child: MediaQuery.removePadding(

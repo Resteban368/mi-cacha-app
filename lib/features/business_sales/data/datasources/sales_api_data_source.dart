@@ -172,5 +172,6 @@ class SalesApiDataSource implements SalesDataSource {
       final String at => DateTime.parse(at).toLocal(),
       _ => null,
     },
+    reservationPaid: json['reservationPaid'] as bool? ?? false,
   );
 }

@@ -984,6 +984,8 @@ class _SaleCard extends StatelessWidget {
         ? ('Anulada', AppColors.statusDue)
         : method != null
         ? ('Cobrado · ${method.label}', method.color)
+        : sale.reservationPaid
+        ? ('Pagado con la reserva', AppColors.emerald600)
         : ('Cargado a la reserva', _sky);
 
     final dot = Text(
@@ -1095,7 +1097,7 @@ class _SaleCard extends StatelessWidget {
 
     final amountLabel = voided
         ? 'Monto anulado'
-        : method != null
+        : method != null || sale.reservationPaid
         ? 'Total pagado'
         : 'Por cobrar con la reserva';
     final amount = Column(
@@ -1108,7 +1110,7 @@ class _SaleCard extends StatelessWidget {
           style: AppTypography.labelSm.copyWith(
             color: voided
                 ? AppColors.statusDue
-                : method == null
+                : method == null && !sale.reservationPaid
                 ? _sky
                 : AppColors.slate400,
             fontWeight: FontWeight.w600,

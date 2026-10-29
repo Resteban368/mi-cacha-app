@@ -70,6 +70,7 @@ Sale _sale(
   bool voided = false,
   String product = 'Agua 600 ml',
   String? customer,
+  bool reservationPaid = false,
 }) => Sale(
   id: id,
   reservationId: reservationId,
@@ -81,6 +82,7 @@ Sale _sale(
   paymentMethod: method,
   courtName: reservationId == null ? null : 'Sintética 1',
   reservationStart: reservationId == null ? null : _now,
+  reservationPaid: reservationPaid,
   items: [
     SaleItem(
       productName: product,
@@ -224,6 +226,21 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('consumo de una reserva ya pagada: se ve pagado', (tester) async {
+    when(() => getSales(any())).thenAnswer(
+      (_) async => [
+        _sale('s4', 15000, reservationId: 'r1', reservationPaid: true),
+        _sale('s7', 6000, reservationId: 'r3'),
+      ],
+    );
+    final cubit = await pump(tester, const Size(1440, 2000));
+    expect(find.text('Pagado con la reserva'), findsOneWidget);
+    expect(find.text('Cargado a la reserva'), findsOneWidget);
+    expect(find.text('Por cobrar con la reserva'), findsOneWidget);
+    // Solo el consumo sin pagar queda por cobrar.
+    expect(cubit.state.chargedToReservations, 6000);
+  });
 
   testWidgets('cuadre de caja: muestra el faltante y cierra', (tester) async {
     when(

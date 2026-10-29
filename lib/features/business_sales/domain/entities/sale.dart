@@ -60,6 +60,7 @@ class Sale extends Equatable {
     this.paymentMethod,
     this.courtName,
     this.reservationStart,
+    this.reservationPaid = false,
   });
 
   final String id;
@@ -83,11 +84,15 @@ class Sale extends Equatable {
   final String? courtName;
   final DateTime? reservationStart;
 
+  /// Consumo cargado al saldo cuya reserva ya se pagó por completo.
+  final bool reservationPaid;
+
   bool get isVoided => status == SaleStatus.voided;
   bool get isWalkIn => reservationId == null;
 
-  /// Ya se cobró (venta suelta o consumo pagado en el momento).
-  bool get isPaid => paymentMethod != null;
+  /// Ya se cobró: venta suelta, consumo pagado en el momento o consumo
+  /// cuya reserva ya quedó pagada.
+  bool get isPaid => paymentMethod != null || reservationPaid;
 
   /// `12 × Gatorade · 6 × Agua`
   String get itemsLabel =>
@@ -108,5 +113,6 @@ class Sale extends Equatable {
     paymentMethod,
     courtName,
     reservationStart,
+    reservationPaid,
   ];
 }

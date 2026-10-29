@@ -85,7 +85,9 @@ class InventoryPage extends StatelessWidget {
                             child: Padding(
                               padding: const EdgeInsets.all(32),
                               child: Container(
-                                constraints: const BoxConstraints(maxWidth: 480),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 480,
+                                ),
                                 padding: const EdgeInsets.all(24),
                                 decoration: BoxDecoration(
                                   color: AppColors.surfaceContainerLowest,
@@ -161,12 +163,12 @@ class InventoryPage extends StatelessWidget {
                                     const SizedBox(height: 8),
                                     TextButton(
                                       onPressed: () {
-                                        context
-                                            .read<InventoryCubit>()
-                                            .filter(InventoryFilter.all);
-                                        context
-                                            .read<InventoryCubit>()
-                                            .search('');
+                                        context.read<InventoryCubit>().filter(
+                                          InventoryFilter.all,
+                                        );
+                                        context.read<InventoryCubit>().search(
+                                          '',
+                                        );
                                       },
                                       child: const Text('Limpiar filtros'),
                                     ),
@@ -251,10 +253,7 @@ class _HeaderSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         // Grid de 4 KPIs
-        _KpiMetricsGrid(
-          overview: overview,
-          totalValuation: totalValuation,
-        ),
+        _KpiMetricsGrid(overview: overview, totalValuation: totalValuation),
         const SizedBox(height: 16),
         // Barra de búsqueda y filtros segmentados
         _SearchAndFiltersCard(
@@ -269,10 +268,7 @@ class _HeaderSection extends StatelessWidget {
 
 /// Banner Hero verde oscuro con textura de césped y botones de acción rápida.
 class _HeroPitchBanner extends StatelessWidget {
-  const _HeroPitchBanner({
-    required this.canWrite,
-    required this.hasItems,
-  });
+  const _HeroPitchBanner({required this.canWrite, required this.hasItems});
 
   final bool canWrite;
   final bool hasItems;
@@ -287,11 +283,7 @@ class _HeroPitchBanner extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0D4A27),
-            Color(0xFF0B382D),
-            Color(0xFF082820),
-          ],
+          colors: [Color(0xFF0D4A27), Color(0xFF0B382D), Color(0xFF082820)],
         ),
         boxShadow: [
           BoxShadow(
@@ -405,8 +397,9 @@ class _HeroPitchBanner extends StatelessWidget {
                               Text(
                                 'Supervisa niveles de stock en tiempo real, controla alertas de mínimo y agiliza las entradas de producto para canchas y taquilla.',
                                 style: AppTypography.bodySm.copyWith(
-                                  color: const Color(0xFFD1FAE5)
-                                      .withValues(alpha: 0.85),
+                                  color: const Color(
+                                    0xFFD1FAE5,
+                                  ).withValues(alpha: 0.85),
                                   height: 1.4,
                                 ),
                               ),
@@ -502,18 +495,12 @@ class _GlassHeroButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.22),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 18,
-                color: const Color(0xFFA7F3D0),
-              ),
+              Icon(icon, size: 18, color: const Color(0xFFA7F3D0)),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
@@ -561,10 +548,7 @@ class _VibrantHeroButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF34D399),
-                  Color(0xFFA3E635),
-                ],
+                colors: [Color(0xFF34D399), Color(0xFFA3E635)],
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
@@ -584,11 +568,7 @@ class _VibrantHeroButton extends StatelessWidget {
                     color: Colors.black.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 16,
-                    color: const Color(0xFF0F172A),
-                  ),
+                  child: Icon(icon, size: 16, color: const Color(0xFF0F172A)),
                 ),
                 const SizedBox(width: 8),
                 Flexible(
@@ -613,10 +593,7 @@ class _VibrantHeroButton extends StatelessWidget {
 
 /// Grid de 4 métricas KPI de inventario.
 class _KpiMetricsGrid extends StatelessWidget {
-  const _KpiMetricsGrid({
-    required this.overview,
-    required this.totalValuation,
-  });
+  const _KpiMetricsGrid({required this.overview, required this.totalValuation});
 
   final InventoryOverview overview;
   final int totalValuation;
@@ -624,7 +601,9 @@ class _KpiMetricsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Buscar primer producto bajo y primer producto agotado para las etiquetas inferiores
-    final firstLow = overview.items.where((p) => p.isLow && !p.isOut).firstOrNull;
+    final firstLow = overview.items
+        .where((p) => p.isLow && !p.isOut)
+        .firstOrNull;
     final firstOut = overview.items.where((p) => p.isOut).firstOrNull;
 
     final trackedPct = overview.items.isEmpty
@@ -1041,10 +1020,7 @@ class _SearchAndFiltersCardState extends State<_SearchAndFiltersCard> {
             decoration: InputDecoration(
               hintText:
                   'Buscar por nombre o categoría (ej. poker, agua, petos)...',
-              prefixIcon: Icon(
-                Icons.search_rounded,
-                color: AppColors.slate400,
-              ),
+              prefixIcon: Icon(Icons.search_rounded, color: AppColors.slate400),
               suffixIcon: _controller.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear_rounded, size: 18),
@@ -1156,14 +1132,10 @@ class _FilterPill extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFFA3E635)
-                : AppColors.slate100,
+            color: isSelected ? const Color(0xFFA3E635) : AppColors.slate100,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF84CC16)
-                  : AppColors.slate200,
+              color: isSelected ? const Color(0xFF84CC16) : AppColors.slate200,
               width: 1.2,
             ),
           ),
@@ -1188,11 +1160,7 @@ class _FilterPill extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
               ] else if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 14,
-                  color: AppColors.slate500,
-                ),
+                Icon(icon, size: 14, color: AppColors.slate500),
                 const SizedBox(width: 6),
               ],
               Text(
@@ -1206,10 +1174,7 @@ class _FilterPill extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 1,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.black.withValues(alpha: 0.14)
@@ -1622,8 +1587,9 @@ class _StockMetricAndActions extends StatelessWidget {
 
     final stockMetric = p.trackStock
         ? Column(
-            crossAxisAlignment:
-                isNarrow ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+            crossAxisAlignment: isNarrow
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
@@ -1665,9 +1631,7 @@ class _StockMetricAndActions extends StatelessWidget {
                 width: 100,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: isOut
-                      ? const Color(0xFFFFE4E6)
-                      : AppColors.slate100,
+                  color: isOut ? const Color(0xFFFFE4E6) : AppColors.slate100,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: FractionallySizedBox(
@@ -1684,8 +1648,9 @@ class _StockMetricAndActions extends StatelessWidget {
             ],
           )
         : Column(
-            crossAxisAlignment:
-                isNarrow ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+            crossAxisAlignment: isNarrow
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
@@ -1794,10 +1759,7 @@ class _StockMetricAndActions extends StatelessWidget {
                 ),
               ),
               onPressed: () => onAction(_ProductAction.alert),
-              icon: const Icon(
-                Icons.notification_important_outlined,
-                size: 15,
-              ),
+              icon: const Icon(Icons.notification_important_outlined, size: 15),
               label: const Text('Activar control'),
             ),
         ],
@@ -1851,20 +1813,13 @@ class _StockMetricAndActions extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 12,
         runSpacing: 8,
-        children: [
-          stockMetric,
-          actions,
-        ],
+        children: [stockMetric, actions],
       );
     }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [
-        stockMetric,
-        const SizedBox(width: 16),
-        actions,
-      ],
+      children: [stockMetric, const SizedBox(width: 16), actions],
     );
   }
 }

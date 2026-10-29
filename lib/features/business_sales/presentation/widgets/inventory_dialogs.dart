@@ -326,7 +326,8 @@ class _EntryDialogState extends State<_EntryDialog> {
 
     // Producto seleccionado actualmente
     final selectedProduct = _productId != null
-        ? products.where((p) => p.id == _productId).firstOrNull ?? widget.product
+        ? products.where((p) => p.id == _productId).firstOrNull ??
+              widget.product
         : widget.product;
 
     // Productos filtrados para el buscador
@@ -462,10 +463,8 @@ class _EntryDialogState extends State<_EntryDialog> {
                     : ListView.separated(
                         shrinkWrap: true,
                         itemCount: filteredProducts.length,
-                        separatorBuilder: (_, _) => Divider(
-                          height: 1,
-                          color: AppColors.slate200,
-                        ),
+                        separatorBuilder: (_, _) =>
+                            Divider(height: 1, color: AppColors.slate200),
                         itemBuilder: (context, i) {
                           final p = filteredProducts[i];
                           return ListTile(
