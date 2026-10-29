@@ -119,14 +119,42 @@ class ReservationListTile extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        '${r.courtsLabel} · '
-                        '${AppFormatters.timeRange(r.start, r.end)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodySm.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                        ),
+                      Row(
+                        children: [
+                          if (r.group != null &&
+                              r.group!.courts.length > 1) ...[
+                            Container(
+                              margin: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.brandTealLight,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'MÚLTIPLE',
+                                style: AppTypography.labelSm.copyWith(
+                                  color: AppColors.brandTealDeep,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                          Expanded(
+                            child: Text(
+                              '${r.courtsLabel} · '
+                              '${AppFormatters.timeRange(r.start, r.end)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.bodySm.copyWith(
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 6),
                       ReservationStatusPill(status: r.status),

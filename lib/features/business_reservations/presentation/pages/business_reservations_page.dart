@@ -456,15 +456,30 @@ class _BusinessReservationsPageState extends State<BusinessReservationsPage> {
       ];
     }
 
+    List<Reservation> deduplicate(Iterable<Reservation> list) {
+      final seenGroups = <String>{};
+      final result = <Reservation>[];
+      for (final r in list) {
+        final group = r.group;
+        if (group == null) {
+          result.add(r);
+        } else if (seenGroups.add(group.id)) {
+          result.add(r);
+        }
+      }
+      return result;
+    }
+
     if (state.filter != null || !agenda.isToday) {
-      final cards = agenda.filtered(state.filter).map(card).toList();
+      final cards =
+          deduplicate(agenda.filtered(state.filter)).map(card).toList();
       return [if (cards.isNotEmpty) _Section(cards: cards)];
     }
 
     final past = <Reservation>[];
     final live = <Reservation>[];
     final upcoming = <Reservation>[];
-    for (final r in agenda.reservations) {
+    for (final r in deduplicate(agenda.reservations)) {
       switch (r.timingAt(now)) {
         case ReservationTiming.past:
           past.add(r);

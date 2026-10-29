@@ -79,6 +79,42 @@ class ReservationCard extends StatelessWidget {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
+                        if (r.group != null && r.group!.courts.length > 1)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.brandTealLight,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: AppColors.brandTeal.withValues(
+                                  alpha: 0.35,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.layers_rounded,
+                                  size: 13,
+                                  color: AppColors.brandTealDeep,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Múltiple (${r.group!.courts.length})',
+                                  style: AppTypography.labelSm.copyWith(
+                                    color: AppColors.brandTealDeep,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         CourtChip(reservation: r),
                         Text(
                           time,
