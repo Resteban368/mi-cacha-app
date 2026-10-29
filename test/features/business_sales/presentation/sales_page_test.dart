@@ -274,6 +274,14 @@ void main() {
     expect(find.text('Abonado con la reserva'), findsOneWidget);
     expect(find.text('Faltan \$6.000'), findsOneWidget);
     expect(find.text('\$13.000 por cobrar'), findsOneWidget);
+
+    // Pestaña "Por cobrar": el agua y las gaseosas (parcial), no las cervezas.
+    expect(cubit.state.countOf(SalesTab.pending), 2);
+    await tester.tap(find.byKey(const Key('tab-pending')));
+    await tester.pumpAndSettle();
+    expect(find.text('Pagado con la reserva'), findsNothing);
+    expect(find.text('Cargado a la reserva'), findsOneWidget);
+    expect(find.text('Abonado con la reserva'), findsOneWidget);
   });
 
   testWidgets('cuadre de caja: muestra el faltante y cierra', (tester) async {

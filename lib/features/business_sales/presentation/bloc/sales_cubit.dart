@@ -8,7 +8,8 @@ import '../../domain/usecases/sales_usecases.dart';
 enum SalesLoad { loading, ready, failure }
 
 /// Pestañas de la lista de ventas.
-enum SalesTab { all, walkIn, consumptions, voided }
+/// Pestañas de la lista; [pending] son los consumos que aún deben algo.
+enum SalesTab { all, walkIn, consumptions, pending, voided }
 
 /// Filtro por método: un `code` del catálogo o los consumos sin cobrar.
 const chargedToReservation = 'RESERVA';
@@ -81,6 +82,8 @@ final class SalesState extends Equatable {
     SalesTab.all => true,
     SalesTab.walkIn => s.isWalkIn && !s.isVoided,
     SalesTab.consumptions => !s.isWalkIn && !s.isVoided,
+    SalesTab.pending =>
+      !s.isWalkIn && !s.isVoided && !s.isPaid && s.reservationPending > 0,
     SalesTab.voided => s.isVoided,
   };
 

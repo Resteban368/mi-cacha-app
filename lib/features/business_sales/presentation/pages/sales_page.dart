@@ -243,6 +243,14 @@ class SalesPage extends StatelessWidget {
                   'No hay ventas este día. Registra una venta suelta con el '
                   'botón + o agrega consumos desde el detalle de una reserva.',
             )
+          else if (visible.isEmpty &&
+              state.tab == SalesTab.pending &&
+              state.query.isEmpty &&
+              state.method == null)
+            const _Empty(
+              icon: Icons.task_alt_rounded,
+              text: 'Nada por cobrar este día: los consumos ya están pagados.',
+            )
           else if (visible.isEmpty)
             const _Empty(
               icon: Icons.filter_alt_off_outlined,
@@ -755,6 +763,7 @@ class _FilterBar extends StatelessWidget {
               (SalesTab.all, 'Todas'),
               (SalesTab.walkIn, 'Ventas sueltas'),
               (SalesTab.consumptions, 'Consumos de cancha'),
+              (SalesTab.pending, 'Por cobrar'),
               (SalesTab.voided, 'Anuladas'),
             ])
               _TabButton(
@@ -840,20 +849,34 @@ class _FilterBar extends StatelessWidget {
       ),
       icon: Icon(Icons.refresh_rounded, color: AppColors.slate600),
     );
+    // Con espacio, todo en una fila; si no, las pestañas arriba (completas)
+    // y el buscador con los demás controles debajo.
+    final controls = Row(
+      children: [
+        Expanded(child: search),
+        const SizedBox(width: 8),
+        methodMenu,
+        const SizedBox(width: 8),
+        refresh,
+      ],
+    );
     return _Panel(
       padding: 14,
       child: wide
-          ? Row(
-              children: [
-                Flexible(child: tabs),
-                const SizedBox(width: 12),
-                // El buscador ocupa el espacio que dejen las pestañas.
-                Expanded(child: search),
-                const SizedBox(width: 8),
-                methodMenu,
-                const SizedBox(width: 8),
-                refresh,
-              ],
+          ? LayoutBuilder(
+              builder: (context, constraints) => constraints.maxWidth >= 1160
+                  ? Row(
+                      children: [
+                        tabs,
+                        const SizedBox(width: 12),
+                        // El buscador ocupa el espacio que dejen las pestañas.
+                        Expanded(child: controls),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [tabs, const SizedBox(height: 10), controls],
+                    ),
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
