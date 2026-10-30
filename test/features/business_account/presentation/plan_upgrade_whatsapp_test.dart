@@ -4,19 +4,47 @@ import 'package:mi_cancha/features/business_account/presentation/utils/plan_upgr
 
 void main() {
   test('abre el WhatsApp de ventas con el negocio y el plan', () {
-    final uri = planUpgradeWhatsAppUri('Pro', businessName: 'El Campín');
+    final uri = planUpgradeWhatsAppUri('Mi Cancha', businessName: 'El Campín');
     expect(uri.host, 'wa.me');
     expect(uri.path, '/573208806654');
     expect(
       uri.queryParameters['text'],
-      'Hola, soy el administrador de El Campín y quiero cambiar al plan Pro.',
+      'Hola, soy el administrador de El Campín y quiero cambiar al plan '
+      'Mi Cancha.',
     );
   });
 
   test('sin nombre del negocio usa un mensaje genérico', () {
     expect(
-      planUpgradeWhatsAppUri('Pro').queryParameters['text'],
-      'Hola, quiero cambiar mi negocio al plan Pro.',
+      planUpgradeWhatsAppUri('Mi Cancha').queryParameters['text'],
+      'Hola, quiero cambiar mi negocio al plan Mi Cancha.',
+    );
+  });
+
+  test('pedir más canchas con el nombre del negocio', () {
+    final uri = moreCourtsWhatsAppUri(3, businessName: 'El Campín');
+    expect(uri.host, 'wa.me');
+    expect(uri.path, '/573208806654');
+    expect(
+      uri.queryParameters['text'],
+      'Hola, soy el administrador de El Campín y quiero ampliar mi plan: hoy '
+      'tengo 3 canchas contratadas y necesito más.',
+    );
+  });
+
+  test('pedir más canchas sin el nombre del negocio', () {
+    expect(
+      moreCourtsWhatsAppUri(3, businessName: ' ').queryParameters['text'],
+      'Hola, quiero ampliar mi plan: hoy tengo 3 canchas contratadas y '
+      'necesito más.',
+    );
+  });
+
+  test('pedir más canchas con una sola cancha contratada', () {
+    expect(
+      moreCourtsWhatsAppUri(1).queryParameters['text'],
+      'Hola, quiero ampliar mi plan: hoy tengo 1 cancha contratada y '
+      'necesito más.',
     );
   });
 
@@ -43,7 +71,7 @@ void main() {
             builder: (context) => TextButton(
               onPressed: () => openPlanUpgrade(
                 context,
-                'Pro',
+                'Mi Cancha',
                 opener: (uri) async {
                   opened = uri;
                   return false;

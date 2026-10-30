@@ -39,7 +39,7 @@ class CourtsRepositoryImpl implements CourtsRepository {
     } on ApiException catch (error) {
       throw CourtException(switch (error) {
         // 403 PLAN_LIMIT_REACHED / PLAN_INACTIVE: el mensaje del backend
-        // ya explica el límite ("Tu plan Básico permite 3 canchas…").
+        // ya explica el límite ("Tu plan Mi Cancha permite 3 canchas…").
         ApiException(kind: ApiErrorKind.forbidden) => CourtFailure.planLimit,
         ApiException(kind: ApiErrorKind.conflict) => CourtFailure.duplicateName,
         ApiException(kind: ApiErrorKind.badRequest) => CourtFailure.invalid,

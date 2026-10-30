@@ -26,17 +26,17 @@ class FakeBusinessAccountDataSource implements BusinessAccountDataSource {
       verified: true,
     ),
     subscription: Subscription(
-      planName: 'Plan Básico',
-      monthlyPrice: 79900,
+      planName: 'Mi Cancha',
+      monthlyPrice: 117000,
       since: DateTime(2026, 9, 15),
       nextPayment: DateTime(2026, 10, 15),
-      courtLimit: 5,
+      courtLimit: 3,
       // TODO: tomar el número real de canchas cuando exista la sección Canchas.
       courtsInUse: 3,
-      nextPlanName: 'Pro',
+      nextPlanName: null,
       benefits: const [
         PlanBenefit(
-          title: 'Hasta 5 canchas registradas',
+          title: 'Hasta 3 canchas registradas',
           detail:
               'Compatible con fútbol sintético, pádel, tenis, básquetbol y '
               'voleibol.',

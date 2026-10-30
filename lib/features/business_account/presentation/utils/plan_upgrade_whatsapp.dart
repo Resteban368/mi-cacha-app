@@ -15,6 +15,19 @@ Uri planUpgradeWhatsAppUri(String nextPlan, {String? businessName}) {
   return ContactLauncher.whatsAppChat(planSalesWhatsApp, text: text)!;
 }
 
+/// Chat con ventas pidiendo más canchas de las [courtLimit] contratadas.
+Uri moreCourtsWhatsAppUri(int courtLimit, {String? businessName}) {
+  final name = businessName?.trim();
+  final courts = courtLimit == 1
+      ? '1 cancha contratada'
+      : '$courtLimit canchas contratadas';
+  final text = name == null || name.isEmpty
+      ? 'Hola, quiero ampliar mi plan: hoy tengo $courts y necesito más.'
+      : 'Hola, soy el administrador de $name y quiero ampliar mi plan: hoy '
+            'tengo $courts y necesito más.';
+  return ContactLauncher.whatsAppChat(planSalesWhatsApp, text: text)!;
+}
+
 /// Chat con ventas pidiendo activar el módulo de Ventas e inventario.
 Uri salesModuleRequestWhatsAppUri({String? businessName}) {
   final name = businessName?.trim();
@@ -35,6 +48,18 @@ Future<void> openPlanUpgrade(
 }) => _openSalesChat(
   context,
   planUpgradeWhatsAppUri(nextPlan, businessName: businessName),
+  opener,
+);
+
+/// Abre el chat para pedir más canchas.
+Future<void> openMoreCourtsRequest(
+  BuildContext context,
+  int courtLimit, {
+  String? businessName,
+  UrlOpener? opener,
+}) => _openSalesChat(
+  context,
+  moreCourtsWhatsAppUri(courtLimit, businessName: businessName),
   opener,
 );
 

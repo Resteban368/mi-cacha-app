@@ -148,6 +148,11 @@ class _AccountContent extends StatelessWidget {
               plan.nextPlanName ?? '',
               businessName: venue?.name,
             ),
+            onRequestMoreCourts: () => openMoreCourtsRequest(
+              context,
+              plan.courtLimit,
+              businessName: venue?.name,
+            ),
             onBillingHistory: () =>
                 _comingSoon(context, 'Historial de facturación'),
           );

@@ -71,8 +71,13 @@ final class Subscription extends Equatable {
   /// Cobro automático con tarjeta.
   final bool autoBilling;
 
-  /// Plan al que puede mejorar; `null` si ya tiene el más alto.
+  /// Plan al que puede cambiar: en prueba, «Mi Cancha». En un plan de pago
+  /// suele ser `null` y no decide la acción (ver [isPaidPlan]).
   final String? nextPlanName;
+
+  /// Plan de pago, a diferencia de la prueba (vigente o vencida), que no
+  /// tiene costo.
+  bool get isPaidPlan => monthlyPrice > 0;
 
   int get freeCourtSlots => (courtLimit - courtsInUse).clamp(0, courtLimit);
 

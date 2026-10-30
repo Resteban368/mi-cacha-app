@@ -14,16 +14,25 @@ class SubscriptionCard extends StatelessWidget {
     super.key,
     required this.subscription,
     required this.onUpgrade,
+    required this.onRequestMoreCourts,
     required this.onBillingHistory,
   });
 
   final Subscription subscription;
   final VoidCallback onUpgrade;
+  final VoidCallback onRequestMoreCourts;
   final VoidCallback onBillingHistory;
 
   @override
   Widget build(BuildContext context) {
     final plan = subscription;
+    // En plan de pago se piden más canchas; en prueba se cambia de plan.
+    final actionLabel = plan.isPaidPlan
+        ? 'Agregar más canchas'
+        : switch (plan.nextPlanName) {
+            final next? => 'Cambiar al plan $next',
+            null => null,
+          };
     return AccountCard(
       elevated: true,
       padding: EdgeInsets.zero,
@@ -53,6 +62,10 @@ class SubscriptionCard extends StatelessWidget {
                 _Header(plan: plan),
                 const SizedBox(height: 12),
                 _Price(price: plan.monthlyPrice),
+                if (plan.isPaidPlan) ...[
+                  const SizedBox(height: 8),
+                  _ContractedCourts(courtLimit: plan.courtLimit),
+                ],
                 const SizedBox(height: 12),
                 _Dates(plan: plan),
                 if (plan.autoBilling) ...[
@@ -61,13 +74,17 @@ class SubscriptionCard extends StatelessWidget {
                 ],
                 const SizedBox(height: 16),
                 _CourtUsage(plan: plan),
-                // Con el plan más alto no hay a qué cambiar.
-                if (plan.nextPlanName case final next?) ...[
+                if (actionLabel != null) ...[
                   const SizedBox(height: 16),
                   FilledButton.icon(
-                    onPressed: onUpgrade,
-                    icon: const Icon(Icons.rocket_launch, size: 19),
-                    label: Text('Cambiar al plan $next'),
+                    onPressed: plan.isPaidPlan
+                        ? onRequestMoreCourts
+                        : onUpgrade,
+                    icon: Icon(
+                      plan.isPaidPlan ? Icons.add : Icons.rocket_launch,
+                      size: 19,
+                    ),
+                    label: Text(actionLabel),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
                       backgroundColor: AppColors.brandTeal,
@@ -224,6 +241,30 @@ class _Price extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ContractedCourts extends StatelessWidget {
+  const _ContractedCourts({required this.courtLimit});
+
+  final int courtLimit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.stadium, size: 16, color: AppColors.brandTeal),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            courtLimit == 1
+                ? '1 cancha contratada'
+                : '$courtLimit canchas contratadas',
+            style: AppTypography.labelMd.copyWith(color: AppColors.onSurface),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -386,8 +427,11 @@ class _CourtUsage extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             free == 0
-                ? 'Usaste todos los cupos de tu plan. Mejóralo para sumar '
-                      'más canchas.'
+                ? plan.isPaidPlan
+                      ? 'Usaste todas tus canchas contratadas. Pide más para '
+                            'seguir creciendo.'
+                      : 'Usaste todos los cupos de tu plan. Mejóralo para '
+                            'sumar más canchas.'
                 : 'Tienes $free ${free == 1 ? 'cupo libre disponible' : 'cupos libres disponibles'} '
                       'para expandir tu complejo deportivo.',
             style: AppTypography.bodySm.copyWith(

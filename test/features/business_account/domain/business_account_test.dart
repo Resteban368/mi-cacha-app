@@ -27,6 +27,21 @@ void main() {
       benefits: const [],
     );
 
+    test('es de pago solo si tiene precio, sin importar el nombre', () {
+      Subscription named(String name, int price) => Subscription(
+        planName: name,
+        monthlyPrice: price,
+        since: DateTime(2026),
+        nextPayment: DateTime(2026, 2),
+        courtLimit: 2,
+        courtsInUse: 0,
+        benefits: const [],
+      );
+      expect(named('Mi Cancha', 117000).isPaidPlan, isTrue);
+      expect(named('A medida', 900000).isPaidPlan, isTrue);
+      expect(named('Prueba', 0).isPaidPlan, isFalse);
+    });
+
     test('calcula uso y cupos libres', () {
       final p = plan(limit: 5, used: 3);
       expect(p.usage, 0.6);

@@ -138,13 +138,13 @@ void main() {
     expect(find.text('ADMIN PRO'), findsOneWidget);
     expect(find.text(business.name), findsOneWidget);
     // Ficha del negocio: «Ciudad, Departamento».
-    expect(find.text('Florencia, Caquetá · 3 canchas activas'), findsOneWidget);
-    expect(find.text('Plan Básico'), findsOneWidget);
-    expect(find.textContaining(r'$79.900'), findsOneWidget);
+    expect(find.text('Florencia, Caquetá · 2 canchas activas'), findsOneWidget);
+    expect(find.text('Mi Cancha'), findsOneWidget);
+    expect(find.textContaining(r'$117.000'), findsOneWidget);
     expect(find.text('15 sep. 2026'), findsOneWidget);
     expect(find.text('15 oct. 2026'), findsOneWidget);
-    expect(find.text('3 de 5 canchas (60%)'), findsOneWidget);
-    expect(find.textContaining('Tienes 2 cupos libres'), findsOneWidget);
+    expect(find.text('2 de 3 canchas (67%)'), findsOneWidget);
+    expect(find.textContaining('Tienes 1 cupo libre'), findsOneWidget);
     await reveal(tester, find.text('Mi Cancha v1.0.0 · Florencia, Caquetá'));
     expect(find.text('Mi Cancha v1.0.0 · Florencia, Caquetá'), findsOneWidget);
   });
@@ -153,14 +153,14 @@ void main() {
     await pumpPage(tester);
 
     expect(find.text('2 activos'), findsOneWidget);
-    expect(find.text('Hasta 5 canchas registradas'), findsNothing);
+    expect(find.text('Hasta 3 canchas registradas'), findsNothing);
 
     await tapText(tester, 'Ver beneficios incluidos');
-    expect(find.text('Hasta 5 canchas registradas'), findsOneWidget);
+    expect(find.text('Hasta 3 canchas registradas'), findsOneWidget);
     expect(find.text('Reservas ilimitadas'), findsOneWidget);
 
     await tapText(tester, 'Ver beneficios incluidos');
-    expect(find.text('Hasta 5 canchas registradas'), findsNothing);
+    expect(find.text('Hasta 3 canchas registradas'), findsNothing);
   });
 
   testWidgets('la sede lleva a Mi negocio', (tester) async {
@@ -246,39 +246,97 @@ void main() {
     // Debajo del plan.
     expect(
       tester.getTopLeft(card).dy,
-      greaterThan(tester.getTopLeft(find.text('Plan Básico')).dy),
+      greaterThan(tester.getTopLeft(find.text('Mi Cancha')).dy),
     );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('ofrece cambiar al plan siguiente', (tester) async {
-    await pumpPage(tester);
-    expect(find.text('Cambiar al plan Pro'), findsOneWidget);
-  });
-
-  testWidgets('con el plan más alto no ofrece cambiar de plan', (tester) async {
-    final top = account.subscription!;
-    await pumpPage(
-      tester,
-      state: BusinessAccountState(
-        status: BusinessAccountStatus.ready,
-        account: BusinessAccount(
-          admin: account.admin,
-          subscription: Subscription(
-            planName: 'Pro',
-            monthlyPrice: top.monthlyPrice,
-            since: top.since,
-            nextPayment: top.nextPayment,
-            courtLimit: top.courtLimit,
-            courtsInUse: top.courtsInUse,
-            benefits: top.benefits,
-          ),
+  BusinessAccountState withPlan({
+    int monthlyPrice = 117000,
+    String planName = 'Mi Cancha',
+    String? nextPlanName,
+    bool isActive = true,
+    int courtsInUse = 2,
+  }) {
+    final base = account.subscription!;
+    return BusinessAccountState(
+      status: BusinessAccountStatus.ready,
+      account: BusinessAccount(
+        admin: account.admin,
+        subscription: Subscription(
+          planName: planName,
+          monthlyPrice: monthlyPrice,
+          since: base.since,
+          nextPayment: base.nextPayment,
+          courtLimit: base.courtLimit,
+          courtsInUse: courtsInUse,
+          benefits: base.benefits,
+          isActive: isActive,
+          nextPlanName: nextPlanName,
         ),
-        venue: venue,
       ),
+      venue: venue,
     );
-    expect(find.textContaining('Cambiar al plan'), findsNothing);
-    expect(find.text('Ver historial de facturación'), findsOneWidget);
+  }
+
+  group('acción del plan', () {
+    testWidgets('plan de pago sin plan siguiente: agregar más canchas', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      expect(find.text('Agregar más canchas'), findsOneWidget);
+      expect(find.textContaining('Cambiar al plan'), findsNothing);
+      expect(find.text('3 canchas contratadas'), findsOneWidget);
+      expect(find.text('Ver historial de facturación'), findsOneWidget);
+    });
+
+    testWidgets('plan de pago con plan a medida: también agregar más canchas', (
+      tester,
+    ) async {
+      await pumpPage(tester, state: withPlan(nextPlanName: 'A medida'));
+      expect(find.text('Agregar más canchas'), findsOneWidget);
+      expect(find.textContaining('Cambiar al plan'), findsNothing);
+    });
+
+    testWidgets('en prueba: cambiar al plan Mi Cancha', (tester) async {
+      await pumpPage(
+        tester,
+        state: withPlan(
+          monthlyPrice: 0,
+          planName: 'Prueba',
+          nextPlanName: 'Mi Cancha',
+        ),
+      );
+      expect(find.text('Cambiar al plan Mi Cancha'), findsOneWidget);
+      expect(find.text('Agregar más canchas'), findsNothing);
+      expect(find.textContaining('contratadas'), findsNothing);
+    });
+
+    testWidgets('con la prueba vencida: cambiar al plan Mi Cancha', (
+      tester,
+    ) async {
+      await pumpPage(
+        tester,
+        state: withPlan(
+          monthlyPrice: 0,
+          planName: 'Prueba',
+          nextPlanName: 'Mi Cancha',
+          isActive: false,
+        ),
+      );
+      expect(find.text('Cambiar al plan Mi Cancha'), findsOneWidget);
+      expect(find.text('Agregar más canchas'), findsNothing);
+    });
+
+    testWidgets('al llegar al límite el aviso invita a pedir más canchas', (
+      tester,
+    ) async {
+      await pumpPage(tester, state: withPlan(courtsInUse: 3));
+      expect(
+        find.textContaining('Usaste todas tus canchas contratadas'),
+        findsOneWidget,
+      );
+    });
   });
 
   testWidgets('"Cambiar contraseña" abre el formulario', (tester) async {

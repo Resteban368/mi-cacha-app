@@ -212,10 +212,10 @@ void main() {
       final error = await failWith(403, {
         'statusCode': 403,
         'code': 'PLAN_LIMIT_REACHED',
-        'message': 'Tu plan Básico permite 3 cancha(s) activa(s)',
+        'message': 'Tu plan Mi Cancha permite 3 cancha(s) activa(s)',
       });
       expect(error.failure, CourtFailure.planLimit);
-      expect(error.message, 'Tu plan Básico permite 3 cancha(s) activa(s)');
+      expect(error.message, 'Tu plan Mi Cancha permite 3 cancha(s) activa(s)');
     });
 
     test('409 nombre repetido', () async {

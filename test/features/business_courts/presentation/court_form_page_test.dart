@@ -1,7 +1,6 @@
-import 'dart:typed_data';
-
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -28,13 +27,19 @@ class _FakePicker implements PhotoPicker {
       (bytes: Uint8List.fromList([0xff, 0xd8, 0xff, 0]), name: 'foto.jpg');
 }
 
-Subscription plan({int inUse = 0}) => Subscription(
-  planName: 'Básico',
-  monthlyPrice: 0,
+Subscription plan({
+  int inUse = 0,
+  String planName = 'Mi Cancha',
+  int monthlyPrice = 117000,
+  String? nextPlanName,
+}) => Subscription(
+  planName: planName,
+  monthlyPrice: monthlyPrice,
   since: DateTime(2026),
   nextPayment: DateTime(2026, 2),
   courtLimit: 3,
   courtsInUse: inUse,
+  nextPlanName: nextPlanName,
   benefits: const [],
 );
 
@@ -138,7 +143,7 @@ void main() {
 
     expect(find.text('Nueva Cancha'), findsOneWidget);
     expect(find.text('cancha dev'), findsOneWidget);
-    expect(find.text('Básico · 0 de 3 canchas usadas'), findsOneWidget);
+    expect(find.text('Mi Cancha · 0 de 3 canchas usadas'), findsOneWidget);
     // Solo los deportes que acepta la API.
     for (final name in ['Fútbol', 'Pádel', 'Baloncesto', 'Voleibol']) {
       expect(find.text(name), findsOneWidget);
@@ -314,6 +319,89 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+  });
+
+  group('límite alcanzado', () {
+    FilledButton limitButton(WidgetTester tester, String label) =>
+        tester.widget(
+          find.ancestor(
+            of: find.text(label),
+            matching: find.byWidgetPredicate((w) => w is FilledButton),
+          ),
+        );
+
+    testWidgets('plan de pago: el botón pide más canchas por WhatsApp', (
+      tester,
+    ) async {
+      const channel = MethodChannel('plugins.flutter.io/url_launcher');
+      String? opened;
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        opened = (call.arguments as Map)['url'] as String?;
+        return true;
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+      await pump(
+        tester,
+        CourtFormState(
+          contextStatus: CourtFormContextStatus.ready,
+          venueName: 'El Campín',
+          subscription: plan(inUse: 3),
+          planKnown: true,
+        ),
+      );
+
+      expect(
+        find.text('Has usado 3 de 3 canchas disponibles en tu plan.'),
+        findsOneWidget,
+      );
+      expect(limitButton(tester, 'Agregar más canchas').onPressed, isNotNull);
+      await tapVisible(tester, find.text('Agregar más canchas'));
+
+      expect(
+        Uri.parse(opened!).queryParameters['text'],
+        'Hola, soy el administrador de El Campín y quiero ampliar mi plan: '
+        'hoy tengo 3 canchas contratadas y necesito más.',
+      );
+    });
+
+    testWidgets('plan de pago con plan a medida: también agregar más canchas', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        CourtFormState(
+          contextStatus: CourtFormContextStatus.ready,
+          subscription: plan(inUse: 3, nextPlanName: 'A medida'),
+          planKnown: true,
+        ),
+      );
+      expect(limitButton(tester, 'Agregar más canchas').onPressed, isNotNull);
+      expect(find.textContaining('Cambiar al plan'), findsNothing);
+    });
+
+    testWidgets('en prueba: el botón cambia al plan Mi Cancha', (tester) async {
+      await pump(
+        tester,
+        CourtFormState(
+          contextStatus: CourtFormContextStatus.ready,
+          subscription: plan(
+            inUse: 3,
+            planName: 'Prueba',
+            monthlyPrice: 0,
+            nextPlanName: 'Mi Cancha',
+          ),
+          planKnown: true,
+        ),
+      );
+      expect(
+        limitButton(tester, 'Cambiar al plan Mi Cancha').onPressed,
+        isNotNull,
+      );
+      expect(find.text('Agregar más canchas'), findsNothing);
     });
   });
 

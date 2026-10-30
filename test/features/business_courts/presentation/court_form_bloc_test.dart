@@ -45,7 +45,7 @@ const grass = CatalogCourtSurface(
 
 Subscription plan({int inUse = 0, int limit = 3, bool active = true}) =>
     Subscription(
-      planName: 'Básico',
+      planName: 'Mi Cancha',
       monthlyPrice: 0,
       since: DateTime(2026),
       nextPayment: DateTime(2026, 2),
@@ -263,7 +263,7 @@ void main() {
     setUp: () => when(() => createCourt(any())).thenThrow(
       const CourtException(
         CourtFailure.planLimit,
-        message: 'Tu plan Básico permite 3 cancha(s) activa(s)',
+        message: 'Tu plan Mi Cancha permite 3 cancha(s) activa(s)',
       ),
     ),
     build: build,
@@ -275,7 +275,7 @@ void main() {
       expect(bloc.state.failure, CourtFailure.planLimit);
       expect(
         bloc.state.failureMessage,
-        'Tu plan Básico permite 3 cancha(s) activa(s)',
+        'Tu plan Mi Cancha permite 3 cancha(s) activa(s)',
       );
       verifyNever(() => uploadPhoto(any()));
     },

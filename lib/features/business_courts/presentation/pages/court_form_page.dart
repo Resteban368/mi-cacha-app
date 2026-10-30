@@ -606,7 +606,19 @@ class _CourtFormState extends State<_CourtForm> {
         onUpgradePlan: () => context.go(AppRoutes.businessSettings),
       );
     }
-    // Con el plan más alto no se ofrece mejorar.
+    if (plan.isPaidPlan) {
+      return CourtPlanLimitBanner(
+        courtsInUse: plan.courtsInUse,
+        courtLimit: plan.courtLimit,
+        planName: plan.planName,
+        onUpgradePlan: () => openMoreCourtsRequest(
+          context,
+          plan.courtLimit,
+          businessName: state.venueName,
+        ),
+        upgradeLabel: 'Agregar más canchas',
+      );
+    }
     final next = plan.nextPlanName;
     return CourtPlanLimitBanner(
       courtsInUse: plan.courtsInUse,

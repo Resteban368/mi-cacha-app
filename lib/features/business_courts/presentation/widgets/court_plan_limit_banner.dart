@@ -9,7 +9,7 @@ class CourtPlanLimitBanner extends StatelessWidget {
     super.key,
     required this.courtsInUse,
     required this.courtLimit,
-    this.planName = 'Plan Pro',
+    this.planName = 'Mi Cancha',
     this.onUpgradePlan,
     this.upgradeLabel = 'Mejorar plan de suscripción',
     this.noActivePlan = false,
@@ -19,7 +19,7 @@ class CourtPlanLimitBanner extends StatelessWidget {
   final int courtLimit;
   final String planName;
 
-  /// `null` oculta el botón (p. ej. ya tiene el plan más alto).
+  /// `null` oculta el botón (p. ej. en prueba, sin plan al cual cambiar).
   final VoidCallback? onUpgradePlan;
   final String upgradeLabel;
 
@@ -77,7 +77,7 @@ class CourtPlanLimitBanner extends StatelessWidget {
                         noActivePlan
                             ? 'Necesitas un plan activo para habilitar canchas.'
                             : 'Has usado $courtsInUse de $courtLimit canchas '
-                                  'disponibles en tu $planName.',
+                                  'disponibles en tu plan.',
                         style: AppTypography.bodySm.copyWith(
                           color: AppColors.onSurfaceVariant,
                         ),
