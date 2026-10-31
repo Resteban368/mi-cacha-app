@@ -79,6 +79,11 @@ import '../../features/business_sales/domain/usecases/cash_usecases.dart';
 import '../../features/business_sales/domain/usecases/sales_usecases.dart';
 import '../../features/business_sales/presentation/bloc/cash_cubit.dart';
 import '../../features/business_sales/presentation/bloc/products_cubit.dart';
+import '../../features/business_coupons/data/datasources/coupons_api_data_source.dart';
+import '../../features/business_coupons/domain/repositories/coupon_repository.dart';
+import '../../features/business_coupons/domain/usecases/coupon_usecases.dart';
+import '../../features/business_coupons/presentation/bloc/coupon_detail_cubit.dart';
+import '../../features/business_coupons/presentation/bloc/coupons_cubit.dart';
 import '../../features/business_sales/presentation/bloc/suppliers_cubit.dart';
 import '../../features/business_sales/presentation/bloc/sale_cart_cubit.dart';
 import '../../features/business_sales/presentation/bloc/sales_cubit.dart';
@@ -265,6 +270,22 @@ void _initBusinessReservations() {
 
 void _initBusinessSales() {
   sl
+    ..registerLazySingleton<CouponRepository>(() => CouponsApiDataSource(sl()))
+    ..registerLazySingleton(() => GetCoupons(sl()))
+    ..registerLazySingleton(() => GetCoupon(sl()))
+    ..registerLazySingleton(() => SaveCoupon(sl()))
+    ..registerLazySingleton(() => SetCouponActive(sl()))
+    ..registerLazySingleton(() => GetCouponCards(sl()))
+    ..registerLazySingleton(() => GetCustomerCoupons(sl()))
+    ..registerLazySingleton(() => RedeemCoupon(sl()))
+    ..registerFactory(
+      () => CouponsCubit(
+        getCoupons: sl(),
+        saveCoupon: sl(),
+        setCouponActive: sl(),
+      ),
+    )
+    ..registerFactory(() => CouponDetailCubit(getCoupon: sl(), getCards: sl()))
     ..registerLazySingleton<SalesDataSource>(() => SalesApiDataSource(sl()))
     ..registerLazySingleton<SalesRepository>(() => SalesRepositoryImpl(sl()))
     ..registerLazySingleton(() => GetProducts(sl()))

@@ -30,6 +30,9 @@ abstract final class AppRoutes {
   static const businessProducts = '/negocio/ventas/productos';
   static const businessSuppliers = '/negocio/ventas/proveedores';
   static const businessInventory = '/negocio/inventario';
+  static const businessCoupons = '/negocio/cupones';
+  static const businessCouponDetail = '/negocio/cupones/:id';
+  static String businessCouponDetailPath(String id) => '/negocio/cupones/$id';
   static const businessCourts = '/negocio/canchas';
   static const businessNewCourt = '/negocio/canchas/nueva';
   static const businessEditCourt = '/negocio/canchas/editar/:id';

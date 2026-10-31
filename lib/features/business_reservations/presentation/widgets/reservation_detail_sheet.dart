@@ -11,6 +11,7 @@ import '../../../../core/session/write_access.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../business_coupons/presentation/widgets/redeem_coupon_dialog.dart';
 import '../../../business_payments/domain/entities/payment.dart';
 import '../../../business_payments/presentation/widgets/payment_styles.dart';
 import '../../../business_sales/domain/entities/sale.dart';
@@ -152,6 +153,29 @@ class ReservationDetailView extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(const SnackBar(content: Text('Pago registrado.')));
     await cubit.paymentRegistered();
+  }
+
+  /// Usa un bono del cliente: baja el saldo antes del pago presencial.
+  Future<void> _redeemCoupon(BuildContext context, Reservation r) async {
+    if (!ensureCanWrite(context)) return;
+    final cubit = context.read<ReservationDetailCubit>();
+    final result = await showRedeemCouponDialog(
+      context,
+      reservationId: r.id,
+      customerId: r.customer!.id,
+      courts: r.group?.courts.length ?? 1,
+    );
+    if (result == null || !context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            'Cupón redimido: ${AppFormatters.cop(result.amount)} de descuento.',
+          ),
+        ),
+      );
+    await cubit.refresh();
   }
 
   /// Carga bebidas, snacks… a la reserva: suman a su saldo.
@@ -394,6 +418,18 @@ class ReservationDetailView extends StatelessWidget {
                             : () => _registerPayment(context, r),
                         icon: const Icon(Icons.add_card_rounded, size: 18),
                         label: const Text('Realizar pago'),
+                      ),
+                    if (canAct && r.displayBalance > 0 && r.customer != null)
+                      OutlinedButton.icon(
+                        key: const Key('redeem-coupon'),
+                        onPressed: working
+                            ? null
+                            : () => _redeemCoupon(context, r),
+                        icon: const Icon(
+                          Icons.confirmation_number_outlined,
+                          size: 18,
+                        ),
+                        label: const Text('Redimir cupón'),
                       ),
                     if (canAct && r.status != ReservationStatus.confirmed)
                       OutlinedButton.icon(

@@ -64,6 +64,14 @@ enum BusinessSection {
     activeIcon: Icons.inventory_2,
     fullWidth: true,
   ),
+  cupones(
+    group: BusinessSectionGroup.gestion,
+    path: AppRoutes.businessCoupons,
+    label: 'Cupones',
+    icon: Icons.confirmation_number_outlined,
+    activeIcon: Icons.confirmation_number,
+    fullWidth: true,
+  ),
   canchas(
     group: BusinessSectionGroup.gestion,
     path: AppRoutes.businessCourts,

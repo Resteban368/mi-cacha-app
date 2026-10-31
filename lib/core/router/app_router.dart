@@ -33,6 +33,10 @@ import '../../features/business_payments/presentation/pages/new_payment_page.dar
 import '../../features/business_payments/presentation/pages/payments_page.dart';
 import '../../features/business_sales/presentation/bloc/cash_cubit.dart';
 import '../../features/business_sales/presentation/bloc/products_cubit.dart';
+import '../../features/business_coupons/presentation/bloc/coupon_detail_cubit.dart';
+import '../../features/business_coupons/presentation/bloc/coupons_cubit.dart';
+import '../../features/business_coupons/presentation/pages/coupon_detail_page.dart';
+import '../../features/business_coupons/presentation/pages/coupons_page.dart';
 import '../../features/business_sales/presentation/bloc/suppliers_cubit.dart';
 import '../../features/business_sales/domain/usecases/inventory_usecases.dart';
 import '../../features/business_sales/presentation/bloc/inventory_cubit.dart';
@@ -345,6 +349,27 @@ GoRouter _buildRouter(
             child: BlocProvider(
               create: (_) => sl<SuppliersCubit>()..load(),
               child: const SuppliersPage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.businessCoupons,
+          pageBuilder: (_, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: BlocProvider(
+              create: (_) => sl<CouponsCubit>()..load(),
+              child: const CouponsPage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.businessCouponDetail,
+          pageBuilder: (_, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: BlocProvider(
+              create: (_) =>
+                  sl<CouponDetailCubit>()..load(state.pathParameters['id']!),
+              child: const CouponDetailPage(),
             ),
           ),
         ),
