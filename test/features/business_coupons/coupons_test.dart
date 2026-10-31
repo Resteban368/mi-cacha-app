@@ -218,7 +218,14 @@ void main() {
 
     tearDown(() => cubit.close());
 
-    Future<void> pumpPage(WidgetTester tester) async {
+    Future<void> pumpPage(
+      WidgetTester tester, {
+      Size size = const Size(1280, 1400),
+    }) async {
+      tester.view
+        ..physicalSize = size
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -283,6 +290,91 @@ void main() {
 
       expect(find.text(message), findsOneWidget);
       expect(find.text(_coupon.name), findsOneWidget);
+    });
+
+    group('diseño de la vista', () {
+      const percent = Coupon(
+        id: 'c-2',
+        name: 'Martes',
+        requiredReservations: 5,
+        rewardType: CouponRewardType.percent,
+        percent: 20,
+        rewardDescription: 'Veinte por ciento',
+        redeemedCount: 4,
+        state: CouponState.inactive,
+        isActive: false,
+      );
+      const closed = Coupon(
+        id: 'c-3',
+        name: 'Viejo',
+        requiredReservations: 8,
+        rewardType: CouponRewardType.freeCourt,
+        rewardDescription: 'Otra hora',
+        redeemedCount: 1,
+        state: CouponState.expired,
+        isActive: true,
+      );
+
+      setUp(() async {
+        when(
+          () => repository.coupons(),
+        ).thenAnswer((_) async => [_coupon, percent, closed]);
+        await cubit.load();
+      });
+
+      String metric(WidgetTester tester, String key) => tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byKey(Key(key)),
+              matching: find.byType(Text),
+            ),
+          )
+          .elementAt(1)
+          .data!;
+
+      testWidgets('las métricas salen de los cupones reales', (tester) async {
+        await pumpPage(tester);
+        expect(metric(tester, 'stat-active'), '1');
+        expect(metric(tester, 'stat-redeemed'), '8');
+        expect(metric(tester, 'stat-inactive'), '1');
+        expect(metric(tester, 'stat-closed'), '1');
+        expect(find.textContaining('PARTICIPANDO'), findsNothing);
+        expect(find.textContaining('RETENCIÓN'), findsNothing);
+      });
+
+      testWidgets('los filtros y la búsqueda acotan la lista', (tester) async {
+        await pumpPage(tester);
+        await tester.tap(find.text('Por Descuento %'));
+        await tester.pump();
+        expect(find.text('Martes'), findsOneWidget);
+        expect(find.text('Frecuente'), findsNothing);
+
+        await tester.tap(find.text('Todos (3)'));
+        await tester.pump();
+        await tester.enterText(
+          find.byKey(const Key('coupon-search')),
+          'otra hora',
+        );
+        await tester.pump();
+        expect(find.text('Viejo'), findsOneWidget);
+        expect(find.text('Martes'), findsNothing);
+
+        await tester.enterText(find.byKey(const Key('coupon-search')), 'zzz');
+        await tester.pump();
+        expect(
+          find.text('Ningún cupón coincide con tu búsqueda.'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('no se desborda en móvil y un cerrado no tiene interruptor', (
+        tester,
+      ) async {
+        await pumpPage(tester, size: const Size(360, 2400));
+        expect(tester.takeException(), isNull);
+        expect(find.byType(Switch), findsNWidgets(2));
+        expect(find.byKey(const Key('coupon-create')), findsOneWidget);
+      });
     });
 
     testWidgets('el interruptor desactiva el cupón', (tester) async {

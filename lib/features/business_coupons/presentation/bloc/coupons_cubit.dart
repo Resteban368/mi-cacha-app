@@ -9,22 +9,63 @@ import '../../domain/usecases/coupon_usecases.dart';
 
 enum CouponsLoad { loading, ready, failure }
 
+enum CouponFilter { all, active, inactive, freeCourt, percent }
+
 final class CouponsState extends Equatable {
   const CouponsState({
     this.load = CouponsLoad.loading,
     this.coupons = const [],
+    this.query = '',
+    this.filter = CouponFilter.all,
   });
 
   final CouponsLoad load;
 
   /// Del más reciente al más antiguo.
   final List<Coupon> coupons;
+  final String query;
+  final CouponFilter filter;
 
-  CouponsState copyWith({CouponsLoad? load, List<Coupon>? coupons}) =>
-      CouponsState(load: load ?? this.load, coupons: coupons ?? this.coupons);
+  int countIn(CouponState couponState) =>
+      coupons.where((c) => c.state == couponState).length;
+
+  /// Bonos redimidos entre todos los cupones.
+  int get totalRedeemed => coupons.fold(0, (sum, c) => sum + c.redeemedCount);
+
+  /// Los que coinciden con la búsqueda y el filtro.
+  List<Coupon> get visible {
+    final text = query.trim().toLowerCase();
+    return [
+      for (final coupon in coupons)
+        if (_matchesFilter(coupon) &&
+            (coupon.name.toLowerCase().contains(text) ||
+                coupon.rewardDescription.toLowerCase().contains(text)))
+          coupon,
+    ];
+  }
+
+  bool _matchesFilter(Coupon coupon) => switch (filter) {
+    CouponFilter.all => true,
+    CouponFilter.active => coupon.state == CouponState.active,
+    CouponFilter.inactive => coupon.state == CouponState.inactive,
+    CouponFilter.freeCourt => coupon.rewardType == CouponRewardType.freeCourt,
+    CouponFilter.percent => coupon.rewardType == CouponRewardType.percent,
+  };
+
+  CouponsState copyWith({
+    CouponsLoad? load,
+    List<Coupon>? coupons,
+    String? query,
+    CouponFilter? filter,
+  }) => CouponsState(
+    load: load ?? this.load,
+    coupons: coupons ?? this.coupons,
+    query: query ?? this.query,
+    filter: filter ?? this.filter,
+  );
 
   @override
-  List<Object?> get props => [load, coupons];
+  List<Object?> get props => [load, coupons, query, filter];
 }
 
 /// Cupones del negocio: crear, editar, activar/desactivar y borrar.
@@ -62,6 +103,11 @@ class CouponsCubit extends Cubit<CouponsState> {
       emit(state.copyWith(load: CouponsLoad.failure));
     }
   }
+
+  void search(String query) => emit(state.copyWith(query: query));
+
+  void selectFilter(CouponFilter filter) =>
+      emit(state.copyWith(filter: filter));
 
   /// Crea o edita. Devuelve el error para mostrar, o `null` si se guardó.
   ///
