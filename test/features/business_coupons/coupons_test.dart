@@ -1,12 +1,15 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mi_cancha/core/media/image_upload.dart';
 import 'package:mi_cancha/features/business_coupons/data/datasources/coupons_api_data_source.dart';
 import 'package:mi_cancha/features/business_coupons/domain/entities/coupon.dart';
 import 'package:mi_cancha/features/business_coupons/domain/repositories/coupon_repository.dart';
 import 'package:mi_cancha/features/business_coupons/domain/usecases/coupon_usecases.dart';
 import 'package:mi_cancha/features/business_coupons/presentation/bloc/coupon_detail_cubit.dart';
+import 'package:mi_cancha/features/business_coupons/presentation/bloc/coupons_cubit.dart';
 import 'package:mi_cancha/features/business_coupons/presentation/widgets/coupon_labels.dart';
 import 'package:mi_cancha/features/business_coupons/presentation/widgets/redeem_coupon_dialog.dart';
 import 'package:mocktail/mocktail.dart';
@@ -106,6 +109,88 @@ void main() {
         'rewardType': 'FREE_COURT',
       });
       expect(saved.state, CouponState.active);
+    });
+  });
+
+  group('imagen del cupón', () {
+    final jpg = ImageUpload(
+      bytes: Uint8List.fromList([0xff, 0xd8, 0xff, 0x00]),
+      fileName: 'a.jpg',
+    );
+    const draft = (
+      id: null,
+      name: 'Frecuente',
+      requiredReservations: 10,
+      rewardType: CouponRewardType.freeCourt,
+      percent: null,
+      rewardDescription: 'Premio',
+      expiresOn: null,
+      maxRedemptions: null,
+    );
+    late _MockRepository repository;
+    late CouponsCubit cubit;
+
+    setUpAll(() {
+      registerFallbackValue(jpg);
+      registerFallbackValue(draft as CouponDraft);
+    });
+
+    setUp(() {
+      repository = _MockRepository();
+      when(() => repository.save(any())).thenAnswer((_) async => _coupon);
+      cubit = CouponsCubit(
+        getCoupons: GetCoupons(repository),
+        saveCoupon: SaveCoupon(repository),
+        setCouponActive: SetCouponActive(repository),
+        setCouponImage: SetCouponImage(repository),
+        removeCouponImage: RemoveCouponImage(repository),
+      );
+    });
+
+    tearDown(() => cubit.close());
+
+    test('sin imagen no llama a subirla', () async {
+      final result = await cubit.save(draft);
+      expect(result.error, isNull);
+      expect(result.warning, isNull);
+      verifyNever(() => repository.setImage(any(), any()));
+    });
+
+    test('con imagen la sube al cupón recién guardado', () async {
+      when(
+        () => repository.setImage('c-1', any()),
+      ).thenAnswer((_) async => _coupon);
+      final result = await cubit.save(draft, image: jpg);
+      expect(result.warning, isNull);
+      verify(() => repository.setImage('c-1', jpg)).called(1);
+    });
+
+    test('si falla la imagen, el cupón queda y solo avisa', () async {
+      when(() => repository.setImage(any(), any())).thenThrow(Exception('red'));
+      final result = await cubit.save(draft, image: jpg);
+      expect(result.error, isNull);
+      expect(result.warning, contains('El cupón se guardó'));
+      expect(cubit.state.coupons, [_coupon]);
+    });
+
+    test('una imagen inválida no llega a la API', () async {
+      final result = await cubit.save(
+        draft,
+        image: ImageUpload(
+          bytes: Uint8List.fromList([1, 2, 3]),
+          fileName: 'a.gif',
+        ),
+      );
+      expect(result.warning, contains('JPG o PNG'));
+      verifyNever(() => repository.setImage(any(), any()));
+    });
+
+    test('quitar la imagen llama a la API', () async {
+      when(
+        () => repository.removeImage('c-1'),
+      ).thenAnswer((_) async => _coupon);
+      await cubit.save(draft, removeImage: true);
+      verify(() => repository.removeImage('c-1')).called(1);
     });
   });
 

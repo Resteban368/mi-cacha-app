@@ -21,6 +21,7 @@ class Coupon extends Equatable {
     required this.state,
     required this.isActive,
     this.percent,
+    this.imageUrl,
     this.expiresAt,
     this.maxRedemptions,
   });
@@ -31,6 +32,9 @@ class Coupon extends Equatable {
   final CouponRewardType rewardType;
   final int? percent;
   final String rewardDescription;
+
+  /// `null` si no tiene imagen.
+  final String? imageUrl;
 
   /// `null` si no vence.
   final DateTime? expiresAt;
@@ -52,6 +56,7 @@ class Coupon extends Equatable {
     rewardType,
     percent,
     rewardDescription,
+    imageUrl,
     expiresAt,
     maxRedemptions,
     redeemedCount,

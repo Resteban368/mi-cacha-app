@@ -1,3 +1,4 @@
+import '../../../../core/media/image_upload.dart';
 import '../entities/coupon.dart';
 
 abstract interface class CouponRepository {
@@ -8,6 +9,10 @@ abstract interface class CouponRepository {
   Future<Coupon> save(CouponDraft draft);
 
   Future<Coupon> setActive(String id, {required bool isActive});
+
+  Future<Coupon> setImage(String id, ImageUpload image);
+
+  Future<Coupon> removeImage(String id);
 
   Future<CouponCardPage> cards(
     String couponId, {

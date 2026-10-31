@@ -6,6 +6,7 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_top_bar.dart';
 import '../../domain/entities/coupon.dart';
 import '../bloc/coupon_detail_cubit.dart';
@@ -163,6 +164,13 @@ class _Summary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (coupon.imageUrl case final url?) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: AspectRatio(aspectRatio: 2, child: AppNetworkImage(url)),
+            ),
+            const SizedBox(height: 12),
+          ],
           Text(coupon.rewardDescription, style: AppTypography.labelLg),
           const SizedBox(height: 4),
           Text(

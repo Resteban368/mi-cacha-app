@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/media/photo_picker.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/session/write_access.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_add_fab.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_top_bar.dart';
 import '../../domain/entities/coupon.dart';
 import '../bloc/coupons_cubit.dart';
@@ -20,12 +23,27 @@ class CouponsPage extends StatelessWidget {
   Future<void> _edit(BuildContext context, [Coupon? coupon]) async {
     if (!ensureCanWrite(context)) return;
     final cubit = context.read<CouponsCubit>();
+    String? warning;
     final saved = await showCouponFormDialog(
       context,
       coupon: coupon,
-      onSave: cubit.save,
+      photoPicker: sl<PhotoPicker>(),
+      onWarning: (message) => warning = message,
+      onSave: (draft, image, {required removeImage}) =>
+          cubit.save(draft, image: image, removeImage: removeImage),
     );
     if (!saved || !context.mounted) return;
+    if (warning case final message?) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: AppColors.statusDue,
+          ),
+        );
+      return;
+    }
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -173,18 +191,27 @@ class _CouponTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: open ? AppColors.brandTealLight : AppColors.slate100,
+              if (coupon.imageUrl case final url?)
+                ClipRRect(
                   borderRadius: BorderRadius.circular(10),
+                  child: SizedBox.square(
+                    dimension: 44,
+                    child: AppNetworkImage(url, cacheWidth: 132),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: open ? AppColors.brandTealLight : AppColors.slate100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.confirmation_number_rounded,
+                    size: 20,
+                    color: open ? AppColors.brandTeal : AppColors.slate600,
+                  ),
                 ),
-                child: Icon(
-                  Icons.confirmation_number_rounded,
-                  size: 20,
-                  color: open ? AppColors.brandTeal : AppColors.slate600,
-                ),
-              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

@@ -1,3 +1,4 @@
+import '../../../../core/media/image_upload.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../entities/coupon.dart';
 import '../repositories/coupon_repository.dart';
@@ -59,6 +60,31 @@ class SetCouponActive implements UseCase<Coupon, SetCouponActiveParams> {
   @override
   Future<Coupon> call(SetCouponActiveParams params) =>
       _repository.setActive(params.id, isActive: params.isActive);
+}
+
+typedef SetCouponImageParams = ({String id, ImageUpload image});
+
+class SetCouponImage implements UseCase<Coupon, SetCouponImageParams> {
+  const SetCouponImage(this._repository);
+
+  final CouponRepository _repository;
+
+  /// Lanza [ImageUploadException] si la imagen no cumple los límites de la API.
+  @override
+  Future<Coupon> call(SetCouponImageParams params) async {
+    final error = params.image.error;
+    if (error != null) throw ImageUploadException(error);
+    return _repository.setImage(params.id, params.image);
+  }
+}
+
+class RemoveCouponImage implements UseCase<Coupon, String> {
+  const RemoveCouponImage(this._repository);
+
+  final CouponRepository _repository;
+
+  @override
+  Future<Coupon> call(String id) => _repository.removeImage(id);
 }
 
 typedef GetCouponCardsParams = ({

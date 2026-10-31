@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../../core/media/image_upload.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/coupon.dart';
 import '../../domain/repositories/coupon_repository.dart';
@@ -66,6 +67,30 @@ class CouponsApiDataSource implements CouponRepository {
         '$_path/$id',
         data: {'isActive': isActive},
       ),
+    );
+    return couponFromJson(response.data!);
+  }
+
+  /// Multipart desde bytes (no `fromFile`) para que funcione también en web.
+  @override
+  Future<Coupon> setImage(String id, ImageUpload image) async {
+    final form = FormData.fromMap({
+      'image': MultipartFile.fromBytes(
+        image.bytes,
+        filename: image.fileName,
+        contentType: DioMediaType('image', image.isPng ? 'png' : 'jpeg'),
+      ),
+    });
+    final response = await apiCall(
+      () => _dio.put<Map<String, dynamic>>('$_path/$id/image', data: form),
+    );
+    return couponFromJson(response.data!);
+  }
+
+  @override
+  Future<Coupon> removeImage(String id) async {
+    final response = await apiCall(
+      () => _dio.delete<Map<String, dynamic>>('$_path/$id/image'),
     );
     return couponFromJson(response.data!);
   }
@@ -142,6 +167,7 @@ class CouponsApiDataSource implements CouponRepository {
         : CouponRewardType.freeCourt,
     percent: (json['percent'] as num?)?.toInt(),
     rewardDescription: json['rewardDescription'] as String? ?? '',
+    imageUrl: json['imageUrl'] as String?,
     expiresAt: _date(json['expiresAt']),
     maxRedemptions: (json['maxRedemptions'] as num?)?.toInt(),
     redeemedCount: (json['redeemedCount'] as num?)?.toInt() ?? 0,

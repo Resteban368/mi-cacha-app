@@ -275,6 +275,8 @@ void _initBusinessSales() {
     ..registerLazySingleton(() => GetCoupon(sl()))
     ..registerLazySingleton(() => SaveCoupon(sl()))
     ..registerLazySingleton(() => SetCouponActive(sl()))
+    ..registerLazySingleton(() => SetCouponImage(sl()))
+    ..registerLazySingleton(() => RemoveCouponImage(sl()))
     ..registerLazySingleton(() => GetCouponCards(sl()))
     ..registerLazySingleton(() => GetCustomerCoupons(sl()))
     ..registerLazySingleton(() => RedeemCoupon(sl()))
@@ -283,6 +285,8 @@ void _initBusinessSales() {
         getCoupons: sl(),
         saveCoupon: sl(),
         setCouponActive: sl(),
+        setCouponImage: sl(),
+        removeCouponImage: sl(),
       ),
     )
     ..registerFactory(() => CouponDetailCubit(getCoupon: sl(), getCards: sl()))

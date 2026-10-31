@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/media/image_upload.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/coupon.dart';
@@ -32,14 +33,20 @@ class CouponsCubit extends Cubit<CouponsState> {
     required GetCoupons getCoupons,
     required SaveCoupon saveCoupon,
     required SetCouponActive setCouponActive,
+    required SetCouponImage setCouponImage,
+    required RemoveCouponImage removeCouponImage,
   }) : _get = getCoupons,
        _save = saveCoupon,
        _setActive = setCouponActive,
+       _setImage = setCouponImage,
+       _removeImage = removeCouponImage,
        super(const CouponsState());
 
   final GetCoupons _get;
   final SaveCoupon _save;
   final SetCouponActive _setActive;
+  final SetCouponImage _setImage;
+  final RemoveCouponImage _removeImage;
 
   Future<void> load() async {
     emit(state.copyWith(load: CouponsLoad.loading));
@@ -54,7 +61,31 @@ class CouponsCubit extends Cubit<CouponsState> {
   }
 
   /// Crea o edita. Devuelve el error para mostrar, o `null` si se guardó.
-  Future<String?> save(CouponDraft draft) => _apply(() => _save(draft));
+  ///
+  /// El cupón se guarda antes que la imagen: si ella falla, el cupón ya existe,
+  /// así que no se reintenta el formulario (crearía otro) y se avisa en [warning].
+  Future<({String? error, String? warning})> save(
+    CouponDraft draft, {
+    ImageUpload? image,
+    bool removeImage = false,
+  }) async {
+    Coupon? saved;
+    final error = await _apply(() async => saved = await _save(draft));
+    final coupon = saved;
+    if (error != null || coupon == null) return (error: error, warning: null);
+    if (image == null && !removeImage) return (error: null, warning: null);
+    final imageError = await _apply(
+      () => image == null
+          ? _removeImage(coupon.id)
+          : _setImage((id: coupon.id, image: image)),
+    );
+    return (
+      error: null,
+      warning: imageError == null
+          ? null
+          : 'El cupón se guardó, pero no la imagen: $imageError',
+    );
+  }
 
   Future<String?> setActive(Coupon coupon, bool isActive) =>
       _apply(() => _setActive((id: coupon.id, isActive: isActive)));
@@ -74,6 +105,11 @@ class CouponsCubit extends Cubit<CouponsState> {
       return null;
     } on ArgumentError catch (error) {
       return '${error.message}';
+    } on ImageUploadException catch (error) {
+      return switch (error.error) {
+        ImageUploadError.tooLarge => 'La imagen no puede superar 4 MB.',
+        ImageUploadError.invalidType => 'La imagen debe ser JPG o PNG.',
+      };
     } on ApiException catch (error) {
       return switch (error.kind) {
         ApiErrorKind.network =>
