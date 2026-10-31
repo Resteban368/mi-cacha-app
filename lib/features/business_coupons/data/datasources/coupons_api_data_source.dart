@@ -96,6 +96,11 @@ class CouponsApiDataSource implements CouponRepository {
   }
 
   @override
+  Future<void> delete(String id) async {
+    await apiCall(() => _dio.delete<void>('$_path/$id'));
+  }
+
+  @override
   Future<CouponCardPage> cards(
     String couponId, {
     required CouponCardStatus status,

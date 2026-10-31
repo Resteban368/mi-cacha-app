@@ -2,14 +2,17 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mi_cancha/core/media/image_upload.dart';
+import 'package:mi_cancha/core/network/api_exception.dart';
 import 'package:mi_cancha/features/business_coupons/data/datasources/coupons_api_data_source.dart';
 import 'package:mi_cancha/features/business_coupons/domain/entities/coupon.dart';
 import 'package:mi_cancha/features/business_coupons/domain/repositories/coupon_repository.dart';
 import 'package:mi_cancha/features/business_coupons/domain/usecases/coupon_usecases.dart';
 import 'package:mi_cancha/features/business_coupons/presentation/bloc/coupon_detail_cubit.dart';
 import 'package:mi_cancha/features/business_coupons/presentation/bloc/coupons_cubit.dart';
+import 'package:mi_cancha/features/business_coupons/presentation/pages/coupons_page.dart';
 import 'package:mi_cancha/features/business_coupons/presentation/widgets/coupon_labels.dart';
 import 'package:mi_cancha/features/business_coupons/presentation/widgets/redeem_coupon_dialog.dart';
 import 'package:mocktail/mocktail.dart';
@@ -144,6 +147,7 @@ void main() {
         setCouponActive: SetCouponActive(repository),
         setCouponImage: SetCouponImage(repository),
         removeCouponImage: RemoveCouponImage(repository),
+        deleteCoupon: DeleteCoupon(repository),
       );
     });
 
@@ -191,6 +195,106 @@ void main() {
       ).thenAnswer((_) async => _coupon);
       await cubit.save(draft, removeImage: true);
       verify(() => repository.removeImage('c-1')).called(1);
+    });
+  });
+
+  group('borrar y desactivar', () {
+    late _MockRepository repository;
+    late CouponsCubit cubit;
+
+    setUp(() async {
+      repository = _MockRepository();
+      when(() => repository.coupons()).thenAnswer((_) async => [_coupon]);
+      cubit = CouponsCubit(
+        getCoupons: GetCoupons(repository),
+        saveCoupon: SaveCoupon(repository),
+        setCouponActive: SetCouponActive(repository),
+        setCouponImage: SetCouponImage(repository),
+        removeCouponImage: RemoveCouponImage(repository),
+        deleteCoupon: DeleteCoupon(repository),
+      );
+      await cubit.load();
+    });
+
+    tearDown(() => cubit.close());
+
+    Future<void> pumpPage(WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlocProvider.value(value: cubit, child: const CouponsPage()),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    Future<void> openDelete(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('coupon-menu-c-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Borrar'));
+      await tester.pumpAndSettle();
+    }
+
+    test('la API recibe el DELETE del cupón', () async {
+      final adapter = FakeHttpAdapter((_) => (204, null));
+      await CouponsApiDataSource(apiDio(adapter)).delete('c-1');
+      final request = adapter.requests.single;
+      expect(request.method, 'DELETE');
+      expect(request.path, '/business/coupons/c-1');
+    });
+
+    testWidgets('borra tras confirmar y lo quita de la lista', (tester) async {
+      when(() => repository.delete('c-1')).thenAnswer((_) async {});
+      await pumpPage(tester);
+
+      await openDelete(tester);
+      await tester.tap(find.byKey(const Key('coupon-delete-confirm')));
+      await tester.pumpAndSettle();
+
+      verify(() => repository.delete('c-1')).called(1);
+      expect(find.text(_coupon.name), findsNothing);
+      expect(find.text('Cupón borrado.'), findsOneWidget);
+    });
+
+    testWidgets('al cancelar no borra', (tester) async {
+      await pumpPage(tester);
+
+      await openDelete(tester);
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      verifyNever(() => repository.delete(any()));
+      expect(find.text(_coupon.name), findsOneWidget);
+    });
+
+    testWidgets('con bonos muestra el motivo y conserva el cupón', (
+      tester,
+    ) async {
+      const message = 'Este cupón ya tiene bonos ganados o redimidos.';
+      when(
+        () => repository.delete('c-1'),
+      ).thenThrow(const ApiException(ApiErrorKind.conflict, message: message));
+      await pumpPage(tester);
+
+      await openDelete(tester);
+      await tester.tap(find.byKey(const Key('coupon-delete-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(message), findsOneWidget);
+      expect(find.text(_coupon.name), findsOneWidget);
+    });
+
+    testWidgets('el interruptor desactiva el cupón', (tester) async {
+      when(
+        () => repository.setActive('c-1', isActive: false),
+      ).thenAnswer((_) async => _coupon);
+      await pumpPage(tester);
+
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+
+      verify(() => repository.setActive('c-1', isActive: false)).called(1);
     });
   });
 

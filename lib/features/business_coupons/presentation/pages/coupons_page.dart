@@ -16,7 +16,8 @@ import '../bloc/coupons_cubit.dart';
 import '../widgets/coupon_form_dialog.dart';
 import '../widgets/coupon_labels.dart';
 
-/// Cupones del negocio. No se borran: se pausan.
+/// Cupones del negocio. Se desactivan con el interruptor; borrar solo se puede
+/// si aún no hay bonos ganados ni redimidos (lo valida la API).
 class CouponsPage extends StatelessWidget {
   const CouponsPage({super.key});
 
@@ -64,6 +65,49 @@ class CouponsPage extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(content: Text(error), backgroundColor: AppColors.statusDue),
+      );
+  }
+
+  Future<void> _delete(BuildContext context, Coupon coupon) async {
+    if (!ensureCanWrite(context)) return;
+    final cubit = context.read<CouponsCubit>();
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Borrar cupón?'),
+        content: Text(
+          'Se borrará «${coupon.name}» y el avance de tus clientes en él. '
+          'Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const Key('coupon-delete-confirm'),
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.statusDue,
+              foregroundColor: AppColors.onError,
+            ),
+            child: const Text('Borrar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final error = await cubit.delete(coupon);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        error == null
+            ? const SnackBar(content: Text('Cupón borrado.'))
+            : SnackBar(
+                content: Text(error),
+                backgroundColor: AppColors.statusDue,
+              ),
       );
   }
 
@@ -133,6 +177,9 @@ class CouponsPage extends StatelessWidget {
                               onEdit: canWrite
                                   ? () => _edit(context, coupon)
                                   : null,
+                              onDelete: canWrite
+                                  ? () => _delete(context, coupon)
+                                  : null,
                               onToggle: canWrite && !coupon.isClosed
                                   ? (active) => _toggle(context, coupon, active)
                                   : null,
@@ -166,12 +213,14 @@ class _CouponTile extends StatelessWidget {
     required this.coupon,
     required this.onOpen,
     this.onEdit,
+    this.onDelete,
     this.onToggle,
   });
 
   final Coupon coupon;
   final VoidCallback onOpen;
   final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
   final ValueChanged<bool>? onToggle;
 
   @override
@@ -238,14 +287,24 @@ class _CouponTile extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onEdit != null)
-                IconButton(
-                  tooltip: 'Editar',
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 20),
-                ),
               if (!coupon.isClosed)
-                Switch(value: coupon.isActive, onChanged: onToggle),
+                Tooltip(
+                  message: coupon.isActive ? 'Desactivar' : 'Activar',
+                  child: Switch(value: coupon.isActive, onChanged: onToggle),
+                ),
+              if (onEdit != null || onDelete != null)
+                PopupMenuButton<VoidCallback>(
+                  key: Key('coupon-menu-${coupon.id}'),
+                  tooltip: 'Más opciones',
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  onSelected: (action) => action(),
+                  itemBuilder: (_) => [
+                    if (onEdit case final edit?)
+                      PopupMenuItem(value: edit, child: const Text('Editar')),
+                    if (onDelete case final delete?)
+                      PopupMenuItem(value: delete, child: const Text('Borrar')),
+                  ],
+                ),
             ],
           ),
         ),

@@ -62,6 +62,15 @@ class SetCouponActive implements UseCase<Coupon, SetCouponActiveParams> {
       _repository.setActive(params.id, isActive: params.isActive);
 }
 
+class DeleteCoupon implements UseCase<void, String> {
+  const DeleteCoupon(this._repository);
+
+  final CouponRepository _repository;
+
+  @override
+  Future<void> call(String id) => _repository.delete(id);
+}
+
 typedef SetCouponImageParams = ({String id, ImageUpload image});
 
 class SetCouponImage implements UseCase<Coupon, SetCouponImageParams> {

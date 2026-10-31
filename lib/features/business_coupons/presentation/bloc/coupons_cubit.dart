@@ -27,7 +27,7 @@ final class CouponsState extends Equatable {
   List<Object?> get props => [load, coupons];
 }
 
-/// Cupones del negocio: crear, editar y activar/desactivar.
+/// Cupones del negocio: crear, editar, activar/desactivar y borrar.
 class CouponsCubit extends Cubit<CouponsState> {
   CouponsCubit({
     required GetCoupons getCoupons,
@@ -35,11 +35,13 @@ class CouponsCubit extends Cubit<CouponsState> {
     required SetCouponActive setCouponActive,
     required SetCouponImage setCouponImage,
     required RemoveCouponImage removeCouponImage,
+    required DeleteCoupon deleteCoupon,
   }) : _get = getCoupons,
        _save = saveCoupon,
        _setActive = setCouponActive,
        _setImage = setCouponImage,
        _removeImage = removeCouponImage,
+       _delete = deleteCoupon,
        super(const CouponsState());
 
   final GetCoupons _get;
@@ -47,6 +49,7 @@ class CouponsCubit extends Cubit<CouponsState> {
   final SetCouponActive _setActive;
   final SetCouponImage _setImage;
   final RemoveCouponImage _removeImage;
+  final DeleteCoupon _delete;
 
   Future<void> load() async {
     emit(state.copyWith(load: CouponsLoad.loading));
@@ -89,6 +92,33 @@ class CouponsCubit extends Cubit<CouponsState> {
 
   Future<String?> setActive(Coupon coupon, bool isActive) =>
       _apply(() => _setActive((id: coupon.id, isActive: isActive)));
+
+  /// Devuelve el error para mostrar, o `null` si se borró.
+  Future<String?> delete(Coupon coupon) async {
+    try {
+      await _delete(coupon.id);
+      if (isClosed) return null;
+      emit(
+        state.copyWith(
+          coupons: [
+            for (final c in state.coupons)
+              if (c.id != coupon.id) c,
+          ],
+        ),
+      );
+      return null;
+    } on ApiException catch (error) {
+      return switch (error.kind) {
+        ApiErrorKind.network =>
+          'Sin conexión. Revisa tu internet e intenta de nuevo.',
+        ApiErrorKind.forbidden ||
+        ApiErrorKind.conflict => error.message ?? 'No se pudo borrar el cupón.',
+        _ => 'No se pudo borrar el cupón. Intenta de nuevo.',
+      };
+    } catch (_) {
+      return 'No se pudo borrar el cupón. Intenta de nuevo.';
+    }
+  }
 
   Future<String?> _apply(Future<Coupon> Function() request) async {
     try {

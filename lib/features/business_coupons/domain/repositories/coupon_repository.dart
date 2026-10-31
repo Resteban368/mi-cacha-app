@@ -10,6 +10,8 @@ abstract interface class CouponRepository {
 
   Future<Coupon> setActive(String id, {required bool isActive});
 
+  Future<void> delete(String id);
+
   Future<Coupon> setImage(String id, ImageUpload image);
 
   Future<Coupon> removeImage(String id);

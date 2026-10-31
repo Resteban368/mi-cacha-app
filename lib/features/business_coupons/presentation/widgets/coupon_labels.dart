@@ -14,7 +14,7 @@ String couponExpiryLabel(Coupon coupon) => switch (coupon.expiresAt) {
 
 String couponStateLabel(CouponState state) => switch (state) {
   CouponState.active => 'Activo',
-  CouponState.inactive => 'Pausado',
+  CouponState.inactive => 'Desactivado',
   CouponState.expired => 'Vencido',
   CouponState.exhausted => 'Agotado',
 };
